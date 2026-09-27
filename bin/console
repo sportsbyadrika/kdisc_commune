@@ -1,0 +1,123 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Commune console.
+ *
+ *   php bin/console migrate              Run pending migrations
+ *   php bin/console migrate:fresh [--seed]  Drop all tables and re-run migrations (DEV ONLY)
+ *   php bin/console migrate:status       List migrations
+ *   php bin/console db:seed [--class=X]  Run DatabaseSeeder (or one seeder class in database/seeds)
+ *   php bin/console make:migration name  Create an empty SQL migration
+ *   php bin/console key:generate         Print a new APP_KEY for .env
+ *   php bin/console routes               List registered routes
+ */
+
+declare(strict_types=1);
+
+use App\Core\App;
+use App\Core\Database;
+use App\Core\Migrator;
+use App\Core\Router;
+
+$basePath = dirname(__DIR__);
+require $basePath . '/vendor/autoload.php';
+
+App::boot($basePath);
+
+$argv = $_SERVER['argv'];
+array_shift($argv);
+$command = $argv[0] ?? 'help';
+$options = [];
+$args = [];
+foreach (array_slice($argv, 1) as $arg) {
+    if (str_starts_with($arg, '--')) {
+        [$k, $v] = array_pad(explode('=', substr($arg, 2), 2), 2, true);
+        $options[$k] = $v;
+    } else {
+        $args[] = $arg;
+    }
+}
+
+$out = static function (string $line): void {
+    fwrite(STDOUT, $line . PHP_EOL);
+};
+$fail = static function (string $line): never {
+    fwrite(STDERR, "\033[31m{$line}\033[0m" . PHP_EOL);
+    exit(1);
+};
+
+$migrator = static fn (): Migrator => new Migrator(
+    Database::getInstance(),
+    $basePath . '/' . App::config('database.migrations_path', 'database/migrations'),
+    $out,
+);
+
+$seed = static function (string $class) use ($out, $fail): void {
+    $fqcn = str_contains($class, '\\') ? $class : 'Database\\Seeds\\' . $class;
+    if (!class_exists($fqcn)) {
+        $fail("Seeder [{$fqcn}] not found.");
+    }
+    $start = microtime(true);
+    (new $fqcn(Database::getInstance(), $out))->run();
+    $out(sprintf('Seeding complete (%.1f s).', microtime(true) - $start));
+};
+
+try {
+    switch ($command) {
+        case 'migrate':
+            $migrator()->migrate();
+            if (isset($options['seed'])) {
+                $seed('DatabaseSeeder');
+            }
+            break;
+
+        case 'migrate:fresh':
+            if (App::config('app.env') === 'production' && !isset($options['force'])) {
+                $fail('Refusing to drop tables in production. Use --force if you really mean it.');
+            }
+            $migrator()->fresh();
+            if (isset($options['seed'])) {
+                $seed('DatabaseSeeder');
+            }
+            break;
+
+        case 'migrate:status':
+            foreach ($migrator()->status() as $row) {
+                $out(sprintf('%s  %-60s %s', $row['ran'] ? "\033[32mRan \033[0m" : "\033[33mPend\033[0m", $row['migration'], $row['batch'] !== null ? 'batch ' . $row['batch'] : ''));
+            }
+            break;
+
+        case 'db:seed':
+            $seed(is_string($options['class'] ?? null) ? $options['class'] : 'DatabaseSeeder');
+            break;
+
+        case 'make:migration':
+            $name = preg_replace('/[^a-z0-9_]+/', '_', strtolower($args[0] ?? '')) ?: $fail('Usage: make:migration create_things_table');
+            $file = sprintf('%s/database/migrations/%s_%s.sql', $basePath, date('Y_m_d_His'), trim($name, '_'));
+            file_put_contents($file, "-- " . $name . "\n\n");
+            $out('Created ' . str_replace($basePath . '/', '', $file));
+            break;
+
+        case 'key:generate':
+            $out('APP_KEY=base64:' . base64_encode(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
+            break;
+
+        case 'routes':
+            /** @var Router $router */
+            $router = App::container()->get(Router::class);
+            foreach ($router->routes() as $route) {
+                $action = $route->action();
+                $target = is_array($action) ? (is_string($action[0]) ? $action[0] : get_class($action[0])) . '@' . $action[1] : 'Closure';
+                $out(sprintf('%-10s %-38s %-28s %s  [%s]', implode('|', array_diff($route->methods(), ['HEAD'])), $route->uri(), $route->getName() ?? '', str_replace('App\\Controllers\\', '', $target), implode(', ', $route->getMiddleware())));
+            }
+            break;
+
+        default:
+            $doc = (string) file_get_contents(__FILE__);
+            preg_match('#/\*\*(.*?)\*/#s', $doc, $m);
+            $out(trim(preg_replace('/^\s*\* ?/m', '', $m[1] ?? '') ?? ''));
+    }
+} catch (Throwable $e) {
+    $fail(get_class($e) . ': ' . $e->getMessage());
+}
