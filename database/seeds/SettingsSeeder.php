@@ -36,6 +36,9 @@ final class SettingsSeeder extends Seeder
             ['conference_close_hour', '20', 'int', 'booking', 'Conference room bookable until (hour, 24h)'],
             ['max_seats_per_booking', '40', 'int', 'booking', 'Maximum seats in one booking request'],
             ['max_booking_months', '36', 'int', 'booking', 'Longest tenure that can be requested online (months)'],
+            ['approval_payment_days', '7', 'int', 'booking', 'Approved bookings expire when the required payment is not logged within N days'],
+            ['renewal_reminder_days', '15,7,1', 'string', 'booking', 'Renewal reminders are emailed this many days before the end date'],
+            ['checkin_open_hour', '7', 'int', 'booking', 'Earliest hour for check-in on the start date (informational)'],
             ['password_token_minutes', '60', 'int', 'auth', 'Set/reset password link validity (minutes)'],
         ];
         foreach ($settings as [$key, $value, $type, $group, $label]) {

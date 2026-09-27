@@ -87,6 +87,50 @@ final class DocumentStore
         string $field = 'file',
         bool $trusted = false,
     ): array {
+        $file = $this->storeFile($upload, 'kyc/' . $customerId, $field, $trusted);
+        $relative = $file['path'];
+        $mime = $file['mime'];
+        $originalName = $file['name'];
+        $dest = self::root() . '/' . $relative;
+        return $this->db->transaction(function (Database $db) use ($customerId, $type, $originalName, $relative, $mime, $dest, $byType, $byId): array {
+            $old = $db->select('SELECT * FROM customer_documents WHERE customer_id = ? AND doc_type = ?', [$customerId, $type->value]);
+            $id = $db->insert('customer_documents', [
+                'customer_id' => $customerId,
+                'doc_type' => $type->value,
+                'original_name' => mb_substr($originalName, 0, 255),
+                'file_path' => $relative,
+                'mime' => $mime,
+                'size' => (int) filesize($dest),
+                'uploaded_by_type' => $byType->value,
+                'uploaded_by' => $byId,
+            ]);
+            foreach ($old as $row) {
+                $this->removeFile($row);
+                $db->delete('customer_documents', ['id' => $row['id']]);
+            }
+            $this->audit->record(
+                $old === [] ? 'document.upload' : 'document.replace',
+                'customer',
+                $customerId,
+                $old === [] ? null : ['document_id' => $old[0]['id']],
+                ['document_id' => $id, 'doc_type' => $type->value, 'mime' => $mime],
+                actorType: $byType->value,
+                actorId: $byId,
+            );
+            return (array) CustomerDocument::find($id);
+        });
+    }
+
+    /**
+     * The shared secure-upload pipeline (also used for payment proofs): size + finfo MIME sniff + extension
+     * whitelist, random file name under storage/uploads/{$subdir}/, images re-encoded (EXIF stripped).
+     * Throws ValidationException (key = $field) on bad input.
+     *
+     * @param array<string, mixed> $upload $_FILES entry
+     * @return array{path: string, mime: string, name: string, size: int} path relative to the uploads root
+     */
+    public function storeFile(array $upload, string $subdir, string $field = 'file', bool $trusted = false): array
+    {
         $tmp = (string) ($upload['tmp_name'] ?? '');
         $error = (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE);
         $fail = static fn (string $msg): ValidationException => new ValidationException([$field => [$msg]]);
@@ -120,7 +164,7 @@ final class DocumentStore
             throw $fail('The PDF appears to be damaged.');
         }
 
-        $dir = self::root() . '/kyc/' . $customerId;
+        $dir = self::root() . '/' . trim($subdir, '/');
         if (!is_dir($dir) && !mkdir($dir, 0770, true) && !is_dir($dir)) {
             throw new \RuntimeException('Cannot create upload directory.');
         }
@@ -143,35 +187,7 @@ final class DocumentStore
             }
         }
         @chmod($dest, 0640);
-
-        $relative = 'kyc/' . $customerId . '/' . $name;
-        return $this->db->transaction(function (Database $db) use ($customerId, $type, $originalName, $relative, $mime, $dest, $byType, $byId): array {
-            $old = $db->select('SELECT * FROM customer_documents WHERE customer_id = ? AND doc_type = ?', [$customerId, $type->value]);
-            $id = $db->insert('customer_documents', [
-                'customer_id' => $customerId,
-                'doc_type' => $type->value,
-                'original_name' => mb_substr($originalName, 0, 255),
-                'file_path' => $relative,
-                'mime' => $mime,
-                'size' => (int) filesize($dest),
-                'uploaded_by_type' => $byType->value,
-                'uploaded_by' => $byId,
-            ]);
-            foreach ($old as $row) {
-                $this->removeFile($row);
-                $db->delete('customer_documents', ['id' => $row['id']]);
-            }
-            $this->audit->record(
-                $old === [] ? 'document.upload' : 'document.replace',
-                'customer',
-                $customerId,
-                $old === [] ? null : ['document_id' => $old[0]['id']],
-                ['document_id' => $id, 'doc_type' => $type->value, 'mime' => $mime],
-                actorType: $byType->value,
-                actorId: $byId,
-            );
-            return (array) CustomerDocument::find($id);
-        });
+        return ['path' => trim($subdir, '/') . '/' . $name, 'mime' => $mime, 'name' => mb_substr($originalName, 0, 255), 'size' => (int) filesize($dest)];
     }
 
     /** @param array<string, mixed> $doc */

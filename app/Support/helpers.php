@@ -443,3 +443,19 @@ if (!function_exists('format_phone')) {
         return preg_match('/^\+91([6-9]\d{4})(\d{5})$/', $phone, $m) === 1 ? "+91 {$m[1]} {$m[2]}" : $phone;
     }
 }
+
+if (!function_exists('mask_id')) {
+    /** Mask an identifier for display, keeping the first/last characters: mask_id('ABCDE1234F') → "AB•••••34F". */
+    function mask_id(?string $value, int $keepStart = 2, int $keepEnd = 3): string
+    {
+        $value = trim((string) $value);
+        $len = mb_strlen($value);
+        if ($len === 0) {
+            return '';
+        }
+        if ($len <= $keepStart + $keepEnd) {
+            return str_repeat('•', $len);
+        }
+        return mb_substr($value, 0, $keepStart) . str_repeat('•', $len - $keepStart - $keepEnd) . mb_substr($value, -$keepEnd);
+    }
+}

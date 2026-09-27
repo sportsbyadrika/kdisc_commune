@@ -8,6 +8,7 @@ use App\Core\Database;
 use App\Enums\SeatCategory;
 use App\Services\Pricing\PriceResolver;
 use App\Services\Pricing\QuoteService;
+use App\Support\Clock;
 
 /**
  * JSON payload for the Space Explorer floor map (GET /api/space/floors/{floor}/map).
@@ -21,6 +22,7 @@ final class FloorMapService
         private readonly AvailabilityService $availability,
         private readonly PriceResolver $prices,
         private readonly QuoteService $quotes,
+        private readonly Clock $clock,
     ) {
     }
 
@@ -114,6 +116,14 @@ final class FloorMapService
         unset($zone);
 
         $occupants = $withOccupants ? $this->availability->occupants($floorId, $period, $versionId) : [];
+        // reception: who is checked in right now (matched by seat_key — stable across layout versions)
+        $checkedIn = [];
+        if ($withOccupants) {
+            foreach ($this->db->select('SELECT seat_key, booking_id, checked_in_at FROM checkins WHERE checked_out_at IS NULL') as $c) {
+                $checkedIn[(int) $c['seat_key']] = $c;
+            }
+        }
+        $today = $this->clock->today();
         $outSeats = [];
         $hourlyUnits = [];
         foreach ($seats as $s) {
@@ -129,6 +139,7 @@ final class FloorMapService
             }
             $row = [
                 'id' => $id,
+                'key' => (int) ($s['seat_key'] ?? $id),
                 'code' => (string) $s['code'],
                 'label' => (string) ($s['label'] ?? $s['code']),
                 'kind' => (string) $s['kind'],
@@ -154,6 +165,9 @@ final class FloorMapService
                         'status' => $o['status'], 'from' => $o['start_date'], 'to' => $o['end_date'],
                         'start_time' => $o['start_time'] !== null ? substr((string) $o['start_time'], 0, 5) : null,
                         'end_time' => $o['end_time'] !== null ? substr((string) $o['end_time'], 0, 5) : null,
+                        'checked_in' => isset($checkedIn[(int) ($s['seat_key'] ?? $id)]) && (int) $checkedIn[(int) ($s['seat_key'] ?? $id)]['booking_id'] === (int) $o['booking_id'],
+                        'checked_in_at' => $checkedIn[(int) ($s['seat_key'] ?? $id)]['checked_in_at'] ?? null,
+                        'can_check' => in_array($o['status'], ['confirmed', 'active'], true) && (string) $o['start_date'] <= $today && (string) $o['end_date'] >= $today && $o['start_time'] === null,
                     ];
                 }
                 if ($category?->hourlyOnly()) {

@@ -20,8 +20,8 @@ use App\Support\Clock;
 
 /**
  * Turns a selection into a booking (spec 1.2, 8):
- *   online checkout  → status requested (Centre Manager approves in batch 4)
- *   reception        → status approved (payment + confirmation in batch 4)
+ *   online checkout  → status requested (Centre Manager approves — BookingWorkflow::approve)
+ *   reception        → status approved (payment_due_by set; payment confirms it — PaymentService)
  *
  * Double-booking guard: inside ONE transaction the unit rows and their chairs are locked with
  * SELECT … FOR UPDATE, availability is re-checked (overlapping active bookings; other people's
@@ -46,7 +46,7 @@ final class BookingService
      * @param array<string, mixed> $customer customers row (id, state_code)
      * @param list<int> $unitIds
      * @param array<int|string, int|string> $addons facility id => qty
-     * @param array{status?: BookingStatus, override_reason?: ?string, notes?: ?string, terms?: bool, requested_by?: ?int, created_by?: ?int} $opts
+     * @param array{status?: BookingStatus, override_reason?: ?string, notes?: ?string, terms?: bool, requested_by?: ?int, created_by?: ?int, renewed_from_id?: ?int} $opts
      * @return array{booking: array<string, mixed>, quote: Quote}
      */
     public function create(array $customer, SeatHolder $holder, array $unitIds, BookingPeriod $period, array $addons, BookingSource $source, array $opts = []): array
@@ -144,6 +144,8 @@ final class BookingService
                 'created_by' => $staffId,
                 'approved_by' => $status === BookingStatus::Approved ? $staffId : null,
                 'approved_at' => $status === BookingStatus::Approved ? $now : null,
+                'payment_due_by' => $status === BookingStatus::Approved ? $this->clock->now()->modify('+' . max(1, (int) setting('approval_payment_days', 7)) . ' days')->format('Y-m-d') : null,
+                'renewed_from_id' => $opts['renewed_from_id'] ?? null,
                 'notes' => $opts['notes'] ?? null,
             ]);
             $keyOf = array_column($units, 'seat_key', 'id');

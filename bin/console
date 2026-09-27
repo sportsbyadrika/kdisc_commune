@@ -11,6 +11,9 @@
  *   php bin/console make:migration name  Create an empty SQL migration
  *   php bin/console key:generate         Print a new APP_KEY for .env
  *   php bin/console routes               List registered routes
+ *   php bin/console bookings:tick        Scheduled booking lifecycle: activate on start date, complete after end
+ *                                        date, expire unpaid approvals, renewal reminders (idempotent; cron)
+ *   php bin/console holds:cleanup        Delete expired seat holds (cron)
  */
 
 declare(strict_types=1);
@@ -111,6 +114,29 @@ try {
                 $target = is_array($action) ? (is_string($action[0]) ? $action[0] : get_class($action[0])) . '@' . $action[1] : 'Closure';
                 $out(sprintf('%-10s %-38s %-28s %s  [%s]', implode('|', array_diff($route->methods(), ['HEAD'])), $route->uri(), $route->getName() ?? '', str_replace('App\\Controllers\\', '', $target), implode(', ', $route->getMiddleware())));
             }
+            break;
+
+        case 'bookings:tick':
+            /** @var \App\Services\Bookings\BookingTicker $ticker */
+            $ticker = App::container()->get(\App\Services\Bookings\BookingTicker::class);
+            $start = microtime(true);
+            $r = $ticker->run();
+            $out(sprintf(
+                'bookings:tick  activated %d · completed %d · expired %d · reminders %d  (%.2f s)',
+                $r['activated'], $r['completed'], $r['expired'], $r['reminders'], microtime(true) - $start,
+            ));
+            foreach ($r['errors'] as $err) {
+                fwrite(STDERR, '  ! ' . $err . PHP_EOL);
+            }
+            if ($r['errors'] !== []) {
+                exit(1);
+            }
+            break;
+
+        case 'holds:cleanup':
+            /** @var \App\Services\Space\SeatHoldService $holds */
+            $holds = App::container()->get(\App\Services\Space\SeatHoldService::class);
+            $out(sprintf('holds:cleanup  removed %d expired seat hold(s)', $holds->purgeExpired()));
             break;
 
         default:

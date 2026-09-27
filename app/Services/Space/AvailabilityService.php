@@ -346,6 +346,64 @@ final class AvailabilityService
     }
 
     /**
+     * Live (published-layout) seat rows for stable seat keys — how renewals and check-ins find "the same seat"
+     * after a layout publish.
+     *
+     * @param list<int> $seatKeys
+     * @return array<int, array<string, mixed>> seat_key => seat row (id, code, label, kind, parent_id, category, floor_id, floor_slug)
+     */
+    public function publishedByKey(array $seatKeys): array
+    {
+        if ($seatKeys === []) {
+            return [];
+        }
+        $in = implode(',', array_fill(0, count($seatKeys), '?'));
+        $out = [];
+        foreach ($this->db->select(
+            "SELECT s.id, s.seat_key, s.code, s.label, s.kind, s.parent_id, s.capacity, z.seat_category_id, sc.code AS category, lv.floor_id, f.slug AS floor_slug, f.name AS floor_name
+             FROM seats s
+             JOIN zones z ON z.id = s.zone_id
+             JOIN layout_versions lv ON lv.id = z.layout_version_id AND lv.status = 'published'
+             JOIN floors f ON f.id = lv.floor_id
+             LEFT JOIN seat_categories sc ON sc.id = z.seat_category_id
+             WHERE s.seat_key IN ({$in})",
+            array_values($seatKeys),
+        ) as $r) {
+            $out[(int) $r['seat_key']] = $r;
+        }
+        return $out;
+    }
+
+    /**
+     * Free bookable units of a category for a period (handover / renewal alternatives), nearest floor first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function freeUnits(string $category, BookingPeriod $period, ?int $ignoreBookingId = null, ?int $preferFloorId = null): array
+    {
+        $rows = $this->db->select(
+            "SELECT s.*, z.seat_category_id, sc.code AS category, lv.floor_id, f.name AS floor_name, f.slug AS floor_slug, z.name AS zone_name
+             FROM seats s
+             JOIN zones z ON z.id = s.zone_id
+             JOIN layout_versions lv ON lv.id = z.layout_version_id AND lv.status = 'published'
+             JOIN floors f ON f.id = lv.floor_id
+             JOIN seat_categories sc ON sc.id = z.seat_category_id
+             WHERE sc.code = ? AND s.parent_id IS NULL
+             ORDER BY f.sort_order, s.code",
+            [$category],
+        );
+        if ($rows === []) {
+            return [];
+        }
+        $statuses = $this->seatStatuses(array_map(static fn (array $r) => (int) $r['id'], $rows), $period, null, $ignoreBookingId);
+        $free = array_values(array_filter($rows, static fn (array $r) => ($statuses[(int) $r['id']] ?? '') === self::AVAILABLE));
+        if ($preferFloorId !== null) {
+            usort($free, static fn (array $a, array $b) => ((int) $a['floor_id'] !== $preferFloorId) <=> ((int) $b['floor_id'] !== $preferFloorId));
+        }
+        return $free;
+    }
+
+    /**
      * Short fingerprint of a status map, so pollers can skip unchanged payloads.
      *
      * @param array<int, string> $statuses
