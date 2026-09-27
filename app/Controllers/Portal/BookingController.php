@@ -38,12 +38,7 @@ final class BookingController extends PortalController
     {
         $customer = $this->customer();
         $rows = $this->bookings->forCustomer((int) $customer['id']);
-        $dues = [];
-        foreach ($rows as $b) {
-            if (BookingStatus::from((string) $b['status'])->billable()) {
-                $dues[(int) $b['id']] = $this->ledger->dues($b);
-            }
-        }
+        $dues = $this->ledger->duesMany(array_values(array_filter($rows, static fn (array $b) => BookingStatus::from((string) $b['status'])->billable())));
         return $this->view('portal/bookings/index', [
             'title' => 'My bookings',
             'customer' => Customer::safe($customer),

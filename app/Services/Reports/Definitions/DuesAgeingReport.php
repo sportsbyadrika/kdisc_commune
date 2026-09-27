@@ -62,11 +62,13 @@ final class DuesAgeingReport extends Report
         $st = BookingStatus::billableValues();
         $in = implode(',', array_fill(0, count($st), '?'));
         $out = [];
-        foreach ($this->db->select(
+        $bookings = $this->db->select(
             "SELECT b.*, c.name AS customer_name, c.unique_id, c.mobile FROM bookings b JOIN customers c ON c.id = b.customer_id WHERE b.status IN ({$in}) ORDER BY b.id",
             $st,
-        ) as $b) {
-            $a = AgeingCalculator::buckets($b, $this->ledger->dues($b), $today);
+        );
+        $all = $this->ledger->duesMany($bookings);
+        foreach ($bookings as $b) {
+            $a = AgeingCalculator::buckets($b, $all[(int) $b['id']], $today);
             if ($a['total'] <= 0) {
                 continue;
             }

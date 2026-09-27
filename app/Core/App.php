@@ -59,6 +59,8 @@ final class App
             $c->get(LoggerInterface::class),
         ));
         $container->singleton(\App\Services\Kyc\AadhaarVault::class, fn () => new \App\Services\Kyc\AadhaarVault());
+        // settings are read on almost every page (setting('gst_rate')…): load the table once per request
+        $container->singleton(\App\Services\SettingsService::class, fn (Container $c) => new \App\Services\SettingsService($c->get(Database::class)));
         // One clock per request so time-based rules (seat holds) agree; tests freeze it.
         $container->singleton(\App\Support\Clock::class, fn () => new \App\Support\Clock());
         $container->singleton(Router::class, function (Container $c) use ($basePath, $config): Router {

@@ -63,7 +63,8 @@ final class BookingsReport extends Report
     {
         $by = $f->get('group', 'status');
         $dateCol = $f->get('basis') === 'start' ? 'b.start_date' : 'DATE(b.created_at)';
-        $where = ["{$dateCol} BETWEEN ? AND ?"];
+        // range filters stay index-friendly (no function on the column)
+        $where = [$f->get('basis') === 'start' ? 'b.start_date BETWEEN ? AND ?' : 'b.created_at >= ? AND b.created_at < ? + INTERVAL 1 DAY'];
         $bind = [$f->from(), $f->to()];
         if ($f->get('category') !== '') {
             $where[] = 'sc.code = ?';

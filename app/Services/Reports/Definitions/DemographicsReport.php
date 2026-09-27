@@ -56,7 +56,7 @@ final class DemographicsReport extends Report
 
     public function run(ReportFilters $f): ReportResult
     {
-        $where = 'DATE(c.created_at) BETWEEN ? AND ?';
+        $where = 'c.created_at >= ? AND c.created_at < ? + INTERVAL 1 DAY';   // sargable: uses idx_customers_created
         $bind = [$f->from(), $f->to()];
         if ($f->get('kyc') === 'verified') {
             $where .= " AND c.kyc_status = 'verified'";

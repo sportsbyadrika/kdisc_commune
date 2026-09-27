@@ -60,8 +60,21 @@ final class InvoiceService
             $bind[] = $bookingId;
         }
         $out = [];
-        foreach ($this->db->select($sql . ' ORDER BY b.id', $bind) as $b) {
-            foreach ($this->candidates($b) as $c) {
+        $bookings = $this->db->select($sql . ' ORDER BY b.id', $bind);
+        // preload payments / invoices / schedules for every booking at once (the queue is counted on dashboards)
+        $ids = array_map(static fn (array $b) => (int) $b['id'], $bookings);
+        $payments = $this->ledger->paymentsFor($ids);
+        $schedules = $this->ledger->schedulesFor($bookings);
+        $invoices = [];
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $in = implode(',', array_fill(0, count($chunk), '?'));
+            foreach ($this->db->select("SELECT id, booking_id, source_key, invoice_no FROM invoices WHERE booking_id IN ({$in})", $chunk) as $r) {
+                $invoices[(int) $r['booking_id']][] = $r;
+            }
+        }
+        foreach ($bookings as $b) {
+            $id = (int) $b['id'];
+            foreach ($this->candidates($b, $payments[$id] ?? [], $invoices[$id] ?? [], $schedules[$id] ?? []) as $c) {
                 if (!$c['invoiced']) {
                     $out[] = $c;
                 }
@@ -80,22 +93,25 @@ final class InvoiceService
      * Every invoiceable source of one booking (invoiced or not) — also used by the booking page.
      *
      * @param array<string, mixed> $b bookings row
+     * @param list<array<string, mixed>>|null $payments preloaded PaymentLedger::paymentsFor() rows (queue())
+     * @param list<array<string, mixed>>|null $invoiceRows preloaded invoices of the booking
+     * @param list<array<string, mixed>>|null $schedule preloaded rent schedule
      * @return list<array<string, mixed>>
      */
-    public function candidates(array $b): array
+    public function candidates(array $b, ?array $payments = null, ?array $invoiceRows = null, ?array $schedule = null): array
     {
         $bookingId = (int) $b['id'];
-        $payments = $this->ledger->payments($bookingId);
+        $payments ??= $this->ledger->payments($bookingId);
         $verified = array_values(array_filter($payments, static fn (array $p) => $p['status'] === PaymentStatus::Verified->value));
         if ($verified === []) {
             return [];
         }
         $lastVerified = max(array_map(static fn (array $p) => (string) $p['verified_at'], $verified));
         $invoiced = [];
-        foreach ($this->db->select('SELECT id, source_key, invoice_no FROM invoices WHERE booking_id = ?', [$bookingId]) as $r) {
+        foreach ($invoiceRows ?? $this->db->select('SELECT id, source_key, invoice_no FROM invoices WHERE booking_id = ?', [$bookingId]) as $r) {
             $invoiced[(string) $r['source_key']] = $r;
         }
-        $schedule = $this->ledger->schedule($b);
+        $schedule ??= $this->ledger->schedule($b);
         $dues = DuesCalculator::calculate($b + ['status' => 'confirmed'], $schedule, $verified, $this->clock->today());
         $base = [
             'booking_id' => $bookingId,

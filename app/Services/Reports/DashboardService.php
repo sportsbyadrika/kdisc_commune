@@ -138,7 +138,7 @@ final class DashboardService
                     SUM(status IN ('rejected', 'cancelled')) AS declined,
                     SUM(status = 'requested') AS open,
                     SUM(source = 'online') AS online, SUM(source = 'reception') AS reception
-             FROM bookings WHERE DATE(created_at) BETWEEN ? AND ?",
+             FROM bookings WHERE created_at >= ? AND created_at < ? + INTERVAL 1 DAY",
             [$from, $to],
         );
         $n = (int) ($r['n'] ?? 0);

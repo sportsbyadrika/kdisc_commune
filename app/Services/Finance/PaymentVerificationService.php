@@ -76,7 +76,7 @@ final class PaymentVerificationService
         return [
             'pending' => (int) $this->db->scalar("SELECT COUNT(*) FROM payments WHERE status = 'logged'"),
             'queried' => (int) $this->db->scalar("SELECT COUNT(*) FROM payments WHERE status = 'logged' AND queried_at IS NOT NULL AND query_resolved_at IS NULL"),
-            'verified_today' => (int) $this->db->scalar("SELECT COUNT(*) FROM payments WHERE status = 'verified' AND DATE(verified_at) = ?", [$today]),
+            'verified_today' => (int) $this->db->scalar("SELECT COUNT(*) FROM payments WHERE status = 'verified' AND verified_at >= ? AND verified_at < ? + INTERVAL 1 DAY", [$today, $today]),
             'pending_amount' => round((float) $this->db->scalar("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'logged'"), 2),
             'oldest_days' => (int) $this->db->scalar("SELECT COALESCE(MAX(DATEDIFF(?, paid_on)), 0) FROM payments WHERE status = 'logged'", [$today]),
         ];
