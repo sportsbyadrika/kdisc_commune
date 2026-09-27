@@ -177,6 +177,7 @@ first day of each period) shown on the booking and in the portal.
 ```cron
 */15 * * * * cd /var/www/commune && php bin/console bookings:tick  >> storage/logs/cron.log 2>&1
 */10 * * * * cd /var/www/commune && php bin/console holds:cleanup  >> storage/logs/cron.log 2>&1
+0    * * * * cd /var/www/commune && php bin/console imports:cleanup >> storage/logs/cron.log 2>&1
 ```
 
 `bookings:tick` activates bookings on their start date, completes them after the end date, expires unpaid approvals
@@ -220,6 +221,53 @@ cached in `storage/cache/dompdf/`. Malayalam: no Malayalam font ships with the a
 use `font-family: 'Noto Sans Malayalam', 'DejaVu Sans'` on Malayalam text. Note that dompdf does not perform complex
 script shaping, so conjunct-heavy Malayalam may render imperfectly — keep Malayalam to short labels or pre-render it as an image.
 
+## Dashboards, reports, exports & bulk upload (batch 7)
+
+**Dashboards.** `/staff/dashboard?range=month|last-month|3m|6m|fy|last-fy`
+- *State Admin* (read-only): revenue MTD / FYTD (net taxable invoiced), collections, dues outstanding, active bookings,
+  occupancy today, 12-month revenue vs collections and occupancy trends, payment status, seats by space type, a
+  **heat-map of every floor** (each seat / cabin / room shaded by its share of seat-days occupied in the period) and
+  a per-space-type breakdown.
+- *Centre Manager*: the front-desk board plus *Centre insights* — heat-map, renewals pipeline (next 30 days), KYC
+  queue size, request → confirmation conversion (last 90 days) and dues ageing.
+
+**Reports** — `/staff/reports` lists what the role may open. Every report has filters, a sortable paginated table
+with totals, and **Export XLSX / Export PDF** with the same figures and filters:
+
+| Report | What |
+|---|---|
+| Occupancy | seat-days occupied / available by floor × space type, space type, floor, seat or day (+ daily chart) |
+| Bookings summary | bookings, seats, value and confirmation rate by status / source / space type / month |
+| Renewals due | bookings ending in the next 7–90 days and whether they are renewed |
+| Revenue | invoiced taxable value net of credit notes by month / space type / add-on |
+| Collections | payments by mode / purpose / month, verified vs to verify |
+| Dues ageing | money due now in 0–30 / 31–60 / 61–90 / 90+ day buckets, per booking or visitor |
+| GST summary (GSTR-1) | month or FY: Summary, B2B, B2CL, B2CS (net of its credit notes), credit/debit notes, HSN/SAC — one worksheet each |
+| KYC funnel | registered → submitted → verified → booked, online vs reception, time to verify |
+| Visitor demographics | individual categories, institution types, channel, home state / nationality |
+| Finance registers | invoice / receipt / credit note / deposit / outstanding (Finance) |
+
+List pages (visitors, bookings, payments, invoices & receipts) have an **Export** menu that exports what the page
+shows (same filters). XLSX files have a brand-coloured frozen header row, autofilter, ₹ `#,##0.00`, real dates,
+column widths and a SUBTOTAL totals row; exports are audited (`report.export`).
+
+**Bulk upload** — `/staff/imports` (Centre Manager). Types: *Individuals, Institutions, Bookings, Payments,
+Facilities, Rates*. Download the template (required columns marked `*`, dropdowns, an example row and an
+*Instructions* sheet), fill it, upload it (.xlsx, 5 MB / 1,000 rows by default — `import_max_mb`, `import_max_rows`).
+Every row is validated with the same rules as the forms (Aadhaar Verhoeff, PAN, GSTIN checksum + PAN + state, TAN,
+mobile, email, duplicates in the database *and* in the file, seat availability + price for bookings, balances for
+payments) and shown in a **preview** (Aadhaar masked). Confirm *row by row* or *all or nothing*, optionally sending
+portal invites; download the **error report** (the failed rows + an Error column, red cells) to fix and re-upload.
+The uploaded file stays in `storage/imports/tmp/` (private) only until it is confirmed, discarded or expires
+(`import_expiry_minutes`, default 120).
+
+**Also:** audit log viewer `/staff/audit` (Centre Manager, State Admin — filters + old/new diff) and the staff
+notification inbox (header bell, `/staff/notifications`).
+
+**Demo / UAT data:** after `php bin/console migrate:fresh --seed` run `php bin/console demo:seed` — ~30 visitors and
+~40 bookings over three months with payments, receipts, invoices, a credit note and a renewal, created through the
+real services. It refuses to run when `APP_ENV=production`.
+
 ## Everyday commands
 
 ```bash
@@ -229,6 +277,8 @@ composer analyse                  # PHPStan (level 6)
 php bin/console migrate:status    # which migrations have run
 php bin/console routes            # list routes
 php bin/console bookings:tick     # run the booking scheduler now (idempotent)
+php bin/console demo:seed         # UAT demo data through the real services (not in production)
+php bin/console imports:cleanup   # delete expired bulk-upload temp files
 npm run watch:css                 # rebuild CSS while editing views
 php bin/make-placeholder-plans.php  # regenerate placeholder floor-plan SVGs from the seed layout
 ```
@@ -239,6 +289,6 @@ php bin/make-placeholder-plans.php  # regenerate placeholder floor-plan SVGs fro
   (mod_rewrite). nginx: see [`nginx.conf.example`](nginx.conf.example). URLs never contain `.php`.
 - Set `APP_ENV=production`, `APP_DEBUG=false`, a real `APP_KEY`, and serve over HTTPS (session cookies become
   `Secure` automatically).
-- `storage/` must be writable by PHP (logs, sessions, uploads, PDFs). It is outside the web root on purpose.
+- `storage/` must be writable by PHP (logs, sessions, uploads, PDFs, import temp files). It is outside the web root on purpose.
 - Replace the placeholder images in `public/media/` (or update the paths stored in the `buildings`, `floors` and
   `seat_categories` tables) once real photos are available.

@@ -48,7 +48,8 @@ app/
   Middleware/      VerifyCsrfToken, StaffAuth, VisitorAuth, Guest, Role, Can
   Enums/           backed enums for every status/type column (StaffRole, SeatCategory, BookingStatus, …)
   Models/          thin table gateways returning arrays (Model::find/where/create/update)
-  Services/        business logic: Auth/, Kyc/, Notify/, Visitors/, Pricing/, Space/, Bookings/, Payments/, Finance/, Pdf/, SettingsService, AuditLog
+  Services/        business logic: Auth/, Kyc/, Notify/, Visitors/, Pricing/, Space/, Bookings/, Payments/, Finance/, Pdf/,
+                   Reports/, Imports/, Demo/, SettingsService, AuditLog (+ AuditTrail read side)
   Support/Clock.php    request-scoped "now" (container singleton; tests freeze it)
   Support/helpers.php  global helpers (e(), url(), asset(), icon(), icon_symbol(), money(), old(), errors(), csrf_field(), visitor(),
                    format_phone(), format_bytes(), …); Support/IndianStates (GST state codes)
@@ -63,8 +64,9 @@ database/
   migrations/      *.sql (or *.php returning fn(Database)) — run in filename order
   seeds/           Database\Seeds\*Seeder classes + data/kottarakara_layout.php
 public/            web root ONLY: index.php, .htaccess, assets/ (built CSS, vendored JS), media/ (images)
-storage/           logs, sessions, uploads (KYC — never public), pdf, exports, cache
-bin/console        migrations, seeding, routes list, key generation, bookings:tick, holds:cleanup (cron — see README)
+storage/           logs, sessions, uploads (KYC — never public), pdf, exports, cache, imports (bulk-upload temp + error reports, 0700)
+bin/console        migrations, seeding, routes list, key generation, bookings:tick, holds:cleanup, imports:cleanup (cron — see
+                   README), demo:seed (UAT data; refuses in production)
 tests/Unit         PHPUnit tests
 ```
 
@@ -385,6 +387,46 @@ Rules of thumb:
 - Mailer: `send($to, $subject, $template, $data, $attachments)` — attachments `['name', 'content'|'path', 'mime']`.
 - Form components `input`/`textarea` accept `id` — pass one when the same field name repeats on a page (modals per row).
 
+## Dashboards, reports, XLSX & bulk import (batch 7)
+
+Spec §6.4, 6.5, 10. **One report definition feeds three outputs**: `Reports\Report` subclasses in
+`app/Services/Reports/Definitions` declare filters (`Filter::range|select|search|date`) and `run(ReportFilters)` →
+`ReportResult` (columns `Column::text|mono|money|int|number|pct|date|datetime`, rows, auto totals + `extraTotals`,
+notes, optional chart payload, extra `sheets`). `staff/reports/show` (sort + paginate in PHP), `pdf/report` (dompdf via
+`Export\ReportExporter`) and `Export\XlsxExporter` all render that object — never format a report twice.
+
+| Piece | Use it for |
+|---|---|
+| `Reports\ReportRegistry` | every definition by key (+ one `FinanceRegisterReport` per FinanceReportService register); `hub($role)` |
+| `Reports\ReportFilters` | `make($report, $query, $today)` → normalised values, `from()/to()` (presets month, 3m, fy…), `query()` for links, `describe()` for exports |
+| `Reports\OccupancyService` | THE occupancy maths: seat-days (units × seats × days, blocked days excluded) vs committed bookings (approved/confirmed/active/completed) matched by **seat_key**; conference = booked hours ÷ opening hours; `compute()` per unit + daily, `group()` |
+| `Reports\AgeingCalculator` | pure: a booking's due-now split into current / 0–30 / 31–60 / 61–90 / 90+ by due date (advance pay-by, deposit, each rent period) |
+| `Reports\DashboardService` | State Admin + Centre Manager payloads (KPIs, 12-month trends, payment status, heat-maps, renewals pipeline, conversion, ageing) |
+| `Reports\Definitions\GstSummaryReport` | GSTR-1 sheets (Summary, B2B, B2CL > ₹1 L inter-state, B2CS net of its credit notes, CDNR/CDNUR notes, HSN) — net = FinanceReportService::gst() |
+| `Imports\ImportService` | upload (xlsx only, size/rows from settings, finfo + `PK` + reader sniff, random name, 0600 in `storage/imports/tmp`) → `evaluate()` every row → masked preview JSON + error report → `confirm($id, $staff, per_row|all_or_nothing, $invites)` re-reads and RE-VALIDATES, imports each row in a transaction (or all in one), invites after commit, deletes the temp files; `discard()`, `cleanupExpired()` |
+| `Imports\Importer` + `Types\*` | one class per type: `columns()` (`ImportColumn`: required, example, options → dropdown, type id/date/time, `sensitive` → masked), `validate($row, $ctx)`, `import($data, $ctx)` through the UI services only |
+| `Imports\SpreadsheetReader` / `TemplateBuilder` | chunked (ReadFilter) reading with header matching + date/time normalising; templates with Data / Instructions / hidden Lists sheets |
+| `Visitors\VisitorRegistration` | staff-side visitor creation shared by the reception form, the importer and demo data (`validate`, `create`, `register`, `invite`) |
+| `AuditTrail` / `Notify\StaffInbox` | audit viewer queries + `diff()`; staff notifications (bell data shared by `StaffAuth` as `staffInbox`) |
+| `Demo\DemoSeeder` | `demo:seed` — realistic UAT data through the real services with the Clock frozen per event |
+
+Rules of thumb:
+- Add a report: definition class + `ReportRegistry::DEFINITIONS` + an ability; it appears in the hub and gets XLSX/PDF
+  for free. Routes: `/staff/reports/{key}` (`.xlsx`, `.pdf`) check `Report::ability()` in the controller.
+  List pages link to their list definition with `partials/report/export-buttons` (`key` + the page's filters).
+- Money columns are `Column::money` (XLSX `#,##0.00`, totals via `SUBTOTAL(9,…)` so autofilter works); percentages are
+  FRACTIONS (`0.42` → 42.0%). Text/ID cells are written as explicit strings.
+- Importers never write SQL: they call VisitorRegistration / BookingService (holder `SeatHolder::staff($id, 'import-{batch}')`,
+  status approved) / PaymentService / FacilityService / RateService. Use `$ctx->claim()` for in-file duplicates and
+  `$ctx->state` for running totals (seat claims, amounts per booking). Validated data (full Aadhaar) is never
+  persisted — previews and error reports hold `Importer::display()` values (sensitive → `XXXX XXXX 1234`).
+- Heat-maps: `partials/report/heatmap` + `heat-legend`, Alpine `heatMap` in `resources/js/dashboards.js` (draws with
+  space-render.js; load `space-render.js`, `chart.umd.min.js`, `dashboards.js` in `head`). Colours are the
+  `--color-heat-1..5` sequential ramp (validated ordinal blue) and `--color-chart-1/2`; never colour a chart with
+  zone/category colours. Charts: `<canvas data-dash-chart='{kind, labels, values…}'>` (kinds in the JS header).
+- Abilities added: `imports.manage` (CM), `audit.view` (CM, State Admin); State Admin also has `dues.view`, `renewals.view`.
+- Settings: `import_max_rows`, `import_max_mb`, `import_expiry_minutes`.
+
 ## Front-end
 
 - **Tailwind v4, CSS-first.** All brand values are tokens in the `@theme` block of `resources/css/app.css`
@@ -420,13 +462,16 @@ Rules of thumb:
   check-in/out from the seat popover (DONE in batch 5), SSE instead of polling, a cron for `SeatHoldService::purgeExpired()` (DONE: `holds:cleanup`).
 - **Batch 4 (done) — Layout & Pricing Designer:** see above. Not built: State Admin read-only designer view,
   scheduled (future-dated) layout publishes, resizing seats with handles (use the inspector), per-seat facility
-  stock, audit viewer UI.
+  stock, audit viewer UI (DONE in batch 7).
 - **Batch 5 (done) — booking lifecycle, front desk & payments:** see above. Not built: online payment gateway,
-  staff notification inbox UI (rows are written to `notifications`), handover of part of a cabin, rescheduling hourly
+  staff notification inbox UI (DONE in batch 7), handover of part of a cabin, rescheduling hourly
   bookings, automatic re-billing / refunds (Finance credit notes), SMS/WhatsApp reminders.
 - **Batch 6 (done) — finance:** see "Finance, GST documents & PDFs" above. Not built: e-invoicing (IRN/QR from the
-  GST portal) and GSTR-1 export, online payment gateway reconciliation, automatic credit notes on early exit (Finance
+  GST portal) and GSTR-1 export (XLSX DONE in batch 7), online payment gateway reconciliation, automatic credit notes on early exit (Finance
   issues them from the suggestion), taxable adjustments on deposit refunds (invoice separately), Malayalam PDF text,
   payment rejection status flow (Finance queries instead).
-- **Next: batch 7 — State/Centre dashboards, reports & XLSX** (PhpSpreadsheet): reuse `FinanceReportService::register()`
-  for XLSX exports, `import_batches` bulk upload, occupancy heat-maps, trends; then hardening.
+- **Batch 7 (done) — dashboards, reports, XLSX:** see "Dashboards, reports, XLSX & bulk import" above. Not built:
+  scheduled/emailed reports, Seats (x/y) import type (the Designer owns geometry), e-invoice JSON / GSTR-1 JSON upload
+  format, chunked *writing* for very large exports (lists cap at 10,000 rows, PDFs at 1,500 rows per table), dark mode
+  for charts (the console has no dark theme).
+- **Next: hardening** — see the report of batch 7 for open items.
