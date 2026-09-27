@@ -100,7 +100,7 @@ $m = static fn ($v) => money($v, 2);
 
     <div class="space-y-6">
         <?php if ($canCredit && !$cancelled && $left > 0): ?>
-            <section class="card card-body" id="credit-note" x-data="{ scope: '<?= e((string) old('scope', $suggestion !== null && $suggestion['taxable'] < $left ? 'partial' : 'full')) ?>' }">
+            <section class="card card-body" id="credit-note" x-data="{ scope: <?= e(json_encode(old('scope', $suggestion !== null && $suggestion['taxable'] < $left ? 'partial' : 'full') === 'partial' ? 'partial' : 'full')) ?> }">
                 <h2 class="text-lg font-bold">Issue a credit note</h2>
                 <p class="mt-1 text-sm text-muted">Reverses taxable value and GST against this invoice. Up to <b class="text-ink"><?= e($m($left)) ?></b> taxable (<?= e($m($remaining['total'])) ?> incl. GST) is left to credit.</p>
                 <?php if ($suggestion !== null): ?>

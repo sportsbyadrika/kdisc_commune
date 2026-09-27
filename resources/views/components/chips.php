@@ -19,11 +19,11 @@
         $inner = (isset($item['icon']) ? icon($item['icon'], 'size-4') : '') . e($item['label'])
             . (isset($item['count']) ? '<span class="ml-0.5 rounded-full bg-current/10 px-1.5 text-[11px] leading-5">' . (int) $item['count'] . '</span>' : '');
     ?>
-        <?php if (isset($model)): ?>
+        <?php if (isset($model)): $v = e(json_encode((string) $item['value'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)); $m = preg_replace('/[^A-Za-z0-9_.$]/', '', (string) $model); ?>
             <button type="button" role="radio" class="chip shrink-0"
-                    :class="<?= e($model) ?> === '<?= e($item['value']) ?>' && 'chip-active'"
-                    :aria-checked="(<?= e($model) ?> === '<?= e($item['value']) ?>').toString()"
-                    @click="<?= e($model) ?> = '<?= e($item['value']) ?>'"><?= $inner ?></button>
+                    :class="<?= $m ?> === <?= $v ?> && 'chip-active'"
+                    :aria-checked="(<?= $m ?> === <?= $v ?>).toString()"
+                    @click="<?= $m ?> = <?= $v ?>"><?= $inner ?></button>
         <?php else: ?>
             <a href="<?= e($item['href'] ?? '#') ?>" class="<?= e(class_names('chip shrink-0', ['chip-active' => ($active ?? null) === $item['value']])) ?>"
                <?= ($active ?? null) === $item['value'] ? 'aria-current="true"' : '' ?>><?= $inner ?></a>

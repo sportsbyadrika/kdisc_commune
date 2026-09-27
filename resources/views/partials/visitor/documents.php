@@ -76,7 +76,7 @@ $failedType = (string) old('doc_type', '');
                 <?php endif ?>
                 <?php if (!$locked && $mode === 'forms'): ?>
                     <form method="post" action="<?= e($staff ? url('staff.visitors.documents.destroy', ['ref' => (string) $ref, 'id' => $doc['id']]) : url('portal.documents.destroy', ['id' => $doc['id']])) ?>"
-                          x-data @submit="if (!confirm('Remove this document?')) $event.preventDefault()">
+                          data-confirm="Remove this document?">
                         <?= csrf_field() ?><?= method_field('DELETE') ?>
                         <button type="submit" class="btn btn-ghost btn-sm !text-red-600 hover:!bg-red-50" title="Delete"><?= icon('trash-2', 'size-4') ?><span class="sr-only">Delete</span></button>
                     </form>

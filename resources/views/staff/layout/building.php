@@ -116,7 +116,7 @@ $config = [
                 </div>
                 <div class="flex flex-wrap gap-2 lg:justify-end">
                     <a href="<?= e(url('staff.layout.floor', ['floor' => (string) $f['slug']])) ?>" class="btn btn-brand btn-sm"><?= icon('pen-tool', 'size-4') ?>Design</a>
-                    <form method="post" action="<?= e(url('staff.layout.floors.destroy', ['floor' => (int) $f['id']])) ?>" x-data @submit="if (!confirm('Remove <?= e((string) $f['name']) ?> and all its layout versions? Floors with booking history cannot be removed.')) $event.preventDefault()">
+                    <form method="post" action="<?= e(url('staff.layout.floors.destroy', ['floor' => (int) $f['id']])) ?>" data-confirm="Remove <?= e((string) $f['name']) ?> and all its layout versions? Floors with booking history cannot be removed.">
                         <?= csrf_field() ?><?= method_field('DELETE') ?>
                         <button class="btn btn-ghost btn-sm text-red-700"><?= icon('trash-2', 'size-4') ?>Remove</button>
                     </form>

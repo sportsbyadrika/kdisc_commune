@@ -14,7 +14,7 @@ $this->layout('layouts/staff', [
 $kind = (string) old('kind', (string) ($facility['kind'] ?? 'addon'));
 $icon = (string) old('icon', (string) ($facility['icon'] ?? 'package'));
 ?>
-<form method="post" action="<?= e($editing ? url('staff.facilities.update', ['id' => (int) $facility['id']]) : url('staff.facilities.store')) ?>" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]" x-data="{ kind: '<?= e($kind) ?>', icon: '<?= e($icon) ?>', q: '' }">
+<form method="post" action="<?= e($editing ? url('staff.facilities.update', ['id' => (int) $facility['id']]) : url('staff.facilities.store')) ?>" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]" x-data="{ kind: <?= e(json_encode($kind)) ?>, icon: <?= e(json_encode($icon)) ?>, q: '' }">
     <?= csrf_field() ?>
     <?php if ($editing): ?><?= method_field('PUT') ?><?php endif ?>
     <div class="card space-y-5 p-6">
