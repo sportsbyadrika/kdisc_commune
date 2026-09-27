@@ -31,7 +31,7 @@ $canPrice = (bool) $config['canPrice'];
             <p class="text-[11px] font-bold tracking-[0.16em] text-muted uppercase">Layout &amp; pricing</p>
             <h1 class="text-2xl font-extrabold">Floor plan designer</h1>
         </div>
-        <div class="ml-auto"><?= $this->partial('partials/layout/nav', ['active' => 'floor', 'floorSlug' => (string) $floor['slug']]) ?></div>
+        <div class="ml-auto min-w-0 max-w-full"><?= $this->partial('partials/layout/nav', ['active' => 'floor', 'floorSlug' => (string) $floor['slug']]) ?></div>
     </div>
 
     <div class="dz-shell">
@@ -67,7 +67,7 @@ $canPrice = (bool) $config['canPrice'];
         <aside class="dz-left dz-panel" aria-label="Add to plan">
             <div class="flex items-center justify-between px-4 pt-4 xl:hidden"><p class="dz-h">Add to plan</p><button type="button" class="btn btn-ghost btn-icon size-8" @click="leftOpen = false" aria-label="Close panel"><?= icon('x', 'size-4') ?></button></div>
             <p class="dz-h hidden px-4 pt-4 xl:block">Add to plan</p>
-            <div class="grid gap-2 px-3 pb-2" :class="!editable && 'opacity-50'">
+            <div class="grid gap-2 px-3 pb-2" :class="!editable && 'opacity-50'" :inert="!editable">
                 <button type="button" class="dz-palette" draggable="true" @dragstart="paletteDrag($event, { type: 'seat' })" @click="addSeatAtCentre()" data-test="palette-seat">
                     <span class="dz-palette-ico bg-emerald-500 text-white"><?= icon('armchair', 'size-4') ?></span>
                     <span class="min-w-0 flex-1"><span class="block">Seat</span><span class="dz-palette-sub">Drag onto the plan</span></span>
@@ -85,7 +85,7 @@ $canPrice = (bool) $config['canPrice'];
 
             <div class="flex items-center justify-between px-4 pt-4"><p class="dz-h !p-0">Facilities</p><a href="<?= e(url('staff.facilities.index')) ?>" class="text-xs font-semibold text-brand-700 hover:underline">Manage</a></div>
             <p class="px-4 pb-2 text-xs text-muted">Drag onto a seat, a zone or the floor.</p>
-            <div class="px-3 pb-2" :class="!editable && 'opacity-50'">
+            <div class="px-3 pb-2" :class="!editable && 'opacity-50'" :inert="!editable">
                 <template x-for="[kind, title] in [['addon', 'Add-ons'], ['included', 'Included'], ['landmark', 'Landmarks']]" :key="kind">
                     <div class="mb-1">
                         <p class="px-2 pt-1.5 pb-0.5 text-[10px] font-bold tracking-wider text-muted/80 uppercase" x-text="title"></p>

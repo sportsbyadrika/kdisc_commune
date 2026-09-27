@@ -14,7 +14,7 @@ $org = (array) config('app.org');
     'breadcrumb' => [['Home', url('home')], ['Contact']],
 ]) ?>
 <section class="section">
-    <div class="container-page grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+    <div class="container-page grid grid-cols-1 gap-10 lg:grid-cols-[1.4fr_1fr]">
         <div class="card card-body sm:!p-8">
             <h2 class="text-2xl font-bold">Send a message</h2>
             <p class="mt-1 text-sm text-muted">We reply within one working day.</p>

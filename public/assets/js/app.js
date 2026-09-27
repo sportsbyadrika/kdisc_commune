@@ -52,6 +52,11 @@ document.addEventListener('submit', (e) => {
   }
 }, true);
 
+/** Staff sidebar: keep the current page's menu item in view when the menu scrolls (short screens). */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('aside nav [aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
+});
+
 /**
  * KYC identifier checks — a mirror of App\Services\Kyc\IdValidator for instant feedback.
  * The server always re-validates; keep both in sync.

@@ -13,7 +13,7 @@ $mode = (string) ($map['mode'] ?? 'view');
 ?>
 <div x-data="seatMiniMap" data-config="<?= e(json_encode($map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>" class="<?= e($class ?? '') ?>">
     <div class="overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
-        <svg x-ref="svg" xmlns="http://www.w3.org/2000/svg" class="block h-auto w-full" role="img" aria-label="<?= e('Seat map · ' . $map['floor']['name']) ?>"></svg>
+        <svg x-ref="svg" xmlns="http://www.w3.org/2000/svg" class="block h-auto w-full" role="<?= $mode === 'pick' ? 'group' : 'img' ?>" aria-label="<?= e('Seat map · ' . $map['floor']['name']) ?>"></svg>
     </div>
     <?php if ($legend): ?>
         <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">

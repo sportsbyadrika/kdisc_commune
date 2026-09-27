@@ -51,7 +51,7 @@ $cell = static function (array $c, mixed $v): string {
 <?php if ($register['rows'] === []): ?>
     <?= $this->component('empty', ['icon' => FinanceReportService::REGISTERS[$type][1], 'title' => 'No entries', 'text' => 'Nothing recorded for this period.']) ?>
 <?php else: ?>
-    <div class="card overflow-x-auto">
+    <div class="card overflow-x-auto" tabindex="0" role="region" aria-label="Register table (scrolls sideways)">
         <table class="table">
             <thead><tr><?php foreach ($register['columns'] as $c): ?><th class="<?= $c['type'] === 'money' ? 'text-right' : '' ?>"><?= e($c['label']) ?></th><?php endforeach ?></tr></thead>
             <tbody>

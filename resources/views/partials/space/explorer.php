@@ -54,11 +54,11 @@ $currentFloor = $config['initial']['floor'];
         </template>
         <?php if (!empty($config['canOverride'])): ?>
             <div class="flex items-center gap-3 lg:border-l lg:border-line lg:pl-4">
-                <button type="button" role="switch" :aria-checked="override.toString()" @click="override = !override; paint()" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="override ? 'bg-accent-500' : 'bg-line'">
+                <button type="button" role="switch" id="override-switch" aria-labelledby="override-label" :aria-checked="override.toString()" @click="override = !override; paint()" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="override ? 'bg-accent-500' : 'bg-line'">
                     <span class="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition" :class="override && 'translate-x-5'"></span>
                 </button>
-                <span class="text-sm font-semibold whitespace-nowrap">Override</span>
-                <input x-show="override" x-cloak x-ref="overrideReason" x-model="overrideReason" maxlength="500" class="input !py-2 lg:w-56" placeholder="Reason (audit-logged)">
+                <span id="override-label" class="text-sm font-semibold whitespace-nowrap">Override blocked / held seats</span>
+                <input x-show="override" x-cloak x-ref="overrideReason" x-model="overrideReason" maxlength="500" class="input !py-2 lg:w-56" placeholder="Reason (audit-logged)" aria-label="Override reason (audit-logged)">
             </div>
         <?php endif ?>
     </div>
@@ -107,7 +107,7 @@ $currentFloor = $config['initial']['floor'];
             <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
                 <div>
                     <h2 class="text-2xl font-extrabold sm:text-[28px]"><?= e((string) $currentFloor['name']) ?></h2>
-                    <p class="text-sm text-muted"><b class="text-emerald-600" x-text="freeCount"></b> of <span x-text="unitCount"></span> <span x-text="filter ? catShort(filter).toLowerCase() + ' ' : ''"></span>units free · <span x-text="periodLabel"></span></p>
+                    <p class="text-sm text-muted"><b class="text-emerald-700" x-text="freeCount"></b> of <span x-text="unitCount"></span> <span x-text="filter ? catShort(filter).toLowerCase() + ' ' : ''"></span>units free · <span x-text="periodLabel"></span></p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                 <div x-show="!selCategory || multi" class="flex items-center gap-1 rounded-full bg-white p-1 pl-3 shadow-xs ring-1 ring-line">

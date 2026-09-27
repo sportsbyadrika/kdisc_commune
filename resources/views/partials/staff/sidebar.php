@@ -37,11 +37,15 @@ foreach ($items as $idx => $item) {
         <button type="button" class="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white lg:hidden" @click="$store.sidebar.mobileOpen = false" aria-label="Close menu"><?= icon('x', 'size-5') ?></button>
     </div>
 
-    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+    <nav class="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 py-5 [scrollbar-color:rgb(255_255_255/.25)_transparent] [scrollbar-width:thin]" aria-label="Staff menu">
         <?php foreach ($visible as $item): ?>
             <?php if (isset($item['section'])): ?>
-                <p class="px-3 pt-4 pb-1 text-[11px] font-bold tracking-[0.14em] text-white/40 uppercase first:pt-0" :class="$store.sidebar.collapsed && 'lg:invisible lg:h-4 lg:p-0'"><?= e($item['section']) ?></p>
-            <?php else: $active = route_is((string) $item['route']); ?>
+                <p class="px-3 pt-4 pb-1 text-[11px] font-bold tracking-[0.14em] text-white/60 uppercase first:pt-0" :class="$store.sidebar.collapsed && 'lg:invisible lg:h-4 lg:p-0'"><?= e($item['section']) ?></p>
+            <?php else:
+                // list pages also light up for their sub-pages (staff.users.index → staff.users.*)
+                $route = (string) $item['route'];
+                $active = route_is($route) || (str_ends_with($route, '.index') && route_is(substr($route, 0, -5) . '*'));
+            ?>
                 <a href="<?= e(url((string) $item['route'])) ?>" class="<?= e(class_names('side-link', ['side-link-active' => $active])) ?>" <?= $active ? 'aria-current="page"' : '' ?> title="<?= e($item['label']) ?>">
                     <?= icon((string) $item['icon'], 'size-5 shrink-0') ?>
                     <span class="truncate" :class="$store.sidebar.collapsed && 'lg:hidden'"><?= e($item['label']) ?></span>

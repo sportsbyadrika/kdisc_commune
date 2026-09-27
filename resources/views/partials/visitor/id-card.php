@@ -28,7 +28,7 @@ $compact = !empty($compact);
     </div>
     <div class="relative mt-8 flex items-end justify-between gap-5">
         <div class="min-w-0">
-            <p class="text-[11px] font-bold tracking-[0.18em] text-white/50 uppercase">Unique Visitor ID</p>
+            <p class="text-[11px] font-bold tracking-[0.18em] text-white/70 uppercase">Unique Visitor ID</p>
             <?php if (!empty($customer['unique_id'])): ?>
                 <p class="<?= $compact ? 'mt-1 font-mono text-base font-bold whitespace-nowrap' : 'mt-1 font-mono text-lg font-bold tracking-wide whitespace-nowrap sm:text-2xl' ?>"><?= e($customer['unique_id']) ?></p>
             <?php else: ?>

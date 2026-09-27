@@ -87,7 +87,15 @@
           g.dataset.status = st;
           g.classList.toggle('is-in', !!unit.occupant?.checked_in && st === 'occupied');
           g.classList.toggle('is-dim', this.cfg.mode === 'pick' && !this.selectable(unit) && !unit.mine && this.picked !== unit.id);
-          if (s.parent === null) g.setAttribute('tabindex', this.selectable(unit) ? '0' : '-1');
+          if (s.parent === null) {
+            if (this.cfg.mode === 'pick') {
+              g.setAttribute('tabindex', this.selectable(unit) ? '0' : '-1');
+            } else {
+              // read-only maps are one image (role="img"): no interactive children inside it
+              g.removeAttribute('tabindex');
+              g.removeAttribute('role');
+            }
+          }
           const glyph = g.querySelector('.glyph');
           if (glyph) glyph.setAttribute('href', `#i-${{ mine: 'check', occupied: 'user', held: 'armchair', blocked: 'lock' }[st] || 'armchair'}`);
         }

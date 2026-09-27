@@ -40,7 +40,7 @@
   --color-surface: #f7f7f9;
   --color-surface-2: #eef0f4;
   --color-ink: #111827;
-  --color-muted: #6b7280;
+  --color-muted: #5f6673;   /* ≥ 4.5:1 on white, surface and surface-2 (WCAG AA) */
   --color-line: #e5e7eb;
 
   /* Seat-map status colours (Space Explorer) */
@@ -121,11 +121,17 @@
   ::selection { @apply bg-brand-100 text-brand-900; }
 }
 
+/* Screen-reader-only text keeps its static position; inside a horizontally scrolling table its containing block is
+   often outside the scroller, so it widened the whole page on phones. Pin it to the left edge instead. */
+@layer utilities {
+  .sr-only:not(:focus):not(:focus-within) { left: 0; }
+}
+
 @layer components {
   /* ---- Layout ---- */
   .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
   .section { @apply py-16 sm:py-20 lg:py-24; }
-  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.18em] text-accent-500; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.18em] text-accent-600; }
   .section-title { @apply font-display text-3xl font-extrabold tracking-tight sm:text-4xl; }
   .lead { @apply text-lg text-muted; }
 

@@ -23,7 +23,7 @@
     <div x-show="!selection" class="rounded-2xl border-2 border-dashed border-line p-5">
         <div class="flex items-center gap-3">
             <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-600"><?= icon('mouse-pointer-click', 'size-5') ?></span>
-            <p class="text-sm font-semibold">Tap a <span class="text-emerald-600">green</span> seat to hold it for <span x-text="cfg.holdMinutes"></span> minutes while you decide.</p>
+            <p class="text-sm font-semibold">Tap a <span class="font-bold text-emerald-700">green</span> seat to hold it for <span x-text="cfg.holdMinutes"></span> minutes while you decide.</p>
         </div>
         <ul class="mt-4 space-y-2 text-[13px] text-muted">
             <li class="flex gap-2"><?= icon('armchair', 'mt-0.5 size-4 shrink-0 text-emerald-600') ?>Flexi &amp; dedicated seats: pick as many as you set in “Seats needed”.</li>

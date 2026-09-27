@@ -71,8 +71,8 @@ $highlight = session()->getFlash('highlight');
                             <p class="font-bold"><?= e((string) $u['name']) ?><?php if ($self): ?> <span class="badge badge-neutral ml-1">You</span><?php endif ?></p>
                             <p class="text-xs text-muted"><?= e((string) $u['email']) ?><?= $u['mobile'] ? ' · ' . e(format_phone((string) $u['mobile'])) : '' ?></p>
                         </td>
-                        <td class="px-4 py-3"><?= $this->component('badge', ['label' => $role->label(), 'tone' => $role->tone()]) ?></td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap"><?= $this->component('badge', ['label' => $role->label(), 'tone' => $role->tone()]) ?></td>
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <?php if (!$active): ?>
                                 <span class="badge badge-neutral">Deactivated</span>
                                 <?php if ($u['deactivated_at']): ?><p class="mt-1 text-xs text-muted">since <?= e(format_date((string) $u['deactivated_at'])) ?></p><?php endif ?>

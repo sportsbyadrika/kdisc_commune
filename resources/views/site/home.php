@@ -131,7 +131,7 @@ $steps = [
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="absolute inset-0 size-full" aria-hidden="true">
                 <?php foreach ($floors as $floor):
                     $points = implode(' ', array_map(static fn ($p) => $p[0] . ',' . $p[1], $floor['hotspot'])); ?>
-                    <a href="<?= e(url('spaces.floor', ['floor' => $floor['slug']])) ?>">
+                    <a href="<?= e(url('spaces.floor', ['floor' => $floor['slug']])) ?>" tabindex="-1"><?php /* decorative duplicate of the floor list: mouse only */ ?>
                         <polygon points="<?= e($points) ?>" class="cursor-pointer fill-accent-500/0 stroke-white/0 transition hover:fill-accent-500/25 hover:stroke-white" stroke-width=".4" vector-effect="non-scaling-stroke"
                                  @mouseenter="hover = '<?= e($floor['slug']) ?>'" @mouseleave="hover = null"/>
                     </a>
