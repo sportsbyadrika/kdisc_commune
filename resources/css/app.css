@@ -1,0 +1,162 @@
+/*
+ * Commune design system — Tailwind CSS v4 (CSS-first config).
+ * Build:  npm run build:css      Watch: npm run watch:css
+ *
+ * ALL brand values live in the @theme block below (placeholders until K-DISC
+ * confirms colours/fonts — spec §11). Change a token here and rebuild; never
+ * hard-code hex colours in views. Use utilities like bg-brand-600, text-ink,
+ * bg-surface, text-accent-500, bg-seat-free, font-display.
+ */
+@import "tailwindcss";
+
+@source "../views";
+@source "../../app";
+@source "../../config";
+@source "../js";
+
+@theme {
+  /* Brand (placeholder navy/blue) */
+  --color-brand-50: #eff5ff;
+  --color-brand-100: #dbe8fe;
+  --color-brand-200: #bfd5fe;
+  --color-brand-300: #93b8fd;
+  --color-brand-400: #6093fa;
+  --color-brand-500: #3b6ff6;
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #1a3fb0;
+  --color-brand-800: #15307f;
+  --color-brand-900: #0b1b3f;
+  --color-brand-950: #070f26;
+
+  /* Accent (placeholder magenta) — CTAs, highlights */
+  --color-accent-50: #fdf2f7;
+  --color-accent-100: #fce7f1;
+  --color-accent-400: #f0509a;
+  --color-accent-500: #e11d74;
+  --color-accent-600: #c0135f;
+  --color-accent-700: #9d0f4d;
+
+  /* Neutrals */
+  --color-surface: #f7f7f9;
+  --color-surface-2: #eef0f4;
+  --color-ink: #111827;
+  --color-muted: #6b7280;
+  --color-line: #e5e7eb;
+
+  /* Seat-map status colours (Space Explorer) */
+  --color-seat-free: #22c55e;
+  --color-seat-selected: var(--color-brand-600);
+  --color-seat-hold: #f59e0b;
+  --color-seat-taken: #ef4444;
+  --color-seat-blocked: #cbd5e1;
+
+  /* Typography */
+  --font-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+
+  /* Shape & depth */
+  --radius-card: 1.25rem;
+  --radius-pill: 9999px;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px -6px rgb(16 24 40 / 0.10);
+  --shadow-card-hover: 0 2px 4px rgb(16 24 40 / 0.06), 0 22px 40px -12px rgb(16 24 40 / 0.22);
+  --shadow-seat: 0 1px 2px rgb(16 24 40 / 0.18);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-pop: pop 260ms var(--ease-spring);
+  --animate-fade-up: fade-up 400ms ease-out both;
+
+  @keyframes pop {
+    0% { transform: scale(0.9); }
+    60% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { @apply bg-white font-sans text-ink antialiased; }
+  h1, h2, h3, h4 { @apply font-display tracking-tight text-ink; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-brand-600; }
+  [x-cloak] { display: none !important; }
+  ::selection { @apply bg-brand-100 text-brand-900; }
+}
+
+@layer components {
+  /* ---- Layout ---- */
+  .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .section { @apply py-16 sm:py-20 lg:py-24; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.18em] text-accent-500; }
+  .section-title { @apply font-display text-3xl font-extrabold tracking-tight sm:text-4xl; }
+  .lead { @apply text-lg text-muted; }
+
+  /* ---- Buttons (see components/button.php) ---- */
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition duration-150 select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50; }
+  .btn-sm { @apply px-3.5 py-1.5 text-xs; }
+  .btn-lg { @apply px-7 py-3.5 text-base; }
+  .btn-primary { @apply bg-accent-500 text-white shadow-sm hover:bg-accent-600 focus-visible:outline-accent-500 active:scale-[.98]; }
+  .btn-brand { @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:outline-brand-600 active:scale-[.98]; }
+  .btn-dark { @apply bg-brand-900 text-white hover:bg-brand-800 active:scale-[.98]; }
+  .btn-outline { @apply border border-line bg-white text-ink hover:border-ink/30 hover:bg-surface; }
+  .btn-ghost { @apply text-ink hover:bg-surface-2; }
+  .btn-light { @apply bg-white text-brand-900 hover:bg-brand-50; }
+  .btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+  .btn-icon { @apply size-10 rounded-full p-0; }
+
+  /* ---- Chips / filters (see components/chips.php) ---- */
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink/80 transition hover:border-ink/40 hover:text-ink; }
+  .chip-active { @apply border-brand-900 bg-brand-900 text-white hover:border-brand-900 hover:text-white; }
+
+  /* ---- Badges / pills ---- */
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset; }
+  .badge-neutral { @apply bg-surface-2 text-ink/70 ring-line; }
+  .badge-brand { @apply bg-brand-50 text-brand-700 ring-brand-200; }
+  .badge-success { @apply bg-emerald-50 text-emerald-700 ring-emerald-200; }
+  .badge-warning { @apply bg-amber-50 text-amber-800 ring-amber-200; }
+  .badge-danger { @apply bg-red-50 text-red-700 ring-red-200; }
+  .badge-info { @apply bg-sky-50 text-sky-700 ring-sky-200; }
+  .badge-accent { @apply bg-accent-50 text-accent-600 ring-accent-100; }
+
+  /* ---- Cards ---- */
+  .card { @apply rounded-[var(--radius-card)] border border-line/70 bg-white shadow-[var(--shadow-card)]; }
+  .card-hover { @apply transition duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]; }
+  .card-body { @apply p-5 sm:p-6; }
+
+  /* ---- Forms (see components/input.php) ---- */
+  .label { @apply mb-1.5 block text-sm font-semibold text-ink; }
+  .input { @apply block w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-xs placeholder:text-muted/70 transition focus:border-brand-600 focus:ring-4 focus:ring-brand-600/15 focus:outline-none disabled:bg-surface; }
+  .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-500/15; }
+  .help { @apply mt-1.5 text-xs text-muted; }
+  .error-text { @apply mt-1.5 flex items-center gap-1 text-xs font-medium text-red-600; }
+
+  /* ---- Tables ---- */
+  .table { @apply min-w-full divide-y divide-line text-sm; }
+  .table th { @apply bg-surface px-4 py-3 text-left text-xs font-bold tracking-wide text-muted uppercase; }
+  .table td { @apply px-4 py-3 align-middle whitespace-nowrap; }
+  .table tbody tr { @apply transition hover:bg-surface/70; }
+
+  /* ---- Navigation ---- */
+  .nav-link { @apply inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[15px] font-semibold text-ink/80 transition hover:bg-surface-2 hover:text-ink; }
+  .nav-link-active { @apply text-ink; }
+  .side-link { @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white; }
+  .side-link-active { @apply bg-white/12 text-white shadow-inner; }
+
+  /* ---- Seat chips (Space Explorer, batch 3) ---- */
+  .seat { @apply grid place-items-center rounded-xl text-white shadow-[var(--shadow-seat)] transition duration-200; }
+  .seat-free { @apply bg-seat-free; }
+  .seat-selected { @apply bg-seat-selected ring-4 ring-brand-300 animate-pop; }
+  .seat-hold { @apply bg-seat-hold; }
+  .seat-taken { @apply bg-seat-taken/60 bg-[repeating-linear-gradient(45deg,transparent_0_4px,rgb(255_255_255/.35)_4px_8px)]; }
+  .seat-blocked { @apply bg-seat-blocked text-ink/40; }
+
+  /* ---- Misc ---- */
+  .prose-page p { @apply mb-4 leading-7 text-ink/80; }
+  .prose-page h2 { @apply mt-10 mb-3 text-2xl font-bold; }
+  .prose-page ul { @apply mb-4 list-disc space-y-1 pl-6 text-ink/80; }
+  .hero-overlay { background: linear-gradient(100deg, rgb(7 15 38 / 0.94) 0%, rgb(7 15 38 / 0.82) 38%, rgb(7 15 38 / 0.25) 68%, rgb(7 15 38 / 0.05) 85%), linear-gradient(0deg, rgb(7 15 38 / 0.5) 0%, transparent 30%); }
+  .skeleton { @apply animate-pulse rounded-lg bg-surface-2; }
+}
