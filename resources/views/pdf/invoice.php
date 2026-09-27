@@ -132,12 +132,10 @@ $m = static fn ($v) => number_format((float) $v, 2);
             </table>
             <?php if (!empty($supplier['bank_account_no']) || !empty($supplier['bank_upi'])): ?>
                 <div class="section-title">Bank details</div>
-                <table class="kv small">
-                    <?php foreach (['bank_account_name' => 'Account name', 'bank_name' => 'Bank / branch', 'bank_account_no' => 'Account no.', 'bank_ifsc' => 'IFSC', 'bank_upi' => 'UPI'] as $k => $label):
-                        $val = $k === 'bank_name' ? trim(implode(', ', array_filter([$supplier['bank_name'] ?? '', $supplier['bank_branch'] ?? ''])), ', ') : ($supplier[$k] ?? ''); ?>
-                        <?php if ($val !== ''): ?><tr><td class="k" style="width: 28%;"><?= e($label) ?></td><td class="v <?= in_array($k, ['bank_account_no', 'bank_ifsc', 'bank_upi'], true) ? 'mono' : '' ?>"><?= e($val) ?></td></tr><?php endif ?>
-                    <?php endforeach ?>
-                </table>
+                <p class="note"><?= e(implode(' · ', array_filter([$supplier['bank_account_name'] ?? '', trim(implode(', ', array_filter([$supplier['bank_name'] ?? '', $supplier['bank_branch'] ?? ''])))]))) ?><br>
+                    <?php if (!empty($supplier['bank_account_no'])): ?>A/c no. <b class="mono"><?= e($supplier['bank_account_no']) ?></b><?php endif ?>
+                    <?php if (!empty($supplier['bank_ifsc'])): ?> · IFSC <b class="mono"><?= e($supplier['bank_ifsc']) ?></b><?php endif ?>
+                    <?php if (!empty($supplier['bank_upi'])): ?> · UPI <b class="mono"><?= e($supplier['bank_upi']) ?></b><?php endif ?></p>
             <?php endif ?>
             <?php if (!empty($supplier['terms'])): ?>
                 <div class="section-title">Terms</div>

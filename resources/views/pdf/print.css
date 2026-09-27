@@ -38,8 +38,8 @@ td, th { vertical-align: top; padding: 0; }
 /* ---------- boxes ---------- */
 .box { border: 0.8pt solid #d1d5db; border-radius: 4pt; }
 .box-title { background: #f3f4f6; color: #374151; font-size: 6.8pt; font-weight: bold; letter-spacing: 0.7pt; text-transform: uppercase; padding: 3.5pt 7pt; border-bottom: 0.8pt solid #d1d5db; }
-.box-body { padding: 6pt 7pt; }
-.kv td { padding: 1.2pt 0; }
+.box-body { padding: 5pt 7pt; }
+.kv td { padding: 0.8pt 0; }
 .kv td.k { color: #6b7280; width: 38%; padding-right: 6pt; }
 .kv td.v { font-weight: bold; }
 .gap { width: 10pt; }
@@ -84,7 +84,7 @@ td, th { vertical-align: top; padding: 0; }
 .qr-cap { font-size: 6.2pt; color: #6b7280; }
 
 /* ---------- misc ---------- */
-.foot { margin-top: 10pt; padding-top: 6pt; border-top: 0.6pt solid #e5e7eb; color: #6b7280; font-size: 6.8pt; text-align: center; }
+.foot { position: fixed; bottom: -9mm; left: 0; width: 82%; padding-top: 3pt; border-top: 0.6pt solid #e5e7eb; color: #6b7280; font-size: 6.4pt; text-align: left; }
 .pill { display: inline-block; padding: 1pt 5pt; border-radius: 6pt; font-size: 6.6pt; font-weight: bold; }
 .pill-ok { background: #d1fae5; color: #065f46; }
 .pill-warn { background: #fef3c7; color: #92400e; }
@@ -92,6 +92,6 @@ td, th { vertical-align: top; padding: 0; }
 .amount-big { font-size: 18pt; font-weight: bold; color: #0b1b3f; }
 .watermark { position: fixed; top: 38%; left: 4%; width: 92%; text-align: center; font-size: 58pt; font-weight: bold; color: #e11d74; opacity: 0.10; transform: rotate(-32deg); letter-spacing: 4pt; }
 .stamp-dup { position: fixed; top: -9mm; right: 0; font-size: 7pt; font-weight: bold; color: #e11d74; letter-spacing: 1pt; }
-.section-title { font-size: 8pt; font-weight: bold; color: #0b1b3f; text-transform: uppercase; letter-spacing: 0.8pt; margin: 12pt 0 4pt; }
+.section-title { font-size: 8pt; font-weight: bold; color: #0b1b3f; text-transform: uppercase; letter-spacing: 0.8pt; margin: 10pt 0 4pt; }
 .note { font-size: 7.2pt; color: #374151; }
 .clause li { margin-bottom: 3pt; }
