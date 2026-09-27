@@ -169,7 +169,7 @@ final class Session
     /** @param array<string, mixed> $input */
     public function flashInput(array $input): void
     {
-        $hidden = ['password', 'password_confirmation', 'current_password', '_token', 'aadhaar', 'aadhaar_number'];
+        $hidden = ['password', 'password_confirmation', 'current_password', '_token', 'aadhaar', 'aadhaar_number', 'sig_aadhaar'];
         $this->flash('_old_input', array_diff_key($input, array_flip($hidden)));
     }
 

@@ -252,7 +252,7 @@ final class Validator
             'confirmed' => ($this->data[$field . '_confirmation'] ?? null) === $value,
             'same' => ($this->data[$params[0]] ?? null) === $value,
             'different' => ($this->data[$params[0]] ?? null) !== $value,
-            'mobile_in' => is_string($value) && preg_match('/^(\+91[\s-]?)?[6-9]\d{9}$/', $value) === 1,
+            'mobile_in' => is_string($value) && preg_match('/^(?:\+?91|0)?[6-9]\d{9}$/', (string) preg_replace('/[\s\-()]+/', '', $value)) === 1,
             'password' => is_string($value) && strlen($value) >= 8 && preg_match('/[a-z]/', $value) && preg_match('/[A-Z]/', $value)
                 && preg_match('/\d/', $value) && preg_match('/[^A-Za-z0-9]/', $value),
             'unique' => $this->checkUnique($value, $params),
