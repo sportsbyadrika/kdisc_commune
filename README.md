@@ -113,6 +113,35 @@ daily part capped at one month (`flexi_pricing_rule`, `flexi_daily_cap_monthly`)
 partial months as days ÷ 30 (`proration_days_per_month`); tenures over 6 months need a security deposit of
 `security_deposit_months` (2) months' rent instead of an advance; IGST applies when the visitor's state code ≠ 32.
 
+## Layout & Pricing Designer (batch 4)
+
+Sign in as `manager@commune.test` → **Layout & pricing** (`/staff/layout`).
+
+- **Floor plans** (`/staff/layout/floors/{floor}`): the live layout opens read-only — click **Edit layout** to start a
+  draft (a copy of the live version). Drag a *Seat* from the palette onto the plan, or use *Row of N*, *Grid R×C*,
+  *Cabin*, *Conf. room*; draw zones with the rectangle / polygon tools and give them a space type and tint.
+  Select with click, Shift-click or a drag lasso; move by dragging or with the arrow keys (Shift = ×10); rotate with
+  the handle, `[` `]` or the toolbar; Ctrl+D duplicates, Del deletes, Ctrl+Z / Ctrl+Shift+Z undo/redo, Shift+2 zooms to
+  the selection, Space-drag pans, Ctrl+scroll zooms. Snap-to-grid and grid size are in the toolbar. The inspector edits
+  code/label/geometry/status (blocked / repairs with dates + note) and attached facilities; its **Pricing** tab shows
+  the effective price (seat → zone → base rate) and sets seat/zone overrides, in bulk for multi-selections. Drag
+  facilities (🔒 locker, …) from the palette onto a seat, a zone or the floor. Drafts autosave ("Saved ✓").
+  **Preview** opens the draft in the visitor explorer; **Publish** runs validation (duplicate codes, seats outside a
+  zone, cabins without chairs, missing base rates = errors; removed/moved/blocked booked seats = warnings to confirm).
+- **Rates** (`/staff/layout/rates`): base rate per space type with effective-dated history. A new rate closes the
+  previous one the day before; a rate that already priced bookings is never changed.
+- **Building & floors** (`/staff/layout/building`): building photo, floor hotspot polygons (click to add points, drag,
+  Alt-click to delete, click the first point to close), plan images, add/remove floors.
+- **Version history** per floor: who created/published what and when; preview or restore an old version as a draft.
+- **Facilities** (`/staff/facilities`): the facility master (included / add-on / landmark, price, GST, stock, icon).
+
+### Swapping in real photos
+Upload a JPG/PNG/WebP (≤ 15 MB) on *Building & floors* (or *Replace…* in the designer's left panel). It is re-encoded
+to WebP under `public/media/uploads/` (random name, EXIF stripped, max 3200 px wide) and its pixel size stored in
+`floors.photo_w/h` / `buildings.photo_w/h`. All seat, zone and hotspot coordinates are **percentages of the image**, so
+a photo with the same framing lines up immediately; if the new photo is framed differently, open a draft and nudge the
+zones/seats (or redraw the hotspots), then publish. The seeded SVG placeholders stay in `public/media/`.
+
 ## Everyday commands
 
 ```bash

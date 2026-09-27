@@ -266,6 +266,49 @@ Bookings store the quote snapshot in `bookings.quote_json` (render with `partial
 split in `cgst_total/sgst_total/igst_total`. Status timeline partial: `partials/booking/timeline`.
 Visitor login accepts `?next=/spaces/…|/my/…`. Map glyph icons come from `partials/space/sprite` (`icon_symbol()`).
 
+## Layout & Pricing Designer (batch 4)
+
+Spec §5.3–5.5. Pages: `LayoutController` (`/staff/layout…`, `can:layout.design`; rates `can:pricing.manage`),
+canvas JSON API `LayoutApiController` (`/staff/layout/api`), facility master `FacilityController`
+(`/staff/facilities`, `can:facilities.manage`). Front-end: `resources/js/designer.js` (Alpine `layoutDesigner`,
+`hotspotEditor`) + `resources/js/space-render.js` (SVG drawing shared with `explorer.js` — load it first on every
+map page). Views: `staff/layout/{designer,inspector-design,inspector-pricing,dialogs,preview,history,rates,building}`,
+`partials/layout/nav`, `partials/toasts`.
+
+**Versioning & seat identity ("stable keys, immutable versions") — read before touching seats/bookings:**
+- Editing ALWAYS happens on a draft `layout_versions` row; `LayoutDraftService::createDraft()` clones zones, seats
+  (parents before chairs) and `facility_placements` (now versioned: `layout_version_id`) into new rows. One draft per
+  floor. Published/archived rows are never modified again.
+- `seats.seat_key` / `zones.zone_key` are the stable identity across versions (= id of the row that introduced it;
+  clones copy it, new rows get key = own id, a row restored by undo keeps its key). Insert new seats/zones with
+  key = id (see `LayoutSeeder`).
+- `booking_seats.seat_id` keeps pointing at the exact row that was booked (history never changes);
+  `booking_seats.seat_key` is what occupancy matches: `AvailabilityService` (`overlappingBookingKeys`, `hourlySlots`,
+  `occupants`) joins by key. **Any new query about "is this seat taken / who sits here" (check-in, allotment,
+  renewals) must match on `seat_key`, never on `seat_id`.** Set `seat_key` when inserting `booking_seats`.
+- `rates.scope_id` = seat_key for `seat`, zone_key for `zone`, category id for `category` (`PriceResolver`).
+- `LayoutPublisher::publish()` (one transaction): locks draft, floor and the published seat rows (same locks as
+  holds/bookings) → re-validates (`check()`: errors block, warnings need `confirm`) → published→archived,
+  draft→published (+ `summary` JSON) → re-points live `seat_holds` to the new rows by key → audits
+  `layout.publish`, `seat.block/unblock`.
+- Seats placed outside every zone live in a hidden per-draft zone `~UNZONED` (publish refuses them).
+- Autosave: the designer PUTs the whole document `{revision, doc}`; `LayoutDraftService::save()` diffs it into rows
+  (temp ids `t123` → returned `ids` map), validates geometry (0–100 %), and bumps `revision` (stale = 409 conflict).
+  Undo/redo is client-side (diff commands); temp ids are remapped in the doc, stacks and any drag in progress.
+
+| Service | Use it for |
+|---|---|
+| `Layout\LayoutDraftService` | `published()/draft()/version()/history()`, `createDraft($floor, $staff, ?$fromVersion)`, `document()`, `save()`, `discard()` (also drops rates of draft-only keys) |
+| `Layout\LayoutPublisher` | `check($version)` → `{errors, warnings, summary}`; `publish($version, $staff, $confirm, $notes)` |
+| `Pricing\RateService` | `set(scope, keys, unit, amount, gst, from)` — new effective-dated row, closes the previous one (from − 1 day), deletes unused future rows, refuses to replace rows that `pricedBookings()`; `clear()`, `history()`, `current()`; all audited (`rate.*`). From-date ≥ today. |
+| `Layout\DesignerPresenter` | designer config, `pricing($version, $date)` (resolved rate + source per unit, zone/category rates) |
+| `Layout\BuildingService` / `PhotoStore` | photos (finfo sniff, WebP re-encode to `public/media/uploads/`, keeps w/h), hotspots, add/remove floors |
+| `Layout\FacilityService` | facility CRUD rules; booked or published-placed facilities are deactivated instead of deleted; `icons()` = vendored Lucide set |
+
+`FloorMapService::map(..., $versionId)` / `ExplorerPresenter::floorConfig(..., $extra, $versionId)` render any version
+(the draft preview passes `extra.preview = true`: no holds, no polling). Sprite: pass facility icons via
+`partials/space/sprite` `extra`. Alpine `x-for` does not work inside `<svg>` — draw with DOM calls or a PHP loop.
+
 ## Front-end
 
 - **Tailwind v4, CSS-first.** All brand values are tokens in the `@theme` block of `resources/css/app.css`
@@ -297,9 +340,12 @@ Visitor login accepts `?next=/spaces/…|/my/…`. Map glyph icons come from `pa
   reset, APP_KEY rotation/re-encryption, antivirus scanning of uploads.
 - **Batch 3 (done) — Space Explorer & booking requests:** see "Space Explorer & bookings" above. Not built: the
   Layout & Pricing Designer (spec 5.4 — reuse `GridLayout`/`LayoutBlueprint`, `ExplorerPresenter` and explorer.js
-  rendering in an edit mode; publishing must keep `AvailabilityService` on published versions only), quick
+  rendering in an edit mode — DONE in batch 4), quick
   check-in/out from the seat popover, SSE instead of polling, a cron for `SeatHoldService::purgeExpired()`.
-- **Batch 4 — bookings/payments:** approve/reject on `/staff/bookings/{no}` (only `requested` → `approved`; require
+- **Batch 4 (done) — Layout & Pricing Designer:** see above. Not built: State Admin read-only designer view,
+  scheduled (future-dated) layout publishes, resizing seats with handles (use the inspector), per-seat facility
+  stock, audit viewer UI.
+- **Next — bookings/payments:** approve/reject on `/staff/bookings/{no}` (only `requested` → `approved`; require
   `kyc_status = verified` to confirm), payments against `bookings.payment_rule` / `deposit_amount` / `grand_total`,
   confirmation + allotment, check-in (`checkins`), cancellation (`released_at`, status `cancelled` frees seats
   automatically), renewals reopening the explorer with seats preselected, notifications to staff on new requests
