@@ -8,14 +8,12 @@ use App\Core\Database;
 use App\Core\Exceptions\ValidationException;
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\Validator;
 use App\Enums\CustomerType;
 use App\Enums\HolderType;
 use App\Enums\KycStatus;
 use App\Models\Account;
 use App\Models\Customer;
 use App\Models\CustomerSignatory;
-use App\Services\AuditLog;
 use App\Services\Bookings\BookingDirectory;
 use App\Services\Payments\PaymentLedger;
 use App\Services\Kyc\DocumentStore;
@@ -23,6 +21,7 @@ use App\Services\Visitors\DuplicateFinder;
 use App\Services\Visitors\ProfileService;
 use App\Services\Visitors\RegistrationService;
 use App\Services\Visitors\VisitorDirectory;
+use App\Services\Visitors\VisitorRegistration;
 use App\Support\IndianStates;
 
 /**
@@ -37,9 +36,9 @@ final class VisitorController extends StaffController
         private readonly VisitorDirectory $directory,
         private readonly DocumentStore $documents,
         private readonly RegistrationService $registration,
-        private readonly AuditLog $audit,
         private readonly Database $db,
         private readonly \App\Services\Visitors\QrCodeRenderer $qr,
+        private readonly VisitorRegistration $visitors,
     ) {
     }
 
@@ -92,26 +91,7 @@ final class VisitorController extends StaffController
                 ->with('warning', 'This visitor may already be registered. Check the matches below before continuing.');
         }
 
-        $basic = $this->profiles->validateBasic($type, $input);
-        $identity = $this->profiles->validateIdentity($type, $input + ['state_code' => $basic['state_code']], []);
-        $staff = $this->user();
-
-        $customerId = $this->db->transaction(function (Database $db) use ($type, $basic, $identity, $staff): int {
-            $id = $db->insert('customers', $basic + $identity['customer'] + [
-                'type' => $type->value,
-                'centre_id' => RegistrationService::centreId($db, isset($staff['centre_id']) ? (int) $staff['centre_id'] : null),
-                'kyc_status' => KycStatus::NotSubmitted->value,
-                'registered_via' => 'reception',
-                'registered_by' => (int) $staff['id'],
-                'profile_step' => 2,
-                'consent_at' => $identity['consent'] ? date('Y-m-d H:i:s') : null,
-            ]);
-            if ($identity['signatory'] !== null) {
-                $db->insert('customer_signatories', $identity['signatory'] + ['customer_id' => $id, 'is_primary' => 1]);
-            }
-            $this->audit->record('visitor.register', 'customer', $id, null, ['type' => $type->value, 'via' => 'reception']);
-            return $id;
-        });
+        $customerId = $this->visitors->create($type, $input, $this->user());
 
         $failed = $this->storeUploads($request, $customerId);
         $customer = (array) Customer::find($customerId);
@@ -128,7 +108,7 @@ final class VisitorController extends StaffController
 
         if ($invite) {
             $sent = $this->registration->invite((array) Customer::find($customerId), $this->staffId());
-            $notes[] = $sent ? 'Portal invite emailed to ' . $basic['email'] . '.' : 'The portal invite could not be sent.';
+            $notes[] = $sent ? 'Portal invite emailed to ' . $customer['email'] . '.' : 'The portal invite could not be sent.';
         }
         if ($failed !== []) {
             $notes[] = 'Some files were not accepted: ' . implode(' ', $failed) . ' Upload them again below.';
@@ -234,18 +214,7 @@ final class VisitorController extends StaffController
      */
     private function validateAll(CustomerType $type, array $input, array $customer): void
     {
-        $input['state_code'] ??= '';
-        foreach (['pan', 'gstin', 'tan', 'passport_no'] as $k) {
-            if (isset($input[$k]) && is_string($input[$k])) {
-                $input[$k] = \App\Services\Kyc\IdValidator::normalize($input[$k]);
-            }
-        }
-        Validator::make(
-            $input,
-            $this->profiles->basicRules($type) + $this->profiles->identityRules($type, $input, $customer),
-            ProfileService::messages(),
-            ProfileService::basicAttributes($type) + ProfileService::identityAttributes(),
-        )->validate();
+        $this->visitors->validate($type, $input, $customer);
     }
 
     /** @return list<string> human-readable failures */
