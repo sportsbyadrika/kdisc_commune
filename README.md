@@ -94,6 +94,25 @@ only to the owner or authorised staff. Password links are single-use and expire 
 Test identifiers for development (valid checksums, not real people): Aadhaar `2341 2341 2346`, `4991 2345 6783`;
 PAN `ABCPE1234F`; institution PAN `AABCK1234L` + GSTIN `32AABCK1234L1ZV`; TAN `TVDK12345E`.
 
+## Space Explorer & booking requests (batch 3)
+
+| Flow | Where |
+|---|---|
+| Level 1 — building | `/spaces/explore?from=&to=&type=` (home hero date bar and "Book a Seat" link here); floor hotspots with live free counts |
+| Level 2 — floor map | `/spaces/explore/{ground-floor\|first-floor}` — tap seats (guests are asked to sign in), zoom/pan, list view, add-ons, live quote |
+| Checkout | `/spaces/checkout` → `/spaces/checkout/done/{BK-…}` (visitor must be signed in with a submitted profile; KYC may be pending) |
+| My bookings | `/my/bookings`, `/my/bookings/{BK-…}` (status timeline) |
+| Receptionist mode | `/staff/spaces` — visitor picker, occupant popovers, manager override (reason, audit-logged), creates **approved** bookings |
+| Staff bookings | `/staff/bookings`, `/staff/bookings/{BK-…}` (read-only until the approvals/payments batch) |
+| JSON API | `/api/space/*` (site session) and `/staff/api/space/*` (staff session) — see `routes/api.php` |
+
+Selected seats are **held for 10 minutes** (`settings.seat_hold_minutes`, renewable); the map polls every
+`settings.availability_poll_seconds` (20 s). Pricing assumptions pending K-DISC confirmation (all in `settings`):
+flexi under a month = daily rate × days, a month or more = monthly × months + remaining days at the daily rate, the
+daily part capped at one month (`flexi_pricing_rule`, `flexi_daily_cap_monthly`); dedicated seats and cabins pro-rate
+partial months as days ÷ 30 (`proration_days_per_month`); tenures over 6 months need a security deposit of
+`security_deposit_months` (2) months' rent instead of an advance; IGST applies when the visitor's state code ≠ 32.
+
 ## Everyday commands
 
 ```bash

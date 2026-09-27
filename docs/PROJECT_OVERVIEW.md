@@ -475,6 +475,11 @@ Double-booking prevention: when a booking is confirmed, a transaction locks the 
 12. Cancellation, refund, handover and early-exit policies.
 13. **Notifications**: email only, or also SMS/WhatsApp?
 14. **Branding**: confirm the Kallang-style theme vs K-DISC brand colours, and provide the logos.
+15. **Flexi pricing between day and month rates** (implemented as an assumption, configurable in `settings`): under a
+    month = daily rate × days; a month or more = monthly rate × whole months + remaining days at the daily rate; the
+    daily part is capped at one month's rate. Also confirm: partial months of dedicated seats/cabins pro-rated as days ÷ 30,
+    whether a booking under one month is allowed for dedicated seats/cabins, security deposit = 2 months' rent, and
+    whether online requests should reserve seats (they currently do while pending approval).
 
 ---
 
