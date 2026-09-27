@@ -19,6 +19,6 @@ $this->layout('layouts/staff', [
 <?php $this->stop() ?>
 <?php $this->start('actions') ?>
 <a href="<?= e(url('staff.bookings.index')) ?>" class="btn btn-outline"><?= icon('calendar-check', 'size-4') ?>Bookings</a>
-<a href="<?= e(url('staff.visitors.create')) ?>" class="btn btn-brand"><?= icon('user-plus', 'size-4') ?>New visitor</a>
+<?php if (staff_can('visitors.register')): ?><a href="<?= e(url('staff.visitors.create')) ?>" class="btn btn-brand"><?= icon('user-plus', 'size-4') ?>New visitor</a><?php endif ?>
 <?php $this->stop() ?>
 <?= $this->partial('partials/space/explorer', ['config' => $config, 'staffMode' => true]) ?>

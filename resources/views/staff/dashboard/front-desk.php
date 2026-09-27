@@ -31,7 +31,7 @@ $row = function (array $b, string $right = '') {
     <section class="card overflow-hidden xl:col-span-2">
         <div class="flex items-center justify-between gap-3 px-5 pt-5">
             <h2 class="text-lg font-bold">Today · <?= e(format_date($desk['today'], 'D, d M')) ?></h2>
-            <a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-brand btn-sm"><?= icon('scan-line', 'size-4') ?>Check-in desk</a>
+            <?php if (staff_can('checkins.manage')): ?><a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-brand btn-sm"><?= icon('scan-line', 'size-4') ?>Check-in desk</a><?php endif ?>
         </div>
         <div class="mt-3 grid divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
             <div>
@@ -109,9 +109,9 @@ $row = function (array $b, string $right = '') {
     <section class="card card-body">
         <h2 class="text-lg font-bold">Quick actions</h2>
         <div class="mt-4 grid gap-2">
-            <a href="<?= e(url('staff.visitors.create')) ?>" class="flex items-center gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><?= icon('user-plus', 'size-5 text-accent-600') ?>Register a walk-in</a>
-            <a href="<?= e(url('staff.explorer')) ?>" class="flex items-center gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><?= icon('map', 'size-5 text-accent-600') ?>Book on the seat map</a>
-            <a href="<?= e(url('staff.checkins.index')) ?>" class="flex items-center gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><?= icon('scan-line', 'size-5 text-accent-600') ?>Check-in / out</a>
+            <?php if (staff_can('visitors.register')): ?><a href="<?= e(url('staff.visitors.create')) ?>" class="flex items-center gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><?= icon('user-plus', 'size-5 text-accent-600') ?>Register a walk-in</a><?php endif ?>
+            <?php if (staff_can('space.explore')): ?><a href="<?= e(url('staff.explorer')) ?>" class="flex items-center gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><?= icon('map', 'size-5 text-accent-600') ?>Book on the seat map</a><?php endif ?>
+            <?php if (staff_can('checkins.manage')): ?><a href="<?= e(url('staff.checkins.index')) ?>" class="flex items-center gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><?= icon('scan-line', 'size-5 text-accent-600') ?>Check-in / out</a><?php endif ?>
             <?php if ($role->can('kyc.verify')): ?><a href="<?= e(url('staff.kyc.index')) ?>" class="flex items-center justify-between gap-3 rounded-2xl bg-surface p-3 font-semibold transition hover:bg-surface-2"><span class="flex items-center gap-3"><?= icon('shield-check', 'size-5 text-accent-600') ?>KYC queue</span><span class="badge badge-info"><?= (int) $c['kyc_pending'] ?></span></a><?php endif ?>
         </div>
     </section>
@@ -121,7 +121,7 @@ $row = function (array $b, string $right = '') {
     <section class="mt-6">
         <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
             <h2 class="text-lg font-bold">Live occupancy · today</h2>
-            <a href="<?= e(url('staff.explorer')) ?>" class="text-sm font-semibold text-brand-700 hover:underline">Open the Space Explorer</a>
+            <?php if (staff_can('space.explore')): ?><a href="<?= e(url('staff.explorer')) ?>" class="text-sm font-semibold text-brand-700 hover:underline">Open the Space Explorer</a><?php endif ?>
         </div>
         <div class="grid gap-6 xl:grid-cols-2">
             <?php foreach ($occupancy as $map): $s = $map['stats']; $pct = $s['units'] > 0 ? (int) round($s['occupied'] / $s['units'] * 100) : 0; ?>

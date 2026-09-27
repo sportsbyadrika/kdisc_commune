@@ -216,6 +216,42 @@ final class RouteSecurityTest extends TestCase
         }
     }
 
+    #[DataProvider('roles')]
+    public function testPagesOnlyLinkToWhatTheRoleMayOpen(string $roleValue): void
+    {
+        $role = StaffRole::from($roleValue);
+        $staffId = (int) db()->scalar('SELECT id FROM staff_users WHERE role = ? AND is_active = 1 ORDER BY id LIMIT 1', [$role->value]);
+        $pages = [];
+        foreach ((array) App::config('navigation.staff', []) as $item) {
+            if (isset($item['route']) && $role->can((string) ($item['can'] ?? '')) && App::container()->get(Router::class)->has((string) $item['route'])) {
+                $pages[] = url((string) $item['route']);
+            }
+        }
+        self::assertNotEmpty($pages);
+        $links = [];
+        foreach ($pages as $page) {
+            $this->actingAsStaff($staffId);
+            $response = $this->http('GET', $page);
+            self::assertContains($response->status(), [200, 302], "{$role->label()} sidebar page {$page}");
+            preg_match_all('~href="(/staff/[^"#]*)"~', $response->content(), $m);
+            foreach ($m[1] as $href) {
+                $href = html_entity_decode($href);
+                $key = (string) preg_replace(['#\?.*$#', '#/\d+#', '#BK-\d{4}-\d+#', '#CMN-KTR-[IN]-\d{4}-\d+#'], ['', '/N', 'BK', 'UID'], $href);
+                if (!preg_match('#\.(pdf|xlsx)(\?|$)#', $href) && !isset($links[$key])) {
+                    $links[$key] = [$href, $page];
+                }
+            }
+        }
+        $forbidden = [];
+        foreach ($links as [$href, $from]) {
+            $this->actingAsStaff($staffId);
+            if ($this->http('GET', $href)->status() === 403) {
+                $forbidden[] = "{$href} (linked from {$from})";
+            }
+        }
+        self::assertSame([], $forbidden, "{$role->label()} sees links it may not open");
+    }
+
     // ------------------------------------------------------------------ CSRF
 
     public function testEveryStateChangingRouteRequiresACsrfToken(): void

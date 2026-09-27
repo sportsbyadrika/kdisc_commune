@@ -44,7 +44,7 @@ final class ExplorerController extends Controller
                 'canOverride' => $role->can('space.override'),
                 'canBook' => $role->can('bookings.create'),
                 'customersUrl' => url('staff.api.space.customers'),
-                'registerVisitorUrl' => url('staff.visitors.create'),
+                'registerVisitorUrl' => $role->can('visitors.register') ? url('staff.visitors.create') : null,
                 'canCheckin' => $role->can('checkins.manage'),
                 'checkinUrl' => url('staff.checkins.seat'),
                 'bookingUrl' => url('staff.bookings.show', ['no' => '__NO__']),

@@ -41,7 +41,7 @@ $currentFloor = $config['initial']['floor'];
                         <span class="badge shrink-0" :class="kycTone(c.kyc_status)" x-text="kycLabel(c.kyc_status)"></span>
                     </button>
                 </template>
-                <div x-show="!custResults.length" class="px-4 py-4 text-sm text-muted">No visitor found. <a class="font-semibold text-brand-700 underline" href="<?= e((string) ($config['registerVisitorUrl'] ?? '#')) ?>">Register a new visitor</a></div>
+                <div x-show="!custResults.length" class="px-4 py-4 text-sm text-muted">No visitor found.<?php if (!empty($config['registerVisitorUrl'])): ?> <a class="font-semibold text-brand-700 underline" href="<?= e((string) $config['registerVisitorUrl']) ?>">Register a new visitor</a><?php endif ?></div>
             </div>
         </div>
         <template x-if="customer">

@@ -36,8 +36,8 @@ $hint = [
 ?>
 <?php $this->start('actions') ?>
 <?= $this->partial('partials/report/export-buttons', ['key' => 'bookings-list', 'query' => ['tab' => $tab] + $filters]) ?>
-<a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-outline"><?= icon('scan-line', 'size-4') ?><span class="hidden sm:inline">Check-in desk</span></a>
-<a href="<?= e(url('staff.explorer')) ?>" class="btn btn-brand"><?= icon('map', 'size-4') ?>Book on the map</a>
+<?php if (staff_can('checkins.manage')): ?><a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-outline"><?= icon('scan-line', 'size-4') ?><span class="hidden sm:inline">Check-in desk</span></a><?php endif ?>
+<?php if (staff_can('space.explore')): ?><a href="<?= e(url('staff.explorer')) ?>" class="btn btn-brand"><?= icon('map', 'size-4') ?>Book on the map</a><?php endif ?>
 <?php $this->stop() ?>
 
 <nav class="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" aria-label="Booking tabs">

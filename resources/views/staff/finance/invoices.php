@@ -33,8 +33,8 @@ $docLinks = function (string $type, array $row) use ($pdf, $canManage): string {
 ?>
 <?php $this->start('actions') ?>
 <?php if (in_array($tab, ['invoices', 'receipts', 'credit-notes'], true)): ?><?= $this->partial('partials/report/export-buttons', ['key' => 'invoices', 'query' => ['tab' => $tab, 'fy' => $fy, 'q' => $q]]) ?><?php endif ?>
-<a href="<?= e(url('staff.payments.index')) ?>" class="btn btn-outline"><?= icon('wallet', 'size-4') ?><span class="hidden sm:inline">Verify payments</span><?php if ($pendingPayments > 0): ?><span class="rounded-full bg-accent-500 px-1.5 text-xs text-white"><?= $pendingPayments ?></span><?php endif ?></a>
-<a href="<?= e(url('staff.registers.index')) ?>" class="btn btn-outline"><?= icon('book-open-text', 'size-4') ?><span class="hidden sm:inline">Registers</span></a>
+<?php if (staff_can('payments.view')): ?><a href="<?= e(url('staff.payments.index')) ?>" class="btn btn-outline"><?= icon('wallet', 'size-4') ?><span class="hidden sm:inline">Verify payments</span><?php if ($pendingPayments > 0): ?><span class="rounded-full bg-accent-500 px-1.5 text-xs text-white"><?= $pendingPayments ?></span><?php endif ?></a><?php endif ?>
+<?php if (staff_can('reports.finance')): ?><a href="<?= e(url('staff.registers.index')) ?>" class="btn btn-outline"><?= icon('book-open-text', 'size-4') ?><span class="hidden sm:inline">Registers</span></a><?php endif ?>
 <?php $this->stop() ?>
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -70,7 +70,7 @@ $docLinks = function (string $type, array $row) use ($pdf, $canManage): string {
         <?php endif ?>
     </div>
     <?php if ($rows === []): ?>
-        <?= $this->component('empty', ['icon' => 'inbox', 'title' => 'Invoice queue is empty', 'text' => $pendingPayments > 0 ? $pendingPayments . ' logged payment(s) still need verification before they can be invoiced.' : 'Every verified payment has its invoice.', 'action' => $pendingPayments > 0 ? ['label' => 'Verify payments', 'href' => url('staff.payments.index'), 'variant' => 'brand'] : null]) ?>
+        <?= $this->component('empty', ['icon' => 'inbox', 'title' => 'Invoice queue is empty', 'text' => $pendingPayments > 0 ? $pendingPayments . ' logged payment(s) still need verification before they can be invoiced.' : 'Every verified payment has its invoice.', 'action' => $pendingPayments > 0 && staff_can('payments.view') ? ['label' => 'Verify payments', 'href' => url('staff.payments.index'), 'variant' => 'brand'] : null]) ?>
     <?php else: ?>
         <div class="card overflow-x-auto">
             <table class="table">
