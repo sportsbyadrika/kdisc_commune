@@ -12,7 +12,7 @@ $this->layout('layouts/staff', ['breadcrumb' => [['Dashboard', url('staff.dashbo
 <?php foreach ($hub as $group => $reports): if ($reports === []) { continue; } [$label, $ic] = ReportRegistry::GROUPS[$group] ?? [ucfirst($group), 'chart-column']; ?>
     <section class="mb-8">
         <h2 class="mb-3 flex items-center gap-2 text-sm font-bold tracking-[0.14em] text-muted uppercase"><?= icon($ic, 'size-4') ?><?= e($label) ?></h2>
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <?php foreach ($reports as $r): ?>
                 <article class="card card-hover flex flex-col p-5">
                     <a href="<?= e(url('staff.reports.show', ['key' => $r->key()])) ?>" class="flex flex-1 items-start gap-4">

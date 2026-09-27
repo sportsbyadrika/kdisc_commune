@@ -15,7 +15,7 @@ $unpaid = (float) ($dues['balance'] ?? 0);
 ?>
 <div class="mx-auto max-w-3xl space-y-6">
     <section class="card card-body">
-        <dl class="grid gap-4 text-sm sm:grid-cols-4">
+        <dl class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-4">
             <div><dt class="text-xs font-semibold text-muted">Booking</dt><dd class="font-mono font-bold"><a class="text-brand-700 hover:underline" href="<?= e(url('staff.bookings.show', ['no' => $booking['booking_no']])) ?>"><?= e($booking['booking_no']) ?></a></dd></div>
             <div><dt class="text-xs font-semibold text-muted">Tenure</dt><dd class="font-semibold"><?= e(format_date((string) $booking['start_date'], 'd M Y') . ' – ' . format_date((string) $booking['end_date'], 'd M Y')) ?></dd></div>
             <div><dt class="text-xs font-semibold text-muted">Status</dt><dd class="font-semibold"><?= e(ucfirst((string) $booking['status'])) ?></dd></div>
@@ -48,7 +48,7 @@ $unpaid = (float) ($dues['balance'] ?? 0);
                 <div class="mt-1 flex justify-between"><span class="text-muted">Adjustments</span><b class="tabular-nums" x-text="'− ₹' + adj.toLocaleString('en-IN', { minimumFractionDigits: 2 })"></b></div>
                 <div class="mt-2 flex justify-between border-t border-line pt-2 text-base"><span class="font-bold">Refund</span><b class="tabular-nums" :class="held - adj < 0 && 'text-red-700'" x-text="'₹' + Math.max(0, held - adj).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></b></div>
             </div>
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <?= $this->component('select', ['name' => 'mode', 'label' => 'Refund mode', 'options' => $modes, 'value' => 'bank_transfer']) ?>
                 <?= $this->component('input', ['name' => 'reference_no', 'label' => 'Reference (UTR / cheque no.)']) ?>
             </div>

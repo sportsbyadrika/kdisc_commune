@@ -163,7 +163,7 @@ $errorsOpen = errors('amount') !== null || errors('reference_no') !== null || er
     </div>
 </section>
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
     <div class="min-w-0 space-y-6">
         <!-- Customer -->
         <section class="card card-body">
@@ -176,7 +176,7 @@ $errorsOpen = errors('amount') !== null || errors('reference_no') !== null || er
                 <?= $this->component('badge', ['label' => $kyc->label(), 'tone' => $kyc->tone(), 'dot' => true]) ?>
                 <?php if ($customer['unique_id']): ?><a class="btn btn-outline btn-sm" href="<?= e(url('staff.visitors.show', ['ref' => $customer['unique_id']])) ?>"><?= icon('user-round', 'size-4') ?>Profile</a><?php endif ?>
             </div>
-            <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+            <dl class="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
                 <div><dt class="text-xs font-bold text-muted uppercase">Mobile</dt><dd class="font-semibold"><?= e(format_phone((string) $customer['mobile']) ?: '—') ?></dd></div>
                 <div><dt class="text-xs font-bold text-muted uppercase">Email</dt><dd class="truncate font-semibold"><?= e($customer['email'] ?: '—') ?></dd></div>
                 <?php foreach ($ids as [$idLabel, $idValue]): ?>
@@ -350,7 +350,7 @@ $errorsOpen = errors('amount') !== null || errors('reference_no') !== null || er
                     <?php endif ?>
                 </div>
             <?php endif ?>
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <?= $this->component('select', ['name' => 'kind', 'label' => 'For', 'options' => $kinds, 'required' => true, 'attrs' => ['x-model' => 'kind']]) ?>
                 <?= $this->component('select', ['name' => 'mode', 'label' => 'Mode', 'options' => $modes, 'required' => true, 'attrs' => ['x-model' => 'mode']]) ?>
                 <?= $this->component('input', ['name' => 'amount', 'label' => 'Amount (₹)', 'type' => 'number', 'required' => true, 'attrs' => ['x-model' => 'amount', 'step' => '0.01', 'min' => '1', 'inputmode' => 'decimal']]) ?>

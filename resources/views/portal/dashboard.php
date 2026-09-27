@@ -43,7 +43,7 @@ $tiles = [
     <?= $this->end() ?>
 <?php endif ?>
 
-<div class="grid gap-6 lg:grid-cols-5 lg:items-start">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:items-start">
     <div class="lg:col-span-3">
         <?= $this->partial('partials/visitor/id-card') ?>
         <?php if (!empty($customer['unique_id'])): ?>
@@ -75,7 +75,7 @@ $tiles = [
         </section>
     </div>
     <div class="space-y-6 lg:col-span-3">
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <?php foreach ($tiles as [$ico, $label, $text, $badge, $href]): ?>
                 <<?= $href !== null ? 'a href="' . e($href) . '"' : 'div' ?> class="card card-body flex flex-col <?= $href !== null ? 'card-hover' : '' ?>">
                     <div class="flex items-center justify-between">

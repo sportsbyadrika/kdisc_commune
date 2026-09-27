@@ -14,18 +14,18 @@ $this->layout('layouts/staff', [
 $kind = (string) old('kind', (string) ($facility['kind'] ?? 'addon'));
 $icon = (string) old('icon', (string) ($facility['icon'] ?? 'package'));
 ?>
-<form method="post" action="<?= e($editing ? url('staff.facilities.update', ['id' => (int) $facility['id']]) : url('staff.facilities.store')) ?>" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]" x-data="{ kind: <?= e(json_encode($kind)) ?>, icon: <?= e(json_encode($icon)) ?>, q: '' }">
+<form method="post" action="<?= e($editing ? url('staff.facilities.update', ['id' => (int) $facility['id']]) : url('staff.facilities.store')) ?>" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]" x-data="{ kind: <?= e(json_encode($kind)) ?>, icon: <?= e(json_encode($icon)) ?>, q: '' }">
     <?= csrf_field() ?>
     <?php if ($editing): ?><?= method_field('PUT') ?><?php endif ?>
     <div class="card space-y-5 p-6">
-        <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
             <?= $this->component('input', ['name' => 'name', 'label' => 'Name', 'value' => $facility['name'] ?? '', 'required' => true, 'attrs' => ['maxlength' => 100]]) ?>
             <?= $this->component('input', ['name' => 'emoji', 'label' => 'Emoji', 'value' => $facility['emoji'] ?? '', 'placeholder' => '🔒', 'attrs' => ['maxlength' => 16]]) ?>
         </div>
         <?= $this->component('input', ['name' => 'description', 'label' => 'Short description', 'value' => $facility['description'] ?? '', 'attrs' => ['maxlength' => 255]]) ?>
         <fieldset>
             <legend class="label">Type</legend>
-            <div class="grid gap-2 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <?php foreach (App\Enums\FacilityKind::cases() as $k): ?>
                     <label class="flex cursor-pointer items-start gap-2 rounded-2xl border p-3 transition" :class="kind === '<?= $k->value ?>' ? 'border-brand-600 bg-brand-50/60 ring-2 ring-brand-600/15' : 'border-line'">
                         <input type="radio" name="kind" value="<?= $k->value ?>" x-model="kind" class="mt-1">
@@ -34,12 +34,12 @@ $icon = (string) old('icon', (string) ($facility['icon'] ?? 'package'));
                 <?php endforeach ?>
             </div>
         </fieldset>
-        <div x-show="kind === 'addon'" class="grid gap-4 sm:grid-cols-3">
+        <div x-show="kind === 'addon'" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <?= $this->component('input', ['name' => 'price', 'label' => 'Price ₹', 'type' => 'number', 'value' => $facility['price'] ?? '', 'attrs' => ['min' => 0, 'step' => '0.01']]) ?>
             <?= $this->component('select', ['name' => 'unit', 'label' => 'Unit', 'options' => App\Enums\FacilityUnit::options(), 'value' => $facility['unit'] ?? 'month']) ?>
             <?= $this->component('input', ['name' => 'stock_qty', 'label' => 'Stock', 'type' => 'number', 'value' => $facility['stock_qty'] ?? '', 'placeholder' => 'Unlimited', 'help' => 'Lockers, parking slots… blank = unlimited', 'attrs' => ['min' => 0]]) ?>
         </div>
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <?= $this->component('input', ['name' => 'gst_rate', 'label' => 'GST %', 'type' => 'number', 'value' => $facility['gst_rate'] ?? 18, 'required' => true, 'attrs' => ['min' => 0, 'max' => 28, 'step' => '0.01']]) ?>
             <?= $this->component('input', ['name' => 'code', 'label' => 'Code', 'value' => $facility['code'] ?? '', 'placeholder' => 'Auto from name', 'attrs' => ['maxlength' => 30]]) ?>
             <?= $this->component('input', ['name' => 'sort_order', 'label' => 'Sort order', 'type' => 'number', 'value' => $facility['sort_order'] ?? 50, 'attrs' => ['min' => 0, 'max' => 999]]) ?>

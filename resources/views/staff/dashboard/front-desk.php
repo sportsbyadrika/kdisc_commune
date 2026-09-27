@@ -27,13 +27,13 @@ $row = function (array $b, string $right = '') {
     <?= $this->component('stat', ['label' => 'Awaiting payment', 'value' => $c['awaiting'], 'icon' => 'wallet', 'tone' => 'accent', 'hint' => 'Approved, not confirmed', 'href' => url('staff.bookings.index', ['tab' => 'payment'])]) ?>
 </div>
 
-<div class="mt-6 grid gap-6 xl:grid-cols-3">
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <section class="card overflow-hidden xl:col-span-2">
         <div class="flex items-center justify-between gap-3 px-5 pt-5">
             <h2 class="text-lg font-bold">Today · <?= e(format_date($desk['today'], 'D, d M')) ?></h2>
             <?php if (staff_can('checkins.manage')): ?><a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-brand btn-sm"><?= icon('scan-line', 'size-4') ?>Check-in desk</a><?php endif ?>
         </div>
-        <div class="mt-3 grid divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
+        <div class="mt-3 grid grid-cols-1 divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
             <div>
                 <p class="flex items-center gap-2 px-4 pt-2 pb-1 text-xs font-bold tracking-[0.14em] text-muted uppercase"><?= icon('log-in', 'size-3.5') ?>Arrivals <span class="rounded-full bg-surface-2 px-1.5"><?= count($desk['arrivals']) ?></span></p>
                 <?php if ($desk['arrivals'] === [] && $desk['expected'] === []): ?><p class="px-4 pb-4 text-sm text-muted">No arrivals expected.</p><?php endif ?>
@@ -85,7 +85,7 @@ $row = function (array $b, string $right = '') {
     </section>
 </div>
 
-<div class="mt-6 grid gap-6 xl:grid-cols-3">
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <section class="card overflow-hidden">
         <div class="flex items-center justify-between px-5 pt-5">
             <h2 class="text-lg font-bold">Pending requests</h2>
@@ -123,7 +123,7 @@ $row = function (array $b, string $right = '') {
             <h2 class="text-lg font-bold">Live occupancy · today</h2>
             <?php if (staff_can('space.explore')): ?><a href="<?= e(url('staff.explorer')) ?>" class="text-sm font-semibold text-brand-700 hover:underline">Open the Space Explorer</a><?php endif ?>
         </div>
-        <div class="grid gap-6 xl:grid-cols-2">
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <?php foreach ($occupancy as $map): $s = $map['stats']; $pct = $s['units'] > 0 ? (int) round($s['occupied'] / $s['units'] * 100) : 0; ?>
                 <div class="card card-body">
                     <div class="mb-3 flex items-center justify-between gap-3">

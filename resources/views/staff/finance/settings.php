@@ -15,13 +15,13 @@ use App\Services\Finance\NumberSequence;
 $this->layout('layouts/staff', ['title' => 'Finance settings', 'subtitle' => 'Printed on every GST invoice, receipt and credit note. Issued documents keep the details they were issued with.', 'breadcrumb' => [['Dashboard', url('staff.dashboard')], ['Finance'], ['Settings']]]);
 $f = static fn (string $key, array $extra = []) => ['name' => $key, 'label' => FinanceSettings::FIELDS[$key][0], 'value' => $values[$key] ?? ''] + $extra;
 ?>
-<form method="post" action="<?= e(url('staff.finance.settings.update')) ?>" enctype="multipart/form-data" class="grid gap-6 xl:grid-cols-3">
+<form method="post" action="<?= e(url('staff.finance.settings.update')) ?>" enctype="multipart/form-data" class="grid grid-cols-1 gap-6 xl:grid-cols-3">
     <?= csrf_field() ?><?= method_field('PUT') ?>
     <div class="space-y-6 xl:col-span-2">
         <section class="card card-body">
             <h2 class="text-lg font-bold">Supplier</h2>
             <p class="text-sm text-muted">The legal entity issuing the documents.</p>
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <?= $this->component('input', $f('supplier_legal_name', ['required' => true, 'class' => 'sm:col-span-2'])) ?>
                 <?= $this->component('input', $f('supplier_trade_name', ['class' => 'sm:col-span-2'])) ?>
                 <?= $this->component('textarea', $f('supplier_address', ['rows' => 2, 'required' => true, 'class' => 'sm:col-span-2'])) ?>
@@ -36,7 +36,7 @@ $f = static fn (string $key, array $extra = []) => ['name' => $key, 'label' => F
         <section class="card card-body">
             <h2 class="text-lg font-bold">GST &amp; numbering</h2>
             <p class="text-sm text-muted">Numbers restart every financial year (April–March) and are allocated under a database lock — no gaps.</p>
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <?= $this->component('input', $f('sac_code', ['required' => true, 'help' => '997212 — rental of non-residential property (to be confirmed by Finance).'])) ?>
                 <?= $this->component('input', $f('gst_rate', ['type' => 'number', 'required' => true, 'help' => 'Default for new rates; CGST/SGST = half each.', 'attrs' => ['step' => '0.01', 'min' => '0', 'max' => '28']])) ?>
                 <?php foreach (['invoice_prefix' => NumberSequence::INVOICE, 'receipt_prefix' => NumberSequence::RECEIPT, 'credit_note_prefix' => NumberSequence::CREDIT_NOTE, 'refund_voucher_prefix' => NumberSequence::REFUND_VOUCHER] as $key => $seq): ?>
@@ -48,7 +48,7 @@ $f = static fn (string $key, array $extra = []) => ['name' => $key, 'label' => F
         <section class="card card-body">
             <h2 class="text-lg font-bold">Bank details</h2>
             <p class="text-sm text-muted">Printed on invoices for NEFT / UPI payments.</p>
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <?php foreach (['bank_account_name', 'bank_name', 'bank_branch', 'bank_account_no', 'bank_ifsc', 'bank_upi'] as $key): ?>
                     <?= $this->component('input', $f($key)) ?>
                 <?php endforeach ?>

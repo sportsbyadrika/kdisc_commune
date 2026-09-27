@@ -24,7 +24,7 @@ $rule = PaymentRule::from((string) $booking['payment_rule']);
 </div>
 <div class="container-page max-w-3xl pb-16">
     <div class="card overflow-hidden">
-        <div class="grid gap-px bg-line sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
             <?php foreach ([
                 ['Space', (string) $booking['category_name']],
                 ['Seats', (string) $booking['seat_codes']],
@@ -35,7 +35,7 @@ $rule = PaymentRule::from((string) $booking['payment_rule']);
                 <div class="bg-white p-5"><p class="text-xs font-bold tracking-wide text-muted uppercase"><?= e($k) ?></p><p class="mt-1 font-bold"><?= e($v) ?></p></div>
             <?php endforeach ?>
         </div>
-        <div class="grid gap-8 p-6 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-8 p-6 sm:grid-cols-2">
             <div>
                 <h2 class="mb-4 font-bold">What happens next</h2>
                 <ol class="space-y-4 text-sm">

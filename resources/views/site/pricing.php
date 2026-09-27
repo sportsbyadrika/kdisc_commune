@@ -18,7 +18,7 @@ $unitNames = ['day' => 'per day', 'month' => 'per month', 'hour' => 'per hour'];
 
 <section class="section">
     <div class="container-page">
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
             <?php foreach ($spaceTypes as $i => $t): $featured = $t['code'] === 'DEDICATED'; ?>
                 <div class="<?= e(class_names('card relative flex flex-col p-7', ['ring-2 ring-brand-600' => $featured])) ?>">
                     <?php if ($featured): ?><span class="absolute -top-3 left-7 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white">Most popular</span><?php endif ?>
@@ -44,7 +44,7 @@ $unitNames = ['day' => 'per day', 'month' => 'per month', 'hour' => 'per hour'];
             <?php endforeach ?>
         </div>
 
-        <div class="mt-16 grid gap-6 lg:grid-cols-2">
+        <div class="mt-16 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div class="card card-body">
                 <h2 class="text-xl font-bold">How payment works</h2>
                 <ul class="mt-5 space-y-4 text-sm">

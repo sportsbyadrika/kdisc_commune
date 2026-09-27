@@ -14,14 +14,14 @@ $money0 = static fn ($v) => money($v, fmod((float) $v, 1.0) ? 2 : 0);
 $catTotal = array_sum(array_column($f['byCategory'], 'amount'));
 $facTotal = array_sum(array_column($f['byFacility'], 'amount'));
 ?>
-<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <?= $this->component('stat', ['label' => 'Collected · ' . $m['label'], 'value' => $money0($m['collected']['total']), 'icon' => 'trending-up', 'tone' => 'success', 'hint' => $money0($m['due']) . ' fell due this month · ' . $money0($m['collected']['verified']) . ' verified']) ?>
     <?= $this->component('stat', ['label' => 'Payments to verify', 'value' => $f['verification']['pending'], 'icon' => 'hourglass', 'tone' => $f['verification']['pending'] > 0 ? 'warning' : 'success', 'hint' => $money0($f['verification']['pending_amount']) . ' logged' . ($f['verification']['queried'] ? ' · ' . $f['verification']['queried'] . ' queried' : ''), 'href' => route_exists('staff.payments.index') ? url('staff.payments.index') : null]) ?>
     <?= $this->component('stat', ['label' => 'Invoice queue', 'value' => $f['queue'], 'icon' => 'inbox', 'tone' => $f['queue'] > 0 ? 'accent' : 'brand', 'hint' => 'verified, not yet invoiced', 'href' => url('staff.invoices.index', ['tab' => 'queue'])]) ?>
     <?= $this->component('stat', ['label' => 'Deposits held', 'value' => $money0($f['depositsHeld']), 'icon' => 'piggy-bank', 'tone' => 'info', 'hint' => 'verified security deposits']) ?>
 </div>
 
-<div class="mt-6 grid gap-6 xl:grid-cols-3">
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <section class="card card-body xl:col-span-2">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -34,7 +34,7 @@ $facTotal = array_sum(array_column($f['byFacility'], 'amount'));
             </div>
         </div>
         <div class="mt-4 h-64"><canvas data-chart="<?= e(json_encode(['kind' => 'monthly'] + $f['chart'])) ?>" role="img" aria-label="Monthly dues and collections"></canvas></div>
-        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div class="rounded-2xl bg-surface p-3"><p class="text-xs font-semibold text-muted">Verified by Finance (FY)</p><p class="mt-1 font-bold tabular-nums"><?= e($money0($y['collected']['verified'])) ?></p></div>
             <div class="rounded-2xl bg-surface p-3"><p class="text-xs font-semibold text-muted">Outstanding now</p><p class="mt-1 font-bold tabular-nums <?= $f['outstanding']['due_now'] > 0 ? 'text-red-700' : '' ?>"><?= e($money0($f['outstanding']['due_now'])) ?></p></div>
             <div class="rounded-2xl bg-surface p-3"><p class="text-xs font-semibold text-muted">Future balance (booked)</p><p class="mt-1 font-bold tabular-nums"><?= e($money0($f['outstanding']['balance'])) ?></p></div>
@@ -55,7 +55,7 @@ $facTotal = array_sum(array_column($f['byFacility'], 'amount'));
     </section>
 </div>
 
-<div class="mt-6 grid gap-6 xl:grid-cols-3">
+<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <section class="card card-body">
         <h2 class="text-lg font-bold">Revenue by space type</h2>
         <p class="text-sm text-muted">Net taxable value invoiced, FY <?= e($f['fy']) ?></p>

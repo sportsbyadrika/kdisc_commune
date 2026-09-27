@@ -19,7 +19,7 @@ $sections = [
 ];
 $total = array_sum(array_map('count', $docs));
 ?>
-<div class="grid gap-6 lg:grid-cols-3 lg:items-start">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
     <div class="space-y-6 lg:col-span-2">
         <?php if ($total === 0): ?>
             <?= $this->component('empty', ['icon' => 'receipt-indian-rupee', 'title' => 'No documents yet', 'text' => 'Once you pay at the front desk and our finance team verifies the payment, your receipt and GST invoice appear here (and arrive by email).', 'action' => ['label' => 'My bookings', 'href' => url('portal.bookings'), 'variant' => 'outline']]) ?>

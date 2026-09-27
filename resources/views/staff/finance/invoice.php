@@ -31,7 +31,7 @@ $m = static fn ($v) => money($v, 2);
 <?php endif ?>
 <?php $this->stop() ?>
 
-<div class="grid gap-6 xl:grid-cols-3">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
     <div class="space-y-6 xl:col-span-2">
         <section class="card card-body">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -46,7 +46,7 @@ $m = static fn ($v) => money($v, 2);
                     <?php if ((float) $invoice['credited_total'] > 0): ?><p class="text-sm text-muted">credited <?= e($m($invoice['credited_total'])) ?> · net <?= e($m((float) $invoice['total'] - (float) $invoice['credited_total'])) ?></p><?php endif ?>
                 </div>
             </div>
-            <dl class="mt-5 grid gap-4 rounded-2xl bg-surface p-4 text-sm sm:grid-cols-3">
+            <dl class="mt-5 grid grid-cols-1 gap-4 rounded-2xl bg-surface p-4 text-sm sm:grid-cols-3">
                 <div><dt class="text-xs font-semibold text-muted">Recipient</dt><dd class="font-semibold"><?= e($invoice['customer_name']) ?></dd><dd class="font-mono text-xs text-muted"><?= e($invoice['customer_unique_id'] ?? '') ?></dd></div>
                 <div><dt class="text-xs font-semibold text-muted">GSTIN · PAN</dt><dd class="font-mono font-semibold"><?= e($invoice['customer_gstin'] ?: 'Unregistered (B2C)') ?></dd><dd class="font-mono text-xs text-muted"><?= e($invoice['customer_pan'] ?? '—') ?></dd></div>
                 <div><dt class="text-xs font-semibold text-muted">Place of supply</dt><dd class="font-semibold"><?= e(IndianStates::name((string) $invoice['place_of_supply'])) ?> (<?= e($invoice['place_of_supply']) ?>)</dd><dd class="text-xs text-muted"><?= $inter ? 'Inter-state → IGST' : 'Intra-state → CGST + SGST' ?></dd></div>

@@ -59,7 +59,7 @@ $actionLabels = [
     <?= $this->component('alert', ['tone' => 'danger', 'class' => 'mb-6', 'title' => 'KYC rejected', 'message' => (string) $customer['kyc_remarks']]) ?>
 <?php endif ?>
 
-<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
     <div class="min-w-0 space-y-6">
         <?= $this->partial('partials/visitor/summary', ['editBase' => null]) ?>
         <section>

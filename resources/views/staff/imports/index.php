@@ -16,7 +16,7 @@ $fileError = errors('file');
 <div class="grid gap-6 xl:grid-cols-3 [&>*]:min-w-0">
     <section class="xl:col-span-2">
         <h2 class="mb-3 text-sm font-bold tracking-[0.14em] text-muted uppercase">1 · Download a template</h2>
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <?php foreach ($importers as $key => $imp): ?>
                 <div class="card flex items-start gap-4 p-4">
                     <span class="grid size-10 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-700"><?= icon($imp->icon(), 'size-5') ?></span>

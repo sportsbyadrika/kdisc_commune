@@ -27,7 +27,7 @@ $bulk = $canVerify && in_array($filters['status'], ['pending', 'queried', 'all']
 <a href="<?= e(url('staff.invoices.index')) ?>" class="btn btn-outline"><?= icon('receipt-indian-rupee', 'size-4') ?><span class="hidden sm:inline">Invoice queue</span></a>
 <?php $this->stop() ?>
 
-<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <?= $this->component('stat', ['label' => 'Waiting for verification', 'value' => $counts['pending'], 'icon' => 'hourglass', 'tone' => $counts['pending'] > 0 ? 'warning' : 'success', 'hint' => money($counts['pending_amount'], 2) . ' logged']) ?>
     <?= $this->component('stat', ['label' => 'Queried with front desk', 'value' => $counts['queried'], 'icon' => 'message-circle-question', 'tone' => $counts['queried'] > 0 ? 'accent' : 'info']) ?>
     <?= $this->component('stat', ['label' => 'Verified today', 'value' => $counts['verified_today'], 'icon' => 'check-check', 'tone' => 'success']) ?>
@@ -44,7 +44,7 @@ $bulk = $canVerify && in_array($filters['status'], ['pending', 'queried', 'all']
     </div>
 </nav>
 
-<form method="get" class="card mb-5 grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-4 xl:grid-cols-8 xl:items-end">
+<form method="get" class="card mb-5 grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-4 xl:grid-cols-8 xl:items-end">
     <input type="hidden" name="status" value="<?= e($filters['status']) ?>">
     <div class="sm:col-span-2 lg:col-span-2"><?= $this->component('input', ['name' => 'q', 'label' => 'Search', 'value' => $filters['q'], 'icon' => 'search', 'placeholder' => 'Booking, visitor, Unique ID, reference']) ?></div>
     <?= $this->component('select', ['name' => 'mode', 'label' => 'Mode', 'value' => $filters['mode'], 'placeholder' => 'Any mode', 'options' => PaymentMode::options()]) ?>

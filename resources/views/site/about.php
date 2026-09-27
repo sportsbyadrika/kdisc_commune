@@ -14,7 +14,7 @@ $this->layout('layouts/site');
     'breadcrumb' => [['Home', url('home')], ['About']],
 ]) ?>
 <section class="section">
-    <div class="container-page grid gap-12 lg:grid-cols-[1.3fr_1fr]">
+    <div class="container-page grid grid-cols-1 gap-12 lg:grid-cols-[1.3fr_1fr]">
         <div class="prose-page max-w-none">
             <h2 class="!mt-0">Work Near Home</h2>
             <p>Long commutes to city offices cost time, money and energy. The <strong>Work Near Home</strong> programme of the Kerala Development and Innovation Strategic Council (K-DISC) creates shared workspaces in smaller towns so that remote workers, freelancers, students, startups and institutions can work productively without leaving their community.</p>

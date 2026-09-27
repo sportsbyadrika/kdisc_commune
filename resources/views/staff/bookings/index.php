@@ -64,7 +64,7 @@ $hint = [
             <button class="btn btn-brand flex-1 sm:flex-none">Search</button>
         </div>
     </div>
-    <div x-show="more" x-cloak class="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div x-show="more" x-cloak class="mt-3 grid grid-cols-1 gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-5">
         <?= $this->component('select', ['name' => 'category', 'label' => 'Space type', 'value' => $filters['category'], 'placeholder' => 'All types', 'options' => array_column($categories, 'name', 'code')]) ?>
         <?= $this->component('select', ['name' => 'floor', 'label' => 'Floor', 'value' => $filters['floor'], 'placeholder' => 'All floors', 'options' => array_column($floors, 'name', 'slug')]) ?>
         <?= $this->component('select', ['name' => 'source', 'label' => 'Source', 'value' => $filters['source'], 'placeholder' => 'Online & reception', 'options' => BookingSource::options()]) ?>

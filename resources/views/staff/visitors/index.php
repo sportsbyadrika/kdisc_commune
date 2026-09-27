@@ -29,7 +29,7 @@ $chipItems = array_map(static fn (array $c) => $c + ['href' => url('staff.visito
 <?php endif ?>
 <?php $this->stop() ?>
 
-<form method="get" action="<?= e(url('staff.visitors.index')) ?>" class="card card-body mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_200px_auto]" role="search">
+<form method="get" action="<?= e(url('staff.visitors.index')) ?>" class="card card-body mb-5 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_200px_auto]" role="search">
     <input type="hidden" name="kyc" value="<?= e($filters['kyc']) ?>">
     <label class="relative">
         <span class="sr-only">Search</span>

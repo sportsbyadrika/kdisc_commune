@@ -27,7 +27,7 @@ $this->layout('layouts/site');
 <section id="floors" class="section">
     <div class="container-page space-y-16">
         <?php foreach (array_reverse($floors) as $floor): ?>
-            <article id="<?= e($floor['slug']) ?>" class="grid items-center gap-10 lg:grid-cols-[1.4fr_1fr]">
+            <article id="<?= e($floor['slug']) ?>" class="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.4fr_1fr]">
                 <div class="card overflow-hidden p-2">
                     <img src="<?= e(media($floor['photo_path'])) ?>" alt="<?= e($floor['name']) ?> plan" class="w-full rounded-[calc(var(--radius-card)-0.5rem)]" loading="lazy">
                 </div>

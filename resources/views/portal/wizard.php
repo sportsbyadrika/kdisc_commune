@@ -22,7 +22,7 @@ $this->layout('layouts/portal', [
 ]);
 $docErrors = errors()['documents'] ?? [];
 ?>
-<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+<div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
     <div class="min-w-0 space-y-6">
         <?= $this->partial('partials/visitor/stepper') ?>
 

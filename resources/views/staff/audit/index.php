@@ -16,7 +16,7 @@ $actor = static function (array $r): string {
     };
 };
 ?>
-<form method="get" class="card mb-5 grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-4 xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]" aria-label="Audit filters">
+<form method="get" class="card mb-5 grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-4 xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]" aria-label="Audit filters">
     <?= $this->component('select', ['name' => 'user', 'label' => 'Who', 'value' => $filters['user'], 'options' => $options['users'], 'placeholder' => 'Anyone']) ?>
     <?= $this->component('select', ['name' => 'action', 'label' => 'Action', 'value' => $filters['action'], 'options' => array_combine($options['actions'], array_map(static fn ($a) => str_ends_with($a, '.') ? $a . '*' : $a, $options['actions'])), 'placeholder' => 'Any action']) ?>
     <?= $this->component('select', ['name' => 'entity', 'label' => 'Record type', 'value' => $filters['entity'], 'options' => array_combine($options['entities'], $options['entities']), 'placeholder' => 'Any']) ?>

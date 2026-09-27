@@ -15,7 +15,7 @@ $labels = ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'linkedin' => '
 $socials = array_filter((array) config('app.org.social', []), static fn ($u, $k) => is_string($u) && str_starts_with($u, 'https://') && isset($labels[$k]), ARRAY_FILTER_USE_BOTH);
 ?>
 <footer class="mt-auto bg-brand-950 text-white/70">
-    <div class="container-page grid gap-12 py-16 sm:grid-cols-2 lg:grid-cols-12">
+    <div class="container-page grid grid-cols-1 gap-12 py-16 sm:grid-cols-2 lg:grid-cols-12">
         <div class="lg:col-span-3">
             <?= $this->partial('partials/logo', ['inverse' => true]) ?>
             <p class="mt-5 max-w-sm text-sm leading-6">Commune is a “Work Near Home” initiative of the Kerala Development and Innovation Strategic Council (K-DISC) — professional workspaces close to where you live.</p>

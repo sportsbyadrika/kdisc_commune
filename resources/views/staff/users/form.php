@@ -13,12 +13,12 @@ $this->layout('layouts/staff', [
     'breadcrumb' => [['Dashboard', url('staff.dashboard')], ['Staff users', url('staff.users.index')], [$editing ? (string) $user['name'] : 'New']],
 ]);
 ?>
-<form method="post" action="<?= e($editing ? url('staff.users.update', ['id' => (int) $user['id']]) : url('staff.users.store')) ?>" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" novalidate>
+<form method="post" action="<?= e($editing ? url('staff.users.update', ['id' => (int) $user['id']]) : url('staff.users.store')) ?>" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" novalidate>
     <?= csrf_field() ?>
     <?php if ($editing): ?><?= method_field('PUT') ?><?php endif ?>
     <div class="card space-y-5 p-6">
         <?= $this->component('input', ['name' => 'name', 'label' => 'Full name', 'value' => $user['name'], 'required' => true, 'autocomplete' => 'off']) ?>
-        <div class="grid gap-5 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <?= $this->component('input', ['name' => 'email', 'label' => 'Work email', 'type' => 'email', 'value' => $user['email'], 'required' => true, 'autocomplete' => 'off', 'help' => $editing ? 'Changing it cancels links sent to the old address.' : 'The invite to set a password goes here.']) ?>
             <?= $this->component('input', ['name' => 'mobile', 'label' => 'Mobile', 'type' => 'tel', 'value' => (string) ($user['mobile'] ?? ''), 'autocomplete' => 'off', 'placeholder' => '+91 94000 00000']) ?>
         </div>

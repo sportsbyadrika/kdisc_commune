@@ -101,7 +101,7 @@ $bad = (int) $batch['error_rows'];
             <p class="mt-2 text-sm text-muted">This upload was <?= e($batch['status']) ?> — its file has been deleted. Upload the workbook again to import it.</p>
         <?php elseif (!empty($summary['refs'])): ?>
             <p class="mt-1 text-sm text-muted">Mode: <?= $batch['mode'] === 'all_or_nothing' ? 'all or nothing' : 'row by row' ?>. Created or updated:</p>
-            <ul class="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <?php foreach ($summary['refs'] as $row => $ref): ?>
                     <li class="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm"><span class="font-mono text-xs text-muted">row <?= (int) $row ?></span><span class="truncate font-semibold"><?= e((string) $ref) ?></span></li>
                 <?php endforeach ?>

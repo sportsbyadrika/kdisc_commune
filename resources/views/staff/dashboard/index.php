@@ -47,7 +47,7 @@ $this->layout('layouts/staff', [
 <?= $this->partial($role->dashboardView()) ?>
 
 <?php if (empty($finance) && empty($dash)): ?>
-<div class="mt-8 grid gap-6 xl:grid-cols-3">
+<div class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <section class="card card-body xl:col-span-2">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-bold">Inventory by space type</h2>
@@ -67,7 +67,7 @@ $this->layout('layouts/staff', [
                 </div>
             <?php endforeach ?>
         </div>
-        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+        <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <?php foreach ($floors as $floor): ?>
                 <div class="flex items-center justify-between rounded-2xl bg-surface px-4 py-3">
                     <span class="inline-flex items-center gap-2 text-sm font-semibold"><?= icon('layers', 'size-4 text-brand-600') ?><?= e($floor['name']) ?></span>

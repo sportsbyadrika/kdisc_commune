@@ -102,7 +102,7 @@ $currentFloor = $config['initial']['floor'];
         </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <section class="min-w-0">
             <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
                 <div>

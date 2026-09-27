@@ -27,7 +27,7 @@ $stateTone = ['current' => 'success', 'scheduled' => 'info', 'ended' => 'neutral
     <?= $this->partial('partials/layout/nav', ['active' => 'rates']) ?>
 </div>
 
-<div class="mb-6 grid gap-3 rounded-2xl bg-brand-50/70 p-4 text-sm text-brand-900 ring-1 ring-brand-100 sm:grid-cols-3">
+<div class="mb-6 grid grid-cols-1 gap-3 rounded-2xl bg-brand-50/70 p-4 text-sm text-brand-900 ring-1 ring-brand-100 sm:grid-cols-3">
     <p class="flex gap-2"><?= icon('layers', 'size-4 mt-0.5 shrink-0') ?><span><b>Seat → zone → base rate.</b> A seat uses its own override, else its zone’s rate, else the base rate of its space type (set here).</span></p>
     <p class="flex gap-2"><?= icon('calendar-range', 'size-4 mt-0.5 shrink-0') ?><span><b>Effective-dated.</b> A new rate starts on its date; the previous one is closed the day before. Quotes use the rate on the booking’s start date.</span></p>
     <p class="flex gap-2"><?= icon('lock', 'size-4 mt-0.5 shrink-0') ?><span><b>Never rewritten.</b> A rate that priced a booking is locked; bookings keep the price they were created with.</span></p>
@@ -59,7 +59,7 @@ $stateTone = ['current' => 'success', 'scheduled' => 'info', 'ended' => 'neutral
                     <?php endforeach ?>
                 </div>
             </header>
-            <div class="grid gap-0 lg:grid-cols-[340px_minmax(0,1fr)]">
+            <div class="grid grid-cols-1 gap-0 lg:grid-cols-[340px_minmax(0,1fr)]">
                 <form method="post" action="<?= e(url('staff.layout.rates.store')) ?>" class="space-y-3 border-b border-line bg-surface/50 p-5 lg:border-r lg:border-b-0">
                     <?= csrf_field() ?>
                     <input type="hidden" name="category_id" value="<?= (int) $c['id'] ?>">

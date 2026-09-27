@@ -64,14 +64,14 @@ $m = static fn (float|int|string $v): string => money($v, fmod((float) $v, 1.0) 
     <?= $this->component('alert', ['tone' => 'info', 'class' => 'mb-6', 'message' => 'Renewed as ' . $renewal['booking_no'] . ' (' . BookingStatus::from((string) $renewal['status'])->label() . ').']) ?>
 <?php endif ?>
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
     <div class="min-w-0 space-y-6">
         <section class="card card-body">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="text-lg font-bold">Details</h2>
                 <?= $this->component('badge', ['label' => $status->label(), 'tone' => $status->tone(), 'dot' => true]) ?>
             </div>
-            <dl class="mt-5 grid gap-4 sm:grid-cols-2">
+            <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <?php foreach ([
                     ['Space', (string) $booking['category_name']],
                     ['Floor', (string) $booking['floor_name']],

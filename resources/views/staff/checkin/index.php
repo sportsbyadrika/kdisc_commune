@@ -22,7 +22,7 @@ $back = url('staff.checkins.index', ['id' => $q]);
 <?php $this->start('actions') ?>
 <?= $this->component('badge', ['label' => $checkedIn . ' checked in now', 'tone' => 'success', 'icon' => 'users']) ?>
 <?php $this->stop() ?>
-<div class="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start">
     <section class="card card-body" x-data="checkinScanner">
         <form method="get" action="<?= e(url('staff.checkins.index')) ?>" x-ref="form" class="space-y-3">
             <label for="ci-id" class="label">Unique Visitor ID</label>
