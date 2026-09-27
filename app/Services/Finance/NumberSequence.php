@@ -48,7 +48,9 @@ final class NumberSequence
         if (!$this->db->pdo()->inTransaction()) {
             throw new LogicException('NumberSequence::next() must run inside the transaction that stores the document.');
         }
-        $this->db->execute('INSERT IGNORE INTO number_sequences (name, period, last_value) VALUES (?, ?, 0)', [$name, $fy]);
+        // ON DUPLICATE KEY UPDATE takes an exclusive lock straight away (INSERT IGNORE takes a shared one, and two
+        // issuers upgrading shared locks to FOR UPDATE deadlock each other).
+        $this->db->execute('INSERT INTO number_sequences (name, period, last_value) VALUES (?, ?, 0) ON DUPLICATE KEY UPDATE last_value = last_value', [$name, $fy]);
         $last = (int) $this->db->scalar('SELECT last_value FROM number_sequences WHERE name = ? AND period = ? FOR UPDATE', [$name, $fy]);
         $seq = $last + 1;
         $this->db->execute('UPDATE number_sequences SET last_value = ? WHERE name = ? AND period = ?', [$seq, $name, $fy]);

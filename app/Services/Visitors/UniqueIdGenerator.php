@@ -26,7 +26,7 @@ final class UniqueIdGenerator
         $letter = self::letter($type);
         $seq = $this->db->transaction(function (Database $db) use ($letter, $year): int {
             $name = 'visitor_' . $letter;
-            $db->execute('INSERT IGNORE INTO number_sequences (name, period, last_value) VALUES (?, ?, 0)', [$name, (string) $year]);
+            $db->execute('INSERT INTO number_sequences (name, period, last_value) VALUES (?, ?, 0) ON DUPLICATE KEY UPDATE last_value = last_value', [$name, (string) $year]); // X lock, no S→X upgrade deadlock
             $last = (int) $db->scalar('SELECT last_value FROM number_sequences WHERE name = ? AND period = ? FOR UPDATE', [$name, (string) $year]);
             $db->execute('UPDATE number_sequences SET last_value = ? WHERE name = ? AND period = ?', [$last + 1, $name, (string) $year]);
             return $last + 1;
