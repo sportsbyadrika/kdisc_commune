@@ -32,4 +32,20 @@ final class QrCodeRenderer
         ]);
         return (string) (new QRCode($options))->render($data);
     }
+
+    /**
+     * PNG data URI (GD) — for PDFs: dompdf renders raster images more reliably than SVG.
+     */
+    public function pngDataUri(string $data, int $scale = 6): string
+    {
+        $options = new QROptions([
+            'outputType' => QROutputInterface::GDIMAGE_PNG,
+            'outputBase64' => true,
+            'eccLevel' => EccLevel::M,
+            'scale' => $scale,
+            'addQuietzone' => true,
+            'quietzoneSize' => 2,
+        ]);
+        return (string) (new QRCode($options))->render($data);
+    }
 }

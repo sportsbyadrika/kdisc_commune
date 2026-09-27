@@ -1,0 +1,97 @@
+/*
+ * Print stylesheet for dompdf documents (resources/views/pdf/*). dompdf supports CSS 2.1 + a little CSS3:
+ * use tables for layout, no flex/grid, no CSS variables. Colours mirror the @theme tokens in
+ * resources/css/app.css (brand-900 #0b1b3f, brand-600 #1d4ed8, accent-500 #e11d74, ink #111827,
+ * muted #6b7280, line #e5e7eb). Default font: DejaVu Sans (has the ₹ sign).
+ */
+@page { margin: 12mm 13mm 15mm 13mm; }
+* { box-sizing: border-box; }
+body { font-family: 'DejaVu Sans', sans-serif; font-size: 8.4pt; line-height: 1.38; color: #111827; margin: 0; }
+h1, h2, h3, h4 { margin: 0; font-weight: bold; color: #0b1b3f; }
+p { margin: 0; }
+table { border-collapse: collapse; width: 100%; }
+td, th { vertical-align: top; padding: 0; }
+.muted { color: #6b7280; }
+.small { font-size: 7.2pt; }
+.tiny { font-size: 6.4pt; }
+.b { font-weight: bold; }
+.r { text-align: right; }
+.c { text-align: center; }
+.nowrap { white-space: nowrap; }
+.mono { font-family: 'DejaVu Sans Mono', monospace; }
+.upper { text-transform: uppercase; letter-spacing: 0.6pt; }
+.brand { color: #1d4ed8; }
+.accent { color: #e11d74; }
+.mt4 { margin-top: 4pt; } .mt8 { margin-top: 8pt; } .mt12 { margin-top: 12pt; } .mt16 { margin-top: 16pt; }
+
+/* ---------- header band ---------- */
+.head td { vertical-align: middle; }
+.mark { width: 34pt; height: 34pt; background: #0b1b3f; color: #fff; font-size: 17pt; font-weight: bold; text-align: center; line-height: 34pt; border-radius: 7pt; }
+.mark span { color: #e11d74; }
+.org-name { font-size: 11pt; font-weight: bold; color: #0b1b3f; line-height: 1.2; }
+.org-sub { font-size: 7.4pt; color: #6b7280; }
+.doc-title { white-space: nowrap; font-size: 16pt; font-weight: bold; color: #0b1b3f; letter-spacing: 0.8pt; text-align: right; }
+.doc-tag { white-space: nowrap; display: inline-block; margin-top: 3pt; padding: 1.5pt 6pt; border: 0.8pt solid #1d4ed8; color: #1d4ed8; font-size: 6.8pt; font-weight: bold; letter-spacing: 0.8pt; text-transform: uppercase; border-radius: 3pt; }
+.rule { height: 2.4pt; background: #0b1b3f; margin: 8pt 0 0 0; }
+.rule-accent { height: 2.4pt; width: 60pt; background: #e11d74; margin-top: -2.4pt; }
+
+/* ---------- boxes ---------- */
+.box { border: 0.8pt solid #d1d5db; border-radius: 4pt; }
+.box-title { background: #f3f4f6; color: #374151; font-size: 6.8pt; font-weight: bold; letter-spacing: 0.7pt; text-transform: uppercase; padding: 3.5pt 7pt; border-bottom: 0.8pt solid #d1d5db; }
+.box-body { padding: 6pt 7pt; }
+.kv td { padding: 1.2pt 0; }
+.kv td.k { color: #6b7280; width: 38%; padding-right: 6pt; }
+.kv td.v { font-weight: bold; }
+.gap { width: 10pt; }
+
+/* ---------- item table ---------- */
+.items { margin-top: 10pt; font-size: 7.6pt; }
+.items th { background: #0b1b3f; color: #fff; font-size: 6.9pt; font-weight: bold; padding: 4.5pt 4pt; text-align: left; border: 0.6pt solid #0b1b3f; }
+.items th.r { text-align: right; }
+.items th.sub { background: #15307f; font-size: 6.2pt; padding: 2.5pt 4pt; }
+.items td { padding: 4pt 4pt; border-bottom: 0.6pt solid #e5e7eb; border-left: 0.6pt solid #e5e7eb; }
+.items td:last-child { border-right: 0.6pt solid #e5e7eb; }
+.items tr.alt td { background: #fafafa; }
+.items .desc { font-weight: bold; }
+.items .detail { color: #6b7280; font-size: 7pt; margin-top: 1pt; }
+.items tfoot td { background: #f3f4f6; font-weight: bold; border-top: 0.8pt solid #9ca3af; }
+
+/* ---------- totals ---------- */
+.totals td { padding: 3pt 6pt; }
+.totals td.k { color: #374151; }
+.totals td.v { text-align: right; font-weight: bold; white-space: nowrap; }
+.totals tr.grand td { background: #0b1b3f; color: #fff; font-size: 10pt; padding: 6pt; }
+.totals tr.line td { border-bottom: 0.6pt solid #e5e7eb; }
+.words { padding: 6pt 7pt; background: #eff5ff; border-left: 2.5pt solid #1d4ed8; }
+.words .k { font-size: 6.6pt; color: #1a3fb0; font-weight: bold; letter-spacing: 0.6pt; text-transform: uppercase; }
+.words .v { font-weight: bold; margin-top: 1.5pt; }
+
+/* ---------- summary / registers ---------- */
+.grid th { background: #f3f4f6; color: #374151; font-size: 6.8pt; font-weight: bold; padding: 3.5pt 4pt; border: 0.6pt solid #d1d5db; text-align: left; }
+.grid th.r { text-align: right; }
+.grid td { padding: 3.5pt 4pt; border: 0.6pt solid #e5e7eb; }
+.grid tfoot td { background: #f3f4f6; font-weight: bold; }
+.grid tr.cancelled td { color: #9ca3af; }
+
+/* ---------- signature / QR ---------- */
+.sign { text-align: right; }
+.sign .for { font-weight: bold; color: #0b1b3f; }
+.sign .space { height: 42pt; }
+.sign img.sig { max-height: 38pt; max-width: 130pt; }
+.sign img.seal { max-height: 52pt; max-width: 52pt; }
+.sign .line { border-top: 0.8pt solid #9ca3af; padding-top: 2pt; display: inline-block; min-width: 130pt; text-align: center; }
+.qr img { width: 74pt; height: 74pt; }
+.qr-cap { font-size: 6.2pt; color: #6b7280; }
+
+/* ---------- misc ---------- */
+.foot { margin-top: 10pt; padding-top: 6pt; border-top: 0.6pt solid #e5e7eb; color: #6b7280; font-size: 6.8pt; text-align: center; }
+.pill { display: inline-block; padding: 1pt 5pt; border-radius: 6pt; font-size: 6.6pt; font-weight: bold; }
+.pill-ok { background: #d1fae5; color: #065f46; }
+.pill-warn { background: #fef3c7; color: #92400e; }
+.pill-bad { background: #fee2e2; color: #991b1b; }
+.amount-big { font-size: 18pt; font-weight: bold; color: #0b1b3f; }
+.watermark { position: fixed; top: 38%; left: 4%; width: 92%; text-align: center; font-size: 58pt; font-weight: bold; color: #e11d74; opacity: 0.10; transform: rotate(-32deg); letter-spacing: 4pt; }
+.stamp-dup { position: fixed; top: -9mm; right: 0; font-size: 7pt; font-weight: bold; color: #e11d74; letter-spacing: 1pt; }
+.section-title { font-size: 8pt; font-weight: bold; color: #0b1b3f; text-transform: uppercase; letter-spacing: 0.8pt; margin: 12pt 0 4pt; }
+.note { font-size: 7.2pt; color: #374151; }
+.clause li { margin-bottom: 3pt; }
