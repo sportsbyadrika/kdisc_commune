@@ -227,6 +227,29 @@ final class LayoutDesignerTest extends TestCase
         self::assertGreaterThanOrEqual(1, (int) db()->scalar("SELECT COUNT(*) FROM audit_logs WHERE action = 'layout.publish'"));
     }
 
+    public function testUndoOfASavedDeleteReinsertsTheSeatWithItsKey(): void
+    {
+        $draft = $this->drafts()->createDraft($this->floorId(), self::$staffId);
+        $doc = $this->drafts()->document((int) $draft['id']);
+        $seat = $this->seatIn($doc, 'G-FX-07');
+        $without = $doc;
+        $without['seats'] = array_values(array_filter($doc['seats'], static fn ($s) => $s['code'] !== 'G-FX-07'));
+        $r1 = $this->drafts()->save((int) $draft['id'], (int) $draft['revision'], $without, self::$staffId);
+        self::assertSame(0, (int) db()->scalar('SELECT COUNT(*) FROM seats WHERE id = ?', [$seat['id']]));
+        // undo: the editor sends the old row (id + key) again
+        $r2 = $this->drafts()->save((int) $draft['id'], $r1['revision'], $doc, self::$staffId);
+        $newId = $r2['ids'][(string) $seat['id']];
+        self::assertSame($seat['key'], (int) db()->scalar('SELECT seat_key FROM seats WHERE id = ?', [$newId]));
+        // a copy that claims a key already used in the draft gets its own key
+        $copy = $seat;
+        $copy['id'] = 't77';
+        $copy['code'] = 'G-FX-77';
+        $doc2 = $this->drafts()->document((int) $draft['id']);
+        $doc2['seats'][] = $copy;
+        $r3 = $this->drafts()->save((int) $draft['id'], $r2['revision'], $doc2, self::$staffId);
+        self::assertSame($r3['ids']['t77'], (int) db()->scalar('SELECT seat_key FROM seats WHERE id = ?', [$r3['ids']['t77']]));
+    }
+
     public function testSaveRejectsStaleRevisionAndBadGeometry(): void
     {
         $draft = $this->drafts()->createDraft($this->floorId(), self::$staffId);

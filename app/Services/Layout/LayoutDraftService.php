@@ -25,7 +25,9 @@ use App\Support\Clock;
  *
  * The designer edits a JSON document (document()) and autosaves the WHOLE document (save()), which is
  * diffed against the draft rows: changed rows are updated, new rows (temporary ids "t123") inserted and
- * missing rows deleted. `revision` is an optimistic lock — a stale revision is a 409 conflict.
+ * missing rows deleted. `revision` is an optimistic lock — a stale revision is a 409 conflict. A row id that
+ * no longer exists (deleted by an earlier save, then restored by undo) is re-inserted and KEEPS its stable key,
+ * so a seat brought back by undo still matches its bookings.
  */
 final class LayoutDraftService
 {
@@ -284,7 +286,16 @@ final class LayoutDraftService
                 );
             }
             $floorId = (int) $v['floor_id'];
+            // $ids: client ref (temporary "t12", or a row id deleted by an earlier save and brought back by undo)
+            // => new row id. References (zone_id, parent_id, scope_id) resolve through it.
             $ids = [];
+            // stable keys that a re-inserted row may carry: keys of this floor not used by another row of the draft
+            $floorKeys = static fn (string $table, string $col) => array_flip(array_map('intval', $db->column(
+                $table === 'zones'
+                    ? 'SELECT DISTINCT z.zone_key FROM zones z JOIN layout_versions lv ON lv.id = z.layout_version_id WHERE lv.floor_id = ?'
+                    : 'SELECT DISTINCT s.seat_key FROM seats s JOIN zones z ON z.id = s.zone_id JOIN layout_versions lv ON lv.id = z.layout_version_id WHERE lv.floor_id = ?',
+                [$floorId],
+            )));
 
             // ---- zones (insert/update; deletions after the seats moved out)
             $existingZones = [];
@@ -296,6 +307,13 @@ final class LayoutDraftService
                 }
                 $existingZones[(int) $z['id']] = $z;
             }
+            $zoneKeys = $floorKeys('zones', 'zone_key');
+            $usedZoneKeys = [];
+            foreach ($data['zones'] as $z) {
+                if (is_int($z['id']) && isset($existingZones[$z['id']])) {
+                    $usedZoneKeys[(int) $existingZones[$z['id']]['zone_key']] = true;
+                }
+            }
             $keepZones = [];
             foreach ($data['zones'] as $z) {
                 $row = [
@@ -304,62 +322,72 @@ final class LayoutDraftService
                     'x_pct' => $z['x'], 'y_pct' => $z['y'], 'w_pct' => $z['w'], 'h_pct' => $z['h'],
                     'colour' => $z['colour'], 'sort_order' => $z['sort'],
                 ];
-                if (is_int($z['id'])) {
-                    $old = $existingZones[$z['id']] ?? throw new LayoutException('A zone in your editor no longer exists in this draft. Reload the designer.', 409, ['reason' => 'stale']);
-                    if ($this->changed($old, $row)) {
+                if (is_int($z['id']) && isset($existingZones[$z['id']])) {
+                    if ($this->changed($existingZones[$z['id']], $row)) {
                         $db->update('zones', $row, ['id' => $z['id']]);
                     }
                     $keepZones[$z['id']] = true;
                 } else {
                     $newId = $db->insert('zones', $row + ['layout_version_id' => $versionId]);
-                    $db->execute('UPDATE zones SET zone_key = id WHERE id = ?', [$newId]);
-                    $ids[$z['id']] = $newId;
+                    $key = $z['key'] !== null && isset($zoneKeys[$z['key']]) && !isset($usedZoneKeys[$z['key']]) ? $z['key'] : $newId;
+                    $usedZoneKeys[$key] = true;
+                    $db->execute('UPDATE zones SET zone_key = ? WHERE id = ?', [$key, $newId]);
+                    $ids[(string) $z['id']] = $newId;
                     $keepZones[$newId] = true;
                 }
             }
-            $zoneId = static fn (int|string|null $ref): ?int => $ref === null ? null : (is_int($ref) ? $ref : ($ids[$ref] ?? null));
 
             // ---- seats (parents first so chairs can reference them)
             $existingSeats = [];
-            foreach ($db->select('SELECT s.* FROM seats s JOIN zones z ON z.id = s.zone_id WHERE z.layout_version_id = ?', [$versionId]) as $s) {
-                $existingSeats[(int) $s['id']] = $s;
+            foreach ($db->select('SELECT s.* FROM seats s JOIN zones z ON z.id = s.zone_id WHERE z.layout_version_id = ?', [$versionId]) as $row) {
+                $existingSeats[(int) $row['id']] = $row;
+            }
+            $seatKeys = $floorKeys('seats', 'seat_key');
+            $usedSeatKeys = [];
+            foreach ($data['seats'] as $st) {
+                if (is_int($st['id']) && isset($existingSeats[$st['id']])) {
+                    $usedSeatKeys[(int) $existingSeats[$st['id']]['seat_key']] = true;
+                }
             }
             $seats = $data['seats'];
             usort($seats, static fn (array $a, array $b) => ($a['parent_id'] !== null) <=> ($b['parent_id'] !== null));
             $keepSeats = [];
             $statusChanges = [];
-            foreach ($seats as $s) {
-                $zid = $zoneId($s['zone_id']);
-                if ($s['zone_id'] !== null && ($zid === null || !isset($keepZones[$zid]))) {
-                    throw new LayoutException(sprintf('Seat %s refers to a zone that is not in this draft.', $s['code']));
+            foreach ($seats as $st) {
+                $zid = self::resolve($st['zone_id'], $ids);
+                if ($st['zone_id'] !== null && ($zid === null || !isset($keepZones[$zid]))) {
+                    throw new LayoutException(sprintf('Seat %s refers to a zone that is not in this draft.', $st['code']));
                 }
                 if ($zid === null) {
                     $unzonedId ??= $this->unzonedZone($versionId);
                     $zid = $unzonedId;
                 }
-                $parent = $s['parent_id'] === null ? null : (is_int($s['parent_id']) ? $s['parent_id'] : ($ids[$s['parent_id']] ?? null));
-                if ($s['parent_id'] !== null && ($parent === null || !isset($keepSeats[$parent]))) {
-                    throw new LayoutException(sprintf('Chair %s belongs to a cabin/room that is not in this draft.', $s['code']));
+                $parent = self::resolve($st['parent_id'], $ids);
+                if ($st['parent_id'] !== null && ($parent === null || !isset($keepSeats[$parent]))) {
+                    throw new LayoutException(sprintf('Chair %s belongs to a cabin/room that is not in this draft.', $st['code']));
                 }
                 $row = [
-                    'zone_id' => $zid, 'parent_id' => $parent, 'code' => $s['code'], 'label' => $s['label'], 'kind' => $s['kind'],
-                    'capacity' => $s['capacity'], 'x_pct' => $s['x'], 'y_pct' => $s['y'], 'w_pct' => $s['w'], 'h_pct' => $s['h'],
-                    'rotation' => $s['rotation'], 'status' => $s['status'], 'status_from' => $s['status_from'], 'status_to' => $s['status_to'],
-                    'notes' => $s['notes'], 'tags' => $s['tags'],
+                    'zone_id' => $zid, 'parent_id' => $parent, 'code' => $st['code'], 'label' => $st['label'], 'kind' => $st['kind'],
+                    'capacity' => $st['capacity'], 'x_pct' => $st['x'], 'y_pct' => $st['y'], 'w_pct' => $st['w'], 'h_pct' => $st['h'],
+                    'rotation' => $st['rotation'], 'status' => $st['status'], 'status_from' => $st['status_from'], 'status_to' => $st['status_to'],
+                    'notes' => $st['notes'], 'tags' => $st['tags'],
                 ];
-                if (is_int($s['id'])) {
-                    $old = $existingSeats[$s['id']] ?? throw new LayoutException('A seat in your editor no longer exists in this draft. Reload the designer.', 409, ['reason' => 'stale']);
+                if (is_int($st['id']) && isset($existingSeats[$st['id']])) {
+                    $old = $existingSeats[$st['id']];
                     if ($this->changed($old, $row)) {
-                        $db->update('seats', $row, ['id' => $s['id']]);
+                        $db->update('seats', $row, ['id' => $st['id']]);
                         if ($old['status'] !== $row['status'] || (string) $old['status_from'] !== (string) $row['status_from'] || (string) $old['status_to'] !== (string) $row['status_to'] || (string) $old['notes'] !== (string) $row['notes']) {
-                            $statusChanges[] = [$s['id'], ['status' => $old['status'], 'from' => $old['status_from'], 'to' => $old['status_to'], 'note' => $old['notes']], ['code' => $row['code'], 'status' => $row['status'], 'from' => $row['status_from'], 'to' => $row['status_to'], 'note' => $row['notes']]];
+                            $statusChanges[] = [$st['id'], ['status' => $old['status'], 'from' => $old['status_from'], 'to' => $old['status_to'], 'note' => $old['notes']], ['code' => $row['code'], 'status' => $row['status'], 'from' => $row['status_from'], 'to' => $row['status_to'], 'note' => $row['notes']]];
                         }
                     }
-                    $keepSeats[$s['id']] = true;
+                    $keepSeats[$st['id']] = true;
                 } else {
                     $newId = $db->insert('seats', $row);
-                    $db->execute('UPDATE seats SET seat_key = id WHERE id = ?', [$newId]);
-                    $ids[$s['id']] = $newId;
+                    // keep the stable key when a deleted seat comes back (undo) so its bookings still match
+                    $key = $st['key'] !== null && isset($seatKeys[$st['key']]) && !isset($usedSeatKeys[$st['key']]) ? $st['key'] : $newId;
+                    $usedSeatKeys[$key] = true;
+                    $db->execute('UPDATE seats SET seat_key = ? WHERE id = ?', [$key, $newId]);
+                    $ids[(string) $st['id']] = $newId;
                     $keepSeats[$newId] = true;
                 }
             }
@@ -378,29 +406,24 @@ final class LayoutDraftService
 
             // ---- facility placements
             $existingPl = [];
-            foreach ($db->select('SELECT * FROM facility_placements WHERE layout_version_id = ?', [$versionId]) as $p) {
-                $existingPl[(int) $p['id']] = $p;
+            foreach ($db->select('SELECT * FROM facility_placements WHERE layout_version_id = ?', [$versionId]) as $row) {
+                $existingPl[(int) $row['id']] = $row;
             }
             $keepPl = [];
             foreach ($data['placements'] as $p) {
-                $scopeId = match ($p['scope']) {
-                    'floor' => $floorId,
-                    'zone' => $zoneId($p['scope_id']),
-                    default => is_int($p['scope_id']) ? $p['scope_id'] : ($ids[$p['scope_id']] ?? null),
-                };
+                $scopeId = $p['scope'] === 'floor' ? $floorId : self::resolve($p['scope_id'], $ids);
                 if ($scopeId === null || ($p['scope'] === 'zone' && !isset($keepZones[$scopeId])) || ($p['scope'] === 'seat' && !isset($keepSeats[$scopeId]))) {
                     throw new LayoutException('A facility is attached to a zone or seat that is not in this draft.');
                 }
                 $row = ['facility_id' => $p['facility_id'], 'scope' => $p['scope'], 'scope_id' => $scopeId, 'x_pct' => $p['x'], 'y_pct' => $p['y'], 'note' => $p['note']];
-                if (is_int($p['id'])) {
-                    $old = $existingPl[$p['id']] ?? throw new LayoutException('A facility in your editor no longer exists in this draft. Reload the designer.', 409, ['reason' => 'stale']);
-                    if ($this->changed($old, $row)) {
+                if (is_int($p['id']) && isset($existingPl[$p['id']])) {
+                    if ($this->changed($existingPl[$p['id']], $row)) {
                         $db->update('facility_placements', $row, ['id' => $p['id']]);
                     }
                     $keepPl[$p['id']] = true;
                 } else {
                     $newId = $db->insert('facility_placements', $row + ['layout_version_id' => $versionId]);
-                    $ids[$p['id']] = $newId;
+                    $ids[(string) $p['id']] = $newId;
                     $keepPl[$newId] = true;
                 }
             }
@@ -415,6 +438,19 @@ final class LayoutDraftService
             $db->execute('UPDATE layout_versions SET revision = revision + 1, updated_by = ?, updated_at = ? WHERE id = ?', [$staffId, $now, $versionId]);
             return ['revision' => $revision + 1, 'ids' => $ids, 'updated_at' => $now];
         });
+    }
+
+    /**
+     * Client reference -> row id: re-inserted / new rows through the id map, otherwise the row id itself.
+     *
+     * @param array<string, int> $ids
+     */
+    private static function resolve(int|string|null $ref, array $ids): ?int
+    {
+        if ($ref === null) {
+            return null;
+        }
+        return $ids[(string) $ref] ?? (is_int($ref) ? $ref : null);
     }
 
     private function unzonedZone(int $versionId): int
@@ -511,6 +547,7 @@ final class LayoutDraftService
             }
             $outZones[] = [
                 'id' => $id,
+                'key' => $this->key($z['key'] ?? null),
                 'code' => $this->code($z['code'] ?? '', $label, 'Z' . ($i + 1)),
                 'name' => $name,
                 'category_id' => $cat !== null && $cat !== '' ? (int) $cat : null,
@@ -546,6 +583,7 @@ final class LayoutDraftService
             $rotation = (($rotation % 360) + 360) % 360;
             $outSeats[] = [
                 'id' => $this->ref($s['id'] ?? null, $label, $seen),
+                'key' => $this->key($s['key'] ?? null),
                 'zone_id' => $this->optionalRef($s['zone_id'] ?? null, $label),
                 'parent_id' => $this->optionalRef($s['parent_id'] ?? null, $label),
                 'code' => $this->code($s['code'] ?? '', $label),
@@ -595,6 +633,11 @@ final class LayoutDraftService
         }
         $seen[$k] = true;
         return $ref;
+    }
+
+    private function key(mixed $v): ?int
+    {
+        return is_int($v) && $v > 0 ? $v : (is_string($v) && ctype_digit($v) && (int) $v > 0 ? (int) $v : null);
     }
 
     /** Existing row id (int) or a temporary client id ("t12"). */

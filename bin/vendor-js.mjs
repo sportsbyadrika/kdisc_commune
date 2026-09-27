@@ -42,6 +42,14 @@ const ICONS = [
   // batch 3 — Space Explorer
   'ban', 'zoom-in', 'zoom-out', 'minus', 'timer', 'wand-sparkles', 'calendar-range', 'mouse-pointer-click', 'grip-horizontal',
   'chevron-up', 'party-popper', 'calendar-clock', 'rotate-ccw', 'locate-fixed', 'ticket', 'move', 'sparkle',
+  // batch 4 — Layout & Pricing Designer (tools) + more facility icons for the facility master
+  'mouse-pointer-2', 'hand', 'square-dashed', 'pentagon', 'undo-2', 'redo-2', 'rotate-cw', 'copy', 'magnet', 'grid-3x3',
+  'grid-2x2', 'align-start-vertical', 'align-center-vertical', 'align-end-vertical', 'align-start-horizontal',
+  'align-center-horizontal', 'align-end-horizontal', 'align-horizontal-distribute-center', 'align-vertical-distribute-center',
+  'rows-3', 'list-ordered', 'maximize', 'save', 'wrench', 'tag', 'palette', 'hash', 'loader-circle', 'keyboard', 'cloud-upload',
+  'cloud-off', 'square-mouse-pointer', 'layout-template', 'shapes',
+  'bike', 'car', 'shower-head', 'microwave', 'refrigerator', 'headphones', 'tv', 'fan', 'cctv', 'dumbbell', 'baby', 'cup-soda',
+  'utensils-crossed', 'heart-pulse', 'droplets', 'cigarette-off', 'lamp', 'phone-call', 'router', 'battery-charging', 'sofa',
 ];
 
 mkdirSync(vendorDir, { recursive: true });

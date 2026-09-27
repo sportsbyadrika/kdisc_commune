@@ -255,6 +255,105 @@
   .addon-chip.is-on { @apply border-brand-600 bg-brand-50/70 ring-2 ring-brand-600/15; }
   .toast { @apply pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-[0_18px_40px_-16px_rgb(7_15_38/.45)]; }
 
+  /* ---- Layout & Pricing Designer (staff/layout/designer, resources/js/designer.js) ---- */
+  .dz-shell { @apply flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line/80 bg-white shadow-[var(--shadow-card)]; height: max(580px, calc(100dvh - 196px)); }
+  .dz-topbar { @apply flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2; }
+  .dz-body { @apply relative grid min-h-0 flex-1 overflow-hidden; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1280px) { .dz-body { grid-template-columns: 244px minmax(0, 1fr) 320px; } }
+  .dz-panel { @apply flex min-h-0 flex-col overflow-y-auto bg-white; scrollbar-width: thin; }
+  .dz-left, .dz-right { @apply absolute inset-y-0 z-20 w-[300px] max-w-[88%] shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:w-auto xl:max-w-none xl:shadow-none; }
+  .dz-left { @apply left-0 -translate-x-full border-r border-line xl:translate-x-0; }
+  .dz-right { @apply right-0 translate-x-full border-l border-line xl:translate-x-0; }
+  .dz-body.is-left .dz-left, .dz-body.is-right .dz-right { @apply translate-x-0; }
+  .dz-h { @apply pb-2 text-[11px] font-bold tracking-[0.14em] text-muted uppercase; }
+  .dz-palette { @apply flex w-full cursor-grab items-center gap-3 rounded-xl border border-line bg-white px-3 py-2.5 text-left text-sm font-bold transition hover:border-brand-300 hover:bg-brand-50/40 hover:shadow-sm active:cursor-grabbing; }
+  .dz-palette-ico { @apply grid size-8 shrink-0 place-items-center rounded-lg; }
+  .dz-palette-sub { @apply block text-xs font-medium text-muted; }
+  .dz-palette-sm { @apply flex items-center gap-1.5 rounded-xl border border-line bg-white px-2 py-2 text-left text-[12.5px] font-semibold whitespace-nowrap transition hover:border-brand-300 hover:bg-brand-50/40; }
+  .dz-palette-sm.is-on { @apply border-brand-600 bg-brand-50 text-brand-800; }
+  .dz-fac { @apply flex cursor-grab items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-semibold text-ink/85 transition hover:bg-surface active:cursor-grabbing; }
+  .dz-fac-ico { @apply grid size-7 shrink-0 place-items-center rounded-full bg-surface text-base ring-1 ring-line; }
+  .dz-fac[data-kind="addon"] .dz-fac-ico { @apply bg-brand-50 ring-brand-200; }
+  .dz-fac[data-kind="landmark"] .dz-fac-ico { @apply bg-brand-950/5; }
+  .dz-layer { @apply flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] font-semibold transition hover:bg-surface; }
+  .dz-layer.is-on { @apply bg-brand-50 text-brand-800; }
+  .dz-canvas { @apply relative min-h-0 min-w-0 bg-[#eef1f5]; }
+  .dz-viewport { @apply absolute inset-0 overflow-hidden; background-image: radial-gradient(rgb(15 23 42 / .07) 1px, transparent 1px); background-size: 18px 18px; }
+  .dz-viewport .map-stage { @apply rounded-md bg-white shadow-[0_10px_40px_-18px_rgb(7_15_38/.45)] ring-1 ring-line/70; }
+  .dz-viewport.tool-hand, .dz-viewport.is-hand { cursor: grab; }
+  .dz-viewport.is-panning { cursor: grabbing; }
+  .dz-viewport.tool-rect, .dz-viewport.tool-poly { cursor: crosshair; }
+  .dz-toolbar { @apply absolute top-3 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-2xl border border-line/80 bg-white/95 p-1 shadow-[0_8px_30px_-12px_rgb(7_15_38/.35)] backdrop-blur; }
+  .dz-tool { @apply grid size-9 shrink-0 place-items-center rounded-xl text-ink/70 transition hover:bg-surface-2 hover:text-ink disabled:pointer-events-none disabled:opacity-35; }
+  .dz-tool[aria-pressed="true"] { @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 hover:text-white; }
+  .dz-sep { @apply mx-1 h-6 w-px shrink-0 bg-line; }
+  .dz-select { @apply h-9 shrink-0 rounded-xl border-0 bg-transparent py-0 pr-7 pl-2 text-xs font-bold text-ink/80 hover:bg-surface-2 focus:ring-2 focus:ring-brand-600/20 disabled:opacity-40; }
+  .dz-zoom { @apply absolute right-3 bottom-3 z-10 flex items-center gap-0.5 rounded-2xl border border-line/80 bg-white/95 p-1 shadow-[0_8px_30px_-12px_rgb(7_15_38/.35)] backdrop-blur; }
+  .dz-hint { @apply pointer-events-none absolute bottom-4 left-4 z-10 hidden items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-[11px] font-semibold text-ink/60 shadow-sm ring-1 ring-line/70 backdrop-blur 2xl:inline-flex; }
+  .dz-hint-top { @apply pointer-events-none absolute top-[4.25rem] left-1/2 z-10 -translate-x-1/2 rounded-full bg-brand-950/85 px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap text-white shadow-lg; }
+  .dz-banner { @apply absolute top-[4.25rem] left-1/2 z-10 flex w-[min(560px,calc(100%-1.5rem))] -translate-x-1/2 items-center gap-3 rounded-2xl border border-line/80 bg-white/95 p-3 shadow-[0_12px_40px_-16px_rgb(7_15_38/.4)] backdrop-blur; }
+  .dz-field { @apply block min-w-0; }
+  .dz-field > span:first-child { @apply mb-1 block text-[11px] font-bold tracking-wide text-muted uppercase; }
+  .dz-input { @apply block w-full min-w-0 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[13px] text-ink shadow-xs transition focus:border-brand-600 focus:ring-4 focus:ring-brand-600/15 focus:outline-none disabled:bg-surface disabled:text-ink/60; }
+  select.dz-input { @apply pr-8; }
+  .dz-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  .dz-input[type="number"]::-webkit-inner-spin-button, .dz-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .dz-seg { @apply inline-flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-bold text-ink/60 transition hover:text-ink disabled:opacity-50; }
+  .dz-seg.is-on { @apply bg-white text-ink shadow-sm; }
+  .dz-seg.is-on.is-blocked { @apply text-slate-700; }
+  .dz-seg.is-on.is-maintenance { @apply text-amber-700; }
+  .dz-seg.is-on.is-available { @apply text-emerald-700; }
+  .dz-readonly .dz-input { @apply cursor-not-allowed; }
+  .dz-dialog { @apply relative w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl; }
+  .dz-save { @apply inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-ink/70 ring-1 ring-line; }
+  .dz-save-dot { @apply size-2 rounded-full bg-emerald-500; }
+  .dz-save[data-state="dirty"] .dz-save-dot, .dz-save[data-state="saving"] .dz-save-dot { @apply animate-pulse bg-amber-400; }
+  .dz-save[data-state="error"], .dz-save[data-state="conflict"] { @apply bg-red-50 text-red-700 ring-red-200; }
+  .dz-save[data-state="error"] .dz-save-dot, .dz-save[data-state="conflict"] .dz-save-dot { @apply bg-red-500; }
+  .dz kbd { @apply rounded border border-line bg-white px-1 font-mono text-[10px] font-bold text-ink shadow-xs; }
+  /* canvas (SVG) */
+  .dz .sx-zone { cursor: move; }
+  .dz .dz-zone.is-service { fill-opacity: .035; stroke-opacity: .25; }
+  .dz .dz-zone:hover { fill-opacity: .12; }
+  .dz .dz-zone.is-selected { fill-opacity: .16; stroke-opacity: 1; stroke-width: 4; stroke-dasharray: none; }
+  .dz-zone-chip { cursor: move; }
+  .dz-zone-chip rect { fill: rgb(255 255 255 / .92); stroke: var(--color-line); stroke-width: 1.5; }
+  .dz-zone-chip text { font: 700 16px var(--font-sans); fill: rgb(17 24 39 / .8); }
+  .dz-zone-chip.is-selected rect { fill: var(--color-brand-600); stroke: var(--color-brand-600); }
+  .dz-zone-chip.is-selected text { fill: #fff; }
+  .dz .sx-seat { cursor: move; }
+  .dz .sx-seat .pop, .dz .sx-seat:hover .pop { transform: none !important; animation: none !important; }
+  .dz .sx-seat[data-status="available"] .body { fill: var(--seat-fill, var(--color-seat-free)); }
+  .dz .sx-seat[data-status="available"]:hover .body { fill: var(--seat-fill, var(--color-seat-free)); filter: brightness(1.08); }
+  .dz .sx-seat:hover .ring { stroke: var(--color-brand-300); stroke-width: 4; }
+  .dz .sx-seat.is-selected .ring { stroke: var(--color-brand-600); stroke-width: 6; }
+  .dz .sx-seat.is-dupe .ring { stroke: #ef4444; stroke-width: 5; stroke-dasharray: 6 4; }
+  .dz .sx-seat.is-unzoned .body { fill: #94a3b8; }
+  .dz .sx-seat.is-unzoned .ring { stroke: #f59e0b; stroke-width: 4; stroke-dasharray: 5 4; }
+  .dz .sx-unit { cursor: move; }
+  .dz .sx-unit .outline { stroke: var(--color-violet-500, #8b5cf6); }
+  .dz .sx-unit:hover .outline { fill-opacity: .35; }
+  .dz .sx-unit.is-selected .outline { stroke: var(--color-brand-600); stroke-width: 6; stroke-dasharray: none; fill: var(--color-brand-100); fill-opacity: .45; }
+  .dz .sx-unit.is-dupe .outline { stroke: #ef4444; }
+  .dz .sx-unit .tag rect { fill: var(--color-brand-900); }
+  .dz .sx-unit[data-status="blocked"] .tag rect { fill: #94a3b8; }
+  .dz .sx-fac { cursor: move; }
+  .dz .sx-fac.is-selected circle:first-of-type { stroke: var(--color-brand-600); stroke-width: 6; }
+  .dz .sx-fac.is-inactive { opacity: .4; }
+  .dz-selbox { fill: none; stroke: var(--color-brand-500); stroke-dasharray: 6 4; pointer-events: none; }
+  .dz-handle { fill: #fff; stroke: var(--color-brand-600); cursor: grab; }
+  .dz-handle.dz-first { fill: var(--color-accent-500); stroke: #fff; }
+  .dz-rot { cursor: alias; }
+  .dz-rotline { stroke: var(--color-brand-500); pointer-events: none; }
+  .dz-lasso { fill: rgb(59 111 246 / .08); stroke: var(--color-brand-500); stroke-dasharray: 4 3; pointer-events: none; }
+  .dz-draw-rect { fill: rgb(225 29 116 / .08); stroke: var(--color-accent-500); stroke-dasharray: 6 4; pointer-events: none; }
+  .dz-draw { fill: rgb(225 29 116 / .06); stroke: var(--color-accent-500); stroke-dasharray: 6 4; pointer-events: none; }
+  /* building hotspot editor */
+  .hs-poly { fill: rgb(255 255 255 / .06); stroke: rgb(255 255 255 / .7); stroke-width: 2; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .2s; }
+  .hs-poly.is-on { fill: rgb(225 29 116 / .4); stroke: #fff; stroke-width: 3; }
+  .hs-handle { @apply absolute z-10 size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-accent-500 shadow-md; }
+  .hs-handle.is-first { @apply size-4 bg-white ring-2 ring-accent-500; }
+
   /* ---- Misc ---- */
   .prose-page p { @apply mb-4 leading-7 text-ink/80; }
   .prose-page h2 { @apply mt-10 mb-3 text-2xl font-bold; }
