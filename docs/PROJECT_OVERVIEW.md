@@ -475,11 +475,36 @@ Double-booking prevention: when a booking is confirmed, a transaction locks the 
 12. Cancellation, refund, handover and early-exit policies.
 13. **Notifications**: email only, or also SMS/WhatsApp?
 14. **Branding**: confirm the Kallang-style theme vs K-DISC brand colours, and provide the logos.
-15. **Flexi pricing between day and month rates** (implemented as an assumption, configurable in `settings`): under a
-    month = daily rate × days; a month or more = monthly rate × whole months + remaining days at the daily rate; the
-    daily part is capped at one month's rate. Also confirm: partial months of dedicated seats/cabins pro-rated as days ÷ 30,
-    whether a booking under one month is allowed for dedicated seats/cabins, security deposit = 2 months' rent, and
-    whether online requests should reserve seats (they currently do while pending approval).
+15. **Flexi pricing between day and month rates**: see "Implemented defaults" below.
+
+### Implemented defaults (batches 3–8): confirm with K-DISC
+
+The app runs on the assumptions below. Each one is marked **Implemented default — confirm with K-DISC**. Most are
+settings in the `settings` table (key in brackets), so changing them needs no code. Items with no key are code
+rules.
+
+| # | Topic | What the app does today | Where |
+|---|---|---|---|
+| D1 | Flexi pricing | Under 1 month: daily rate × days. 1 month or more: monthly rate × whole months + remaining days × daily rate. The daily part is capped at one month's rate. **Implemented default — confirm with K-DISC.** | `flexi_pricing_rule`, `flexi_daily_cap_monthly` |
+| D2 | Pro-rating | Dedicated seats and cabins are billed monthly. Partial months = monthly rate × days ÷ 30. **Implemented default — confirm with K-DISC.** | `proration_days_per_month` |
+| D3 | Advance vs deposit (6-month boundary) | Hourly bookings and tenures **up to and including 6 months** pay the whole amount in advance. Longer tenures pay a security deposit plus monthly rent. **Implemented default — confirm with K-DISC.** | `advance_max_months` |
+| D4 | Security deposit | 2 months of the seats' monthly rent. Not taxable, never invoiced. Refunded after the booking ends through a refund voucher, less any adjustments. **Implemented default — confirm with K-DISC.** | `security_deposit_months` |
+| D5 | Confirmation rule | A booking is confirmed (seats allotted) when the logged payments cover the grand total (advance), or the deposit + first rent period (deposit). KYC must be verified before approval. **Implemented default — confirm with K-DISC.** | `Payments\ConfirmationRule` |
+| D6 | Online requests | Online requests hold their seats while waiting for approval. Only the Centre Manager approves; receptionists can create confirmed-path bookings at the desk. **Implemented default — confirm with K-DISC.** | `BookingWorkflow` |
+| D7 | Pay-by after approval | Approved bookings expire if the required payment is not logged within 7 days. **Implemented default — confirm with K-DISC.** | `approval_payment_days` |
+| D8 | Seat hold | Seats picked online are held for 10 minutes (one shared countdown, renewable). **Implemented default — confirm with K-DISC.** | `seat_hold_minutes` |
+| D9 | Invoicing | Advance bookings get one GST invoice once fully paid and verified. Deposit bookings get one invoice per rent period once that period is paid and verified. Deposits are never invoiced. Receipts are issued per verified payment. Invoices are numbered per financial year (`KDISC/CMN/2026-27/0001`). **Implemented default — confirm with K-DISC.** | `Finance\InvoiceService`, prefixes in `settings` |
+| D10 | GST | 18 % (CGST 9 + SGST 9 inside Kerala; IGST 18 for other states, by the customer's state code). SAC 997212. The supplier GSTIN is still blank. **Implemented default — confirm with K-DISC.** | `gst_rate`, `sac_code`, `org_gstin` |
+| D11 | Cancellation / early exit | Visitors can cancel their own requested or approved bookings. Staff can shorten an active tenure (early exit), which cancels later rent periods. There is no automatic refund or re-billing: Finance issues credit notes (the app suggests the amount). **Implemented default — confirm with K-DISC.** | `BookingWorkflow`, `CreditNoteService` |
+| D12 | Handover | A seat can be moved to another seat in the same booking. The price difference is shown, never billed automatically. **Implemented default — confirm with K-DISC.** | `SeatTransferService` |
+| D13 | Renewals | An extension is a new booking from end date + 1, re-quoted at the rates on its start date. Reminders go out 15, 7 and 1 days before the end. **Implemented default — confirm with K-DISC.** | `renewal_reminder_days` |
+| D14 | Conference room | Bookable 08:00–20:00 in whole-hour slots, hourly rate, advance payment. **Implemented default — confirm with K-DISC.** | `conference_open_hour`, `conference_close_hour` |
+| D15 | Limits | Up to 40 seats per request. Online tenures up to 36 months. **Implemented default — confirm with K-DISC.** | `max_seats_per_booking`, `max_booking_months` |
+| D16 | Receptionist vs Centre Manager | Receptionists register visitors, book, log payments and check people in and out. The Centre Manager approves bookings and KYC, voids payments, designs the layout, sets prices and manages staff. Finance verifies payments and issues documents. The State Admin has read-only dashboards and reports, the audit log and staff management. **Implemented default — confirm with K-DISC.** | `Enums\StaffRole::abilities()` |
+| D17 | Institution Aadhaar | The Aadhaar of the authorised signatory is stored (encrypted). Individual employees are not recorded. **Implemented default — confirm with K-DISC.** | `ProfileService` |
+| D18 | Notifications | Email only. SMS and WhatsApp are not built. **Implemented default — confirm with K-DISC.** | `Notify\Mailer` |
+| D19 | Password links and sign-in | Visitor set/reset links last 60 minutes and staff invites 72 hours. A captcha appears after 3 failed sign-ins. Accounts lock for 15 minutes after 5 failures. **Implemented default — confirm with K-DISC.** | `password_token_minutes`, `staff_invite_hours`, `login_captcha_after`, `config/auth.php` |
+| D20 | Branding | Kallang-style layout with placeholder colours, logos and photos, all held as tokens and DB paths so they can be swapped. **Implemented default — confirm with K-DISC.** | `resources/css/app.css` `@theme` |
 
 ---
 
@@ -497,3 +522,36 @@ Double-booking prevention: when a booking is confirmed, a transaction locks the 
 | **7. Hardening & UAT** | Security review, accessibility, performance, tests, UAT, deployment | 1 week |
 
 **Next step:** build a **clickable HTML prototype of the Space Explorer** (building → floor → seat selection with facilities) in the proposed style, so the UX can be approved before development. Then scaffold Phase 0.
+
+---
+
+## 15. Status (end of batch 8, Sept 2026)
+
+Phases 0–7 of §14 are built. A final hardening batch covered security, accessibility, performance and deployment
+readiness. The app is feature-complete for UAT, with the open questions in §13 still to confirm.
+
+| Area | Built |
+|---|---|
+| Public site | Home, spaces, facilities, pricing, about, contact, privacy and terms. Kallang-style design system on Tailwind v4. |
+| Accounts & KYC | Online registration (captcha), set-password email, 4-step profile wizard, document upload with phone/webcam capture, Unique Visitor ID, assisted registration, portal invites, KYC queue (approve/reject), encrypted Aadhaar |
+| Space Explorer | Building → floor → seat map (SVG over photo), filters, 10-minute holds, live GST pricing, add-ons, conference slots, mobile pan/zoom, staff mode with visitor search and override |
+| Layout & Pricing Designer | Photo upload and hotspots, zones and seats on a canvas with undo/redo, draft/publish versions, effective-dated rates, facility master |
+| Bookings & front desk | Request → approve → pay → confirm → active → complete, cancellations, early exit, handover, extensions, check-in desk with QR, front-desk dashboard, `bookings:tick` scheduler |
+| Finance | Payment verification queue, FY-numbered GST invoices / receipts / credit notes / deposit refund vouchers (dompdf PDFs, emailed), registers, finance dashboard and settings |
+| Insights | State Admin and Centre Manager dashboards, occupancy heat-maps, 15+ reports with XLSX/PDF export, GSTR-1 summary, XLSX bulk import with masked preview, audit log viewer, staff notification inbox |
+| Administration | Staff user management (invite, roles, deactivate, reset link), staff forgot password, sign-in captcha, `user:create`, `app:check`, deployment runbook ([`DEPLOYMENT.md`](DEPLOYMENT.md)) |
+| Hardening | Route-level authorisation and CSRF on every route (enforced by tests), rate limits, open-redirect guard, upload bomb guards, Aadhaar redaction in logs and the audit trail, security headers, sessions dropped after a password change, DB indexes, cached hashed assets, WCAG AA fixes, no horizontal scroll at 390 px |
+
+**Not built (candidates for a next phase):**
+
+- online payment gateway and reconciliation
+- e-invoicing (IRN/QR) and GSTR-1 JSON upload
+- SMS/WhatsApp notifications
+- staff two-factor sign-in (TOTP)
+- the Alpine CSP build (so `'unsafe-eval'` can be dropped)
+- APP_KEY rotation
+- antivirus scanning of uploads
+- scheduled/emailed reports
+- Malayalam PDFs
+- multi-centre roll-out beyond Kottarakara (the schema has `centre_id`; the UI assumes one centre)
+

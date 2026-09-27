@@ -45,7 +45,7 @@ app/
                    Auth/Guard, Exceptions/*
   Controllers/     Site/ (public), Portal/ (visitor), Staff/ (console), Api/ (Space Explorer JSON, both audiences);
                    all extend Controllers\Controller
-  Middleware/      VerifyCsrfToken, StaffAuth, VisitorAuth, Guest, Role, Can
+  Middleware/      VerifyCsrfToken, StaffAuth, VisitorAuth, Guest, Role, Can, Throttle
   Enums/           backed enums for every status/type column (StaffRole, SeatCategory, BookingStatus, …)
   Models/          thin table gateways returning arrays (Model::find/where/create/update)
   Services/        business logic: Auth/, Kyc/, Notify/, Visitors/, Pricing/, Space/, Bookings/, Payments/, Finance/, Pdf/,
@@ -66,8 +66,9 @@ database/
 public/            web root ONLY: index.php, .htaccess, assets/ (built CSS, vendored JS), media/ (images)
 storage/           logs, sessions, uploads (KYC — never public), pdf, exports, cache, imports (bulk-upload temp + error reports, 0700)
 bin/console        migrations, seeding, routes list, key generation, bookings:tick, holds:cleanup, imports:cleanup (cron — see
-                   README), demo:seed (UAT data; refuses in production)
-tests/Unit         PHPUnit tests
+                   docs/DEPLOYMENT.md), demo:seed (UAT data; refuses in production), user:create, app:check
+tests/             Unit/, Integration/ (commune_test DB), Support/HttpKernel (in-process HTTP for tests)
+docs/              PROJECT_OVERVIEW.md (spec + implemented defaults), DEPLOYMENT.md (go-live runbook), screenshots/
 ```
 
 ## Request lifecycle
@@ -98,9 +99,14 @@ $r->post('/visitors', [VisitorController::class, 'store'])->name('visitors.store
 - HTML forms can send `PUT/PATCH/DELETE` via `<?= method_field('DELETE') ?>`.
 - `php bin/console routes` lists everything.
 - Every staff route MUST sit in the `auth.staff` group and declare `can:<ability>` (preferred) or `role:<roles>`.
-  Abilities live in `App\Enums\StaffRole::abilities()` — add new ones there.
-- Staff sidebar entries are in `config/navigation.php`; an entry whose route does not exist yet shows as "Soon",
-  so add the route name there when you build the feature.
+  Abilities live in `App\Enums\StaffRole::abilities()` — add new ones there. `tests/Integration/RouteSecurityTest`
+  enumerates the router and fails otherwise; a route reachable without signing in must be added to its `PUBLIC`
+  allowlist on purpose.
+- Every state-changing route is CSRF-checked (no exemptions — the test enforces it). Add `throttle:name,max,minutes`
+  to anything a script could hammer (auth, public APIs, PDFs, exports, uploads).
+- Staff sidebar entries are in `config/navigation.php`; an entry is shown only when the route exists and the role
+  has its `can` ability. In views, wrap links to other features in `<?php if (staff_can('ability')): ?>` — the
+  test also follows every link on each role's pages and fails on a 403.
 
 ### Add a controller
 `app/Controllers/{Site|Portal|Staff}/ThingController.php`, `final class … extends Controller`.
@@ -135,7 +141,12 @@ $this->layout('layouts/staff', ['title' => 'Visitor', 'breadcrumb' => [['Dashboa
 ### Escaping (mandatory)
 - `<?= e($value) ?>` for **every** untrusted value, in text and attributes. `e()` handles enums and null.
 - Only echo raw HTML that the code itself produced (`icon()`, `csrf_field()`, component output, `attrs()`).
-- JSON for Alpine/JS: `<?= e(json_encode($data)) ?>` inside an attribute.
+- JSON for Alpine/JS: `<?= e(json_encode($data)) ?>` inside an attribute. **Never** put `'<?= e($x) ?>'` inside an
+  Alpine expression (`@click`, `x-data`, `:class`…): the browser decodes `&#039;` back to `'` before Alpine evaluates
+  it. Use `json_encode` (+ `e()`), or a plain attribute. Delete confirmations: `<form data-confirm="Delete …?">`
+  (handled in app.js), never `@submit="if (!confirm('…'))"`.
+- JS that builds DOM uses `textContent` / attributes (no `innerHTML` with data); `Commune.escape()` exists for the
+  rare HTML string.
 - SQL: always bound parameters via `db()`/`Database` methods. Identifiers go through `quoteIdentifier()`.
 
 ### Forms, CSRF, validation, flash
@@ -427,6 +438,35 @@ Rules of thumb:
 - Abilities added: `imports.manage` (CM), `audit.view` (CM, State Admin); State Admin also has `dues.view`, `renewals.view`.
 - Settings: `import_max_rows`, `import_max_mb`, `import_expiry_minutes`.
 
+## Hardening, staff users & operations (batch 8)
+
+| Piece | Use it for |
+|---|---|
+| `Security\RateLimiter` + `Middleware\Throttle` | `->middleware('throttle:quote,120,1')` — fixed window in `rate_limits` keyed by IP + signed-in user; 429 + Retry-After. `RATE_LIMITS=false` only in special test setups |
+| `Auth\LoginCaptcha` | sign-in captcha after `setting('login_captcha_after')` failures (email + IP, or 3× per IP), on top of `LoginThrottle` |
+| `Staff\StaffUserService` | THE staff-management rules (`manageableRoles()`, no self-deactivation / own-role change, last active Centre Manager / State Admin protected), invites and reset links (`sendLink()`), `setPassword()`, `createWithPassword()` for `user:create` |
+| `Support\SafeRedirect` | validate any user-supplied return path (`?next=`, `back=`, `_intended`) against allowed prefixes |
+| `Request::safeReferer()` / `back()` | only same-host Referers are followed |
+| `Request::setTrustedProxies()` | `TRUSTED_PROXIES` — X-Forwarded-For/-Proto are ignored otherwise |
+| `Support\Redactor` | wired into the logger and `AuditLog::record()`: drops aadhaar* keys, masks 12-digit Aadhaar-like numbers, hides password/token/secret values. Still never log or audit full Aadhaar on purpose. |
+| `Security\UploadGuard` | `image()` (pixel limits before GD decodes), `pdf()` (no JavaScript/Launch/EmbeddedFile), `zip()` (XLSX zip bombs) — already called by DocumentStore / PhotoStore / ImportService |
+| `System\EnvironmentCheck` | `bin/console app:check`; cron commands leave `storage/cache/cron-*.stamp` via `EnvironmentCheck::stamp()` |
+| `Payments\PaymentLedger::duesMany()` / `paymentsFor()` / `schedulesFor()` | use these in lists and reports instead of calling `dues()` per booking |
+
+Rules of thumb:
+- Sessions: `Guard` drops sessions that signed in before `password_changed_at` — set that column whenever a password
+  changes. Absolute lifetime `SESSION_ABSOLUTE_HOURS`.
+- Pages that need the camera must be listed in `config('security.camera_paths')` (Permissions-Policy).
+- Token pages (password links) send `Referrer-Policy: no-referrer`.
+- `SettingsService` is a singleton (one query per request); `asset()` versions by content hash — `/assets/*` is cached
+  for a year, so always reference built files through `asset()`.
+- Tests: `tests/Support/HttpKernel` runs requests in-process through `App::handle()` (`actingAsStaff()`,
+  `actingAsVisitor()`, `submit()` adds the CSRF token). Tests log to `storage/logs/testing/` (`LOG_PATH`).
+- The seeded demo staff logins are skipped when `APP_ENV=production`; production starts with `user:create`.
+- CSP still needs `'unsafe-eval'` (standard Alpine build). Moving to `@alpinejs/csp` means rewriting ~105 inline
+  expressions (arrow functions, `;` sequences, template literals, `?.`, globals) — mostly in the explorer and the
+  designer — as `Alpine.data()` methods; see docs/DEPLOYMENT.md §3.
+
 ## Front-end
 
 - **Tailwind v4, CSS-first.** All brand values are tokens in the `@theme` block of `resources/css/app.css`
@@ -442,6 +482,7 @@ Rules of thumb:
   system-font fallbacks.
 - Alpine: register reusable components in `resources/js/app.js` via `Alpine.data()`/`Alpine.store()`.
   Standard Alpine build needs `'unsafe-eval'` in CSP (already configured). Don't put `<script>` inline — CSP blocks it.
+  Prefer component methods over long inline expressions (keeps a future move to the CSP build possible).
   Content inside a sticky/blurred header that must be `position: fixed` needs `x-teleport="body"`.
 - Placeholder imagery: `public/media/building.svg`, `floor-*.svg` (regenerate with
   `php bin/make-placeholder-plans.php` — drawn from the seed layout so desks align with seats), `space-*.svg`.
@@ -454,8 +495,8 @@ Rules of thumb:
 - **Batch 2 (done) — accounts & KYC:** see "Visitors, accounts & KYC" above. Hooks for later batches: booking
   confirmation must require `customers.kyc_status = 'verified'` (requests are allowed before); the portal dashboard has
   "coming soon" tiles for bookings / dues / invoices and the portal sub-nav has "Soon" tabs (`layouts/portal.php`);
-  the QR on the ID card holds the Unique ID for check-in scanning. Not built yet: captcha on login, staff password
-  reset, APP_KEY rotation/re-encryption, antivirus scanning of uploads.
+  the QR on the ID card holds the Unique ID for check-in scanning. Not built yet: captcha on login (DONE in batch 8), staff password
+  reset (DONE in batch 8), APP_KEY rotation/re-encryption, antivirus scanning of uploads.
 - **Batch 3 (done) — Space Explorer & booking requests:** see "Space Explorer & bookings" above. Not built: the
   Layout & Pricing Designer (spec 5.4 — reuse `GridLayout`/`LayoutBlueprint`, `ExplorerPresenter` and explorer.js
   rendering in an edit mode — DONE in batch 4), quick
@@ -474,4 +515,6 @@ Rules of thumb:
   scheduled/emailed reports, Seats (x/y) import type (the Designer owns geometry), e-invoice JSON / GSTR-1 JSON upload
   format, chunked *writing* for very large exports (lists cap at 10,000 rows, PDFs at 1,500 rows per table), dark mode
   for charts (the console has no dark theme).
-- **Next: hardening** — see the report of batch 7 for open items.
+- **Batch 8 (done) — hardening:** see "Hardening, staff users & operations" above and docs/DEPLOYMENT.md. Not built:
+  staff TOTP 2FA, Alpine CSP build (drop `'unsafe-eval'`), APP_KEY rotation / re-encryption, antivirus scanning,
+  per-seat facility stock, multi-centre UI.
