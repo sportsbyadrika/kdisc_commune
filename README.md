@@ -183,6 +183,43 @@ first day of each period) shown on the booking and in the portal.
 and sends renewal reminders 15 / 7 / 1 days before the end (`settings.renewal_reminder_days`). It is idempotent —
 reminders are de-duplicated in `notifications.dedupe_key` — so running it often is safe.
 
+## Finance: verification, GST invoices, receipts, credit notes & PDFs (batch 6)
+
+**Flow.** Front desk logs a payment (`logged`) → Finance verifies it at `/staff/finance/payments` (or bulk-verifies;
+a payment with an open **query** to the front desk is skipped until the desk replies from the booking page) → a
+**receipt** `RCPT/{FY}/{0001}` is issued in the same transaction (deposits get a *deposit receipt*) → verified money
+enters the **invoice queue** (`/staff/finance/invoices`) → Finance issues the **GST tax invoice**
+`KDISC/CMN/{FY}/{0001}`. Invoices and receipts are stored as PDF and emailed to the visitor with the PDF attached.
+
+| Rule | |
+|---|---|
+| ≤ 6 months / hourly (advance) | ONE invoice for the whole booking (seats + add-ons from the price snapshot), once verified payments cover the grand total |
+| > 6 months (security deposit) | ONE invoice per rent period (`rent_schedules`), once verified payments cover that period (deposit is filled first) |
+| Security deposit | never invoiced — receipt only; settled at the end with a **deposit refund voucher** `DRV/{FY}/{0001}` (adjustments listed) |
+| Tax | per line, rounded to paise: CGST 9 % + SGST 9 % when the customer's state code is 32 (Kerala), else IGST 18 %; SAC from settings (997212) |
+| Totals | invoice total = the amount billed (booking grand total / rent period amount); any paise difference is shown as *Round off* |
+| Numbers | per Indian financial year (Apr–Mar), strictly sequential, allocated under a `number_sequences` row lock in the same transaction as the document — no gaps, no duplicates |
+| Corrections | invoices are immutable; **credit notes** `CN/{FY}/{0001}` (cancellation, early exit, handover difference, discount, other) reverse taxable value + GST, full or partial, never more than the invoice. Early exits get a pro-rata suggestion |
+
+**Pages.** `/staff/finance` (dashboard: collections vs dues, GST collected, revenue by space type / add-on, queues,
+deposits held), `/staff/finance/payments`, `/staff/finance/invoices?tab=queue|invoices|receipts|credit-notes|deposits`,
+`/staff/finance/invoices/{id}` (credit notes), `/staff/finance/registers?type=invoices|receipts|credit-notes|deposits|outstanding`
+(+ `.pdf` export), `/staff/finance/settings` (supplier legal name, GSTIN, PAN, state, SAC, GST rate, prefixes, bank,
+signatory, logo / signature / seal images, terms). Visitors: `/my/invoices`, booking page *Documents*, allotment letter
+`/my/bookings/{BK-…}/allotment-letter.pdf`, ID card `/my/id-card.pdf`.
+
+**PDF storage.** Issued invoices, receipts, credit notes and refund vouchers are rendered once and kept under
+`storage/pdf/{invoices|receipts|credit-notes|deposit-refunds}/{FY}/{number-slug}.pdf`; downloads stream the stored
+original. *Reprint* re-renders with a **DUPLICATE COPY** watermark (counted + audited). Allotment letters and ID cards
+are generated on demand. Back up `storage/pdf/` with the database.
+
+**Fonts.** PDFs use **DejaVu Sans** (bundled with dompdf; includes the ₹ sign) — nothing to install. Font metrics are
+cached in `storage/cache/dompdf/`. Malayalam: no Malayalam font ships with the app. To add one, copy
+`NotoSansMalayalam-Regular.ttf` (Google Noto, OFL) into `resources/fonts/`, add to `resources/views/pdf/print.css`
+`@font-face { font-family: 'Noto Sans Malayalam'; src: url('resources/fonts/NotoSansMalayalam-Regular.ttf'); }` and
+use `font-family: 'Noto Sans Malayalam', 'DejaVu Sans'` on Malayalam text. Note that dompdf does not perform complex
+script shaping, so conjunct-heavy Malayalam may render imperfectly — keep Malayalam to short labels or pre-render it as an image.
+
 ## Everyday commands
 
 ```bash
