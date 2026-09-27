@@ -14,6 +14,9 @@ return [
     // Encryption key for sensitive data (Aadhaar). Generate: php bin/console key:generate
     'key' => env('APP_KEY', ''),
 
+    // Private upload root (KYC documents). Never inside public/. Tests point this at a temp dir.
+    'uploads_path' => env('UPLOADS_PATH', dirname(__DIR__) . '/storage/uploads'),
+
     // Loaded in order by the router. Earlier files win on identical paths.
     'route_files' => ['site.php', 'portal.php', 'staff.php'],
 

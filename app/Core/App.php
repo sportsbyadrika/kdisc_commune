@@ -41,6 +41,7 @@ final class App
 
         date_default_timezone_set((string) $config->get('app.timezone', 'Asia/Kolkata'));
         mb_internal_encoding('UTF-8');
+        \App\Services\Kyc\KycRules::register();
 
         $container->instance(self::class, $app);
         $container->instance(Container::class, $container);
@@ -51,6 +52,12 @@ final class App
         ));
         $container->singleton(Database::class, fn () => Database::getInstance());
         $container->singleton(View::class, fn () => new View($basePath . '/resources/views'));
+        $container->singleton(\App\Services\Notify\Mailer::class, fn (Container $c) => new \App\Services\Notify\Mailer(
+            (array) $config->get('mail', []),
+            $c->get(View::class),
+            $c->get(LoggerInterface::class),
+        ));
+        $container->singleton(\App\Services\Kyc\AadhaarVault::class, fn () => new \App\Services\Kyc\AadhaarVault());
         $container->singleton(Router::class, function (Container $c) use ($basePath, $config): Router {
             $router = new Router($c);
             $router->aliasMiddleware((array) $config->get('middleware.aliases', []));

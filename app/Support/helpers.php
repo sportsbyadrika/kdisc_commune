@@ -383,3 +383,45 @@ if (!function_exists('attrs')) {
         return $html;
     }
 }
+
+if (!function_exists('format_bytes')) {
+    /** Human file size: format_bytes(1536) -> "1.5 KB" */
+    function format_bytes(int|float|string|null $bytes): string
+    {
+        $b = (float) ($bytes ?? 0);
+        return match (true) {
+            $b >= 1048576 => number_format($b / 1048576, 1) . ' MB',
+            $b >= 1024 => number_format($b / 1024, $b >= 10240 ? 0 : 1) . ' KB',
+            default => (int) $b . ' B',
+        };
+    }
+}
+
+if (!function_exists('visitor')) {
+    /**
+     * Signed-in visitor account row plus 'name' / 'unique_id' from their customer profile, or null.
+     * @return array<string, mixed>|null
+     */
+    function visitor(): ?array
+    {
+        $account = App::guard('visitor')->user();
+        if ($account === null) {
+            return null;
+        }
+        static $cache = [];
+        $id = (int) $account['id'];
+        if (!array_key_exists($id, $cache)) {
+            $cache[$id] = db()->first('SELECT name, unique_id, kyc_status FROM customers WHERE account_id = ? LIMIT 1', [$id]) ?? [];
+        }
+        return $account + ['name' => $cache[$id]['name'] ?? $account['email'], 'unique_id' => $cache[$id]['unique_id'] ?? null];
+    }
+}
+
+if (!function_exists('format_phone')) {
+    /** Display an Indian mobile stored as +919847012345 as "+91 98470 12345"; other values unchanged. */
+    function format_phone(?string $phone): string
+    {
+        $phone = (string) $phone;
+        return preg_match('/^\+91([6-9]\d{4})(\d{5})$/', $phone, $m) === 1 ? "+91 {$m[1]} {$m[2]}" : $phone;
+    }
+}
