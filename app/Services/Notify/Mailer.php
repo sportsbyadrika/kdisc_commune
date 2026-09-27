@@ -1,0 +1,123 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Notify;
+
+use App\Core\App;
+use App\Core\View;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
+use Throwable;
+
+/**
+ * Transactional email on symfony/mailer. Templates are views in resources/views/emails/ that use the
+ * branded layout (emails/layout); the plain-text part is derived from the HTML automatically
+ * (wrap purely decorative markup in <!--notext--> … <!--/notext--> to leave it out of the text part).
+ *
+ *   $mailer->send('asha@example.com', 'Set your password', 'set-password', ['name' => 'Asha', 'url' => $link]);
+ *
+ * Transport from MAIL_DSN (config/mail.php):
+ *   log://default          dev default — storage/logs/mail.log + storage/mail/*.eml|.html (see LogTransport)
+ *   smtp://user:pass@host:587   production SMTP        null://null   discard
+ *
+ * Sending never throws: failures are logged and send() returns false, so a mail outage does not
+ * break registration. Every message is also kept in memory (sent()) for tests.
+ */
+final class Mailer
+{
+    private ?TransportInterface $transport = null;
+
+    /** @var list<Email> */
+    private array $sent = [];
+
+    /** @param array<string, mixed> $config */
+    public function __construct(
+        private readonly array $config,
+        private readonly View $view,
+        private readonly ?LoggerInterface $logger = null,
+    ) {
+    }
+
+    /**
+     * @param string|array{0: string, 1?: string} $to address or [address, name]
+     * @param array<string, mixed> $data
+     */
+    public function send(string|array $to, string $subject, string $template, array $data = []): bool
+    {
+        [$address, $name] = is_array($to) ? [$to[0], $to[1] ?? ''] : [$to, ''];
+        try {
+            $html = $this->view->render('emails/' . $template, $data + ['subject' => $subject, 'recipientName' => $name]);
+            $from = (array) ($this->config['from'] ?? []);
+            $email = (new Email())
+                ->from(new Address((string) ($from['address'] ?? 'no-reply@commune.test'), (string) ($from['name'] ?? 'Commune')))
+                ->to(new Address($address, $name))
+                ->subject($subject)
+                ->html($html)
+                ->text(self::htmlToText($html));
+            if (!empty($this->config['reply_to'])) {
+                $email->replyTo((string) $this->config['reply_to']);
+            }
+            $this->sent[] = $email;
+            $this->transport()->send($email);
+            $this->logger?->info('Mail "{subject}" sent to {to}', ['subject' => $subject, 'to' => $address]);
+            return true;
+        } catch (Throwable $e) {
+            $this->logger?->error('Mail "{subject}" to {to} failed: {error}', ['subject' => $subject, 'to' => $address, 'error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /** @return list<Email> messages handed to the transport during this process (tests). */
+    public function sent(): array
+    {
+        return $this->sent;
+    }
+
+    public function lastSent(): ?Email
+    {
+        return $this->sent === [] ? null : $this->sent[array_key_last($this->sent)];
+    }
+
+    public function transport(): TransportInterface
+    {
+        if ($this->transport === null) {
+            $dsn = (string) ($this->config['dsn'] ?? 'log://default');
+            $this->transport = str_starts_with($dsn, 'log:')
+                ? new LogTransport(
+                    (string) ($this->config['log_file'] ?? App::basePath('storage/logs/mail.log')),
+                    (string) ($this->config['mail_dir'] ?? App::basePath('storage/mail')),
+                )
+                : Transport::fromDsn($dsn);
+        }
+        return $this->transport;
+    }
+
+    /** Readable plain-text alternative: keeps link targets, headings and list bullets. */
+    public static function htmlToText(string $html): string
+    {
+        $html = (string) preg_replace('#<!--notext-->.*?<!--/notext-->#s', '', $html); // preheader, logo band
+        $html = (string) preg_replace('#<(head|style|script)\b[^>]*>.*?</\1>#is', '', $html);
+        $html = (string) preg_replace('#<!--.*?-->#s', '', $html);
+        $html = (string) preg_replace_callback(
+            '#<a\b[^>]*href=("|\')(.*?)\1[^>]*>(.*?)</a>#is',
+            static function (array $m): string {
+                $label = trim(strip_tags($m[3]));
+                $href = html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return $label === '' || $label === $href ? $href : "{$label} ( {$href} )";
+            },
+            $html,
+        );
+        $html = (string) preg_replace('#<li\b[^>]*>#i', "\n  • ", $html);
+        $html = (string) preg_replace('#<(br|/p|/h[1-6]|/tr|/li|/div|/table)\b[^>]*>#i', "\n", $html);
+        $html = (string) preg_replace('#</t[dh]>#i', "  ", $html);
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = (string) preg_replace('/[ \t]+/', ' ', $text);
+        $text = (string) preg_replace('/ *\n */', "\n", $text);
+        $text = (string) preg_replace("/\n{3,}/", "\n\n", $text);
+        return trim($text) . "\n";
+    }
+}
