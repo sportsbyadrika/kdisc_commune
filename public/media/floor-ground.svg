@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" role="img" aria-label="Ground Floor plan (placeholder)">
+<defs>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#e2e8f0" stroke-width="1"/></pattern>
+  <pattern id="tiles" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#f1f5f9"/><path d="M16 0H0V16" fill="none" stroke="#e2e8f0" stroke-width="1"/></pattern>
+  <pattern id="stairs" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M0 7H14" stroke="#94a3b8" stroke-width="2"/></pattern>
+  <filter id="soft" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity=".12"/></filter>
+  <style>
+    .lbl{font:700 17px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#334155;letter-spacing:.08em;text-transform:uppercase}
+    .sub{font:500 14px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b}
+    .wall{fill:none;stroke:#1e293b;stroke-width:12;stroke-linejoin:round}
+    .iwall{fill:none;stroke:#475569;stroke-width:6}
+    .desk{fill:#e7e5e4;stroke:#a8a29e;stroke-width:1.5}
+    .chair{fill:#ffffff;stroke:#cbd5e1;stroke-width:2}
+    .door{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:4 4}
+    .plant{fill:#86efac;stroke:#16a34a;stroke-width:2}
+  </style>
+</defs>
+<rect width="1600" height="1000" fill="#f8fafc"/><rect width="1600" height="1000" fill="url(#grid)"/>
+<rect x="32" y="30" width="1536" height="940" fill="#ffffff" filter="url(#soft)"/>
+<rect x="48" y="50" width="640" height="440" rx="6" fill="#22c55e" fill-opacity=".07"/>
+<rect x="48" y="50" width="640" height="440" rx="6" fill="none" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="10 8"/>
+<text x="67.2" y="80" class="lbl">Open Area</text>
+<rect x="79.7" y="101.1" width="576.5" height="32" rx="4" class="desk"/>
+<rect x="94.1" y="138.1" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="192.8" y="138.1" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="291.5" y="138.1" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="390.1" y="138.1" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="488.8" y="138.1" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="587.5" y="138.1" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="79.7" y="227.8" width="576.5" height="32" rx="4" class="desk"/>
+<rect x="94.1" y="264.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="192.8" y="264.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="291.5" y="264.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="390.1" y="264.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="488.8" y="264.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="587.5" y="264.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="79.7" y="354.5" width="576.5" height="32" rx="4" class="desk"/>
+<rect x="94.1" y="391.5" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="192.8" y="391.5" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="291.5" y="391.5" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="390.1" y="391.5" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="488.8" y="391.5" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="587.5" y="391.5" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="736" y="50" width="816" height="500" rx="6" fill="#3b82f6" fill-opacity=".07"/>
+<rect x="736" y="50" width="816" height="500" rx="0" class="iwall"/>
+<line x1="1488" y1="550" x2="1532.8" y2="550" stroke="#ffffff" stroke-width="10"/>
+<path d="M1532.8 550 A44.8 44.8 0 0 0 1488 505.2" class="door"/>
+<text x="755.2" y="80" class="lbl">Enclosed Room</text>
+<rect x="766.4" y="92.8" width="755.2" height="32" rx="4" class="desk"/>
+<rect x="780.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="876.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="972.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1068.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1164.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1260.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1356.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1452.8" y="129.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="766.4" y="202.8" width="755.2" height="32" rx="4" class="desk"/>
+<rect x="780.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="876.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="972.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1068.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1164.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1260.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1356.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1452.8" y="239.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="766.4" y="312.8" width="755.2" height="32" rx="4" class="desk"/>
+<rect x="780.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="876.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="972.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1068.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1164.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1260.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1356.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1452.8" y="349.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="766.4" y="422.8" width="755.2" height="32" rx="4" class="desk"/>
+<rect x="780.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="876.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="972.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1068.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1164.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1260.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1356.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="1452.8" y="459.8" width="54.4" height="54.4" rx="8" class="chair"/>
+<rect x="48" y="550" width="200" height="390" rx="6" fill="#8b5cf6" fill-opacity=".07"/>
+<rect x="48" y="550" width="200" height="390" rx="0" class="iwall"/>
+<line x1="184" y1="550" x2="228.8" y2="550" stroke="#ffffff" stroke-width="10"/>
+<path d="M228.8 550 A44.8 44.8 0 0 1 184 594.8" class="door"/>
+<text x="67.2" y="580" class="lbl">Cabin B</text>
+<rect x="56.8" y="690.8" width="182.4" height="52" rx="6" class="desk"/>
+<circle cx="212.8" cy="900" r="14" class="plant"/>
+<rect x="72.8" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="127.2" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="181.6" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="268" y="550" width="200" height="390" rx="6" fill="#8b5cf6" fill-opacity=".07"/>
+<rect x="268" y="550" width="200" height="390" rx="0" class="iwall"/>
+<line x1="404" y1="550" x2="448.8" y2="550" stroke="#ffffff" stroke-width="10"/>
+<path d="M448.8 550 A44.8 44.8 0 0 1 404 594.8" class="door"/>
+<text x="287.2" y="580" class="lbl">Cabin D</text>
+<rect x="276.8" y="690.8" width="182.4" height="52" rx="6" class="desk"/>
+<circle cx="432.8" cy="900" r="14" class="plant"/>
+<rect x="292.8" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="347.2" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="401.6" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="488" y="550" width="200" height="390" rx="6" fill="#8b5cf6" fill-opacity=".07"/>
+<rect x="488" y="550" width="200" height="390" rx="0" class="iwall"/>
+<line x1="624" y1="550" x2="668.8" y2="550" stroke="#ffffff" stroke-width="10"/>
+<path d="M668.8 550 A44.8 44.8 0 0 1 624 594.8" class="door"/>
+<text x="507.2" y="580" class="lbl">Cabin E</text>
+<rect x="496.8" y="690.8" width="182.4" height="52" rx="6" class="desk"/>
+<circle cx="652.8" cy="900" r="14" class="plant"/>
+<rect x="512.8" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="567.2" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="621.6" y="752.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="736" y="600" width="448" height="340" rx="6" fill="#f59e0b" fill-opacity=".07"/>
+<rect x="736" y="600" width="448" height="340" rx="0" class="iwall"/>
+<line x1="1120" y1="600" x2="1164.8" y2="600" stroke="#ffffff" stroke-width="10"/>
+<path d="M1164.8 600 A44.8 44.8 0 0 1 1120 644.8" class="door"/>
+<text x="755.2" y="630" class="lbl">Conference Room F</text>
+<rect x="843.5" y="722.4" width="268.8" height="102" rx="40" class="desk"/>
+<rect x="1155.2" y="680" width="12.8" height="180" rx="0" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+<text x="755.2" y="656" class="sub">9 seats · projector</text>
+<rect x="856.3" y="672.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="923.5" y="672.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="990.7" y="672.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="1057.9" y="672.8" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="856.3" y="832.4" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="923.5" y="832.4" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="990.7" y="832.4" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="1057.9" y="832.4" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="789.1" y="752.6" width="41.6" height="41.6" rx="8" class="chair"/>
+<rect x="1232" y="600" width="320" height="340" rx="0" fill="url(#tiles)"/>
+<rect x="1232" y="600" width="320" height="340" rx="0" class="iwall"/>
+<line x1="1488" y1="600" x2="1532.8" y2="600" stroke="#ffffff" stroke-width="10"/>
+<path d="M1532.8 600 A44.8 44.8 0 0 1 1488 644.8" class="door"/>
+<text x="1251.2" y="630" class="lbl">Pantry &amp; services</text>
+<rect x="1251.2" y="655" width="112" height="26" rx="3" class="desk"/>
+<rect x="1408" y="645" width="128" height="130" rx="0" fill="#ffffff" fill-opacity=".6" class="iwall" stroke-width="3"/>
+<rect x="1251.2" y="815" width="83.2" height="80" rx="0" fill="#e2e8f0" stroke="#475569" stroke-width="3"/>
+<path d="M1251.2 815 L1334.4 895 M1334.4 815 L1251.2 895" stroke="#94a3b8" stroke-width="2"/>
+<rect x="32" y="30" width="1536" height="940" class="wall"/>
+<line x1="120" y1="30" x2="420" y2="30" stroke="#7dd3fc" stroke-width="6"/>
+<line x1="760" y1="30" x2="1500" y2="30" stroke="#7dd3fc" stroke-width="6"/>
+<line x1="32" y1="120" x2="32" y2="440" stroke="#7dd3fc" stroke-width="6"/>
+<line x1="1568" y1="120" x2="1568" y2="420" stroke="#7dd3fc" stroke-width="6"/>
+<line x1="672" y1="970" x2="760" y2="970" stroke="#ffffff" stroke-width="16"/>
+<path d="M716 996 L716 948 M700 962 L716 946 L732 962" stroke="#0f172a" stroke-width="4" fill="none" stroke-linecap="round"/>
+<text x="1560" y="22" class="sub" text-anchor="end">Ground Floor · placeholder plan — replace with the real floor photo</text>
+</svg>

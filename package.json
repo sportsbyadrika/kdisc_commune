@@ -1,0 +1,19 @@
+{
+  "name": "kdisc-commune",
+  "private": true,
+  "description": "Front-end build tooling for the Commune Workspace Management System (CSS + vendored JS). Built output is committed so production needs no Node.",
+  "scripts": {
+    "build:css": "tailwindcss -i resources/css/app.css -o public/assets/css/app.css --minify",
+    "watch:css": "tailwindcss -i resources/css/app.css -o public/assets/css/app.css --watch",
+    "vendor:js": "node bin/vendor-js.mjs",
+    "build": "npm run vendor:js && npm run build:css"
+  },
+  "devDependencies": {
+    "@panzoom/panzoom": "^4.6.0",
+    "@tailwindcss/cli": "^4.1.0",
+    "alpinejs": "^3.14.0",
+    "chart.js": "^4.4.0",
+    "lucide": "^0.460.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

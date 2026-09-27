@@ -1,0 +1,35 @@
+# Apache: point the virtual host DocumentRoot at this public/ directory.
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect any request for a .php URL (other than the front controller) to the clean URL
+    RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?] [NC]
+    RewriteCond %{REQUEST_URI} !^/index\.php$ [NC]
+    RewriteRule ^ /%1 [R=301,L,NE]
+
+    # Hide /index.php from URLs
+    RewriteCond %{THE_REQUEST} \s/+index\.php[\s?/] [NC]
+    RewriteRule ^index\.php/?(.*)$ /$1 [R=301,L,NE]
+
+    # Pass Authorization header to PHP
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|svg|webp|png|jpe?g|woff2?)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+</IfModule>
+
+# Never serve dotfiles
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

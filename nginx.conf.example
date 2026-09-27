@@ -1,0 +1,46 @@
+# Example nginx server block for the Commune app (PHP-FPM 8.4).
+# Only public/ is web-accessible; storage/ (KYC uploads, PDFs) is outside the root.
+server {
+    listen 80;
+    server_name commune.example.org;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name commune.example.org;
+
+    ssl_certificate     /etc/letsencrypt/live/commune.example.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/commune.example.org/privkey.pem;
+
+    root /var/www/kdisc_commune/public;
+    index index.php;
+    charset utf-8;
+    client_max_body_size 12M;          # KYC document uploads
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # Clean URLs only: 404 any direct request for a .php file except the front controller
+    location ~ \.php$ {
+        return 404;
+    }
+
+    location = /index.php {
+        internal;                      # reachable only via try_files, never as /index.php
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+    }
+
+    location ~* \.(css|js|svg|webp|png|jpe?g|gif|ico|woff2?)$ {
+        expires 30d;
+        access_log off;
+        try_files $uri =404;
+    }
+
+    location ~ /\. { deny all; }
+}

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" role="img" aria-label="Commune Kottarakara building (placeholder illustration)">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfdbfe"/><stop offset=".55" stop-color="#e0f2fe"/><stop offset="1" stop-color="#fef3c7"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset=".45" stop-color="#3b82f6"/><stop offset=".55" stop-color="#93c5fd"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient>
+<linearGradient id="glassWarm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+<linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e2e8f0"/></linearGradient>
+<linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#4ade80"/></linearGradient>
+<pattern id="slats" width="18" height="10" patternUnits="userSpaceOnUse"><rect width="18" height="10" fill="#b45309"/><rect width="12" height="10" fill="#d97706"/></pattern>
+<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity=".25"/></filter>
+</defs>
+<rect width="1600" height="1000" fill="url(#sky)"/>
+<circle cx="1330" cy="150" r="70" fill="#fde68a" opacity=".9"/>
+<g fill="#ffffff" opacity=".9" transform="translate(260 140) scale(1)"><ellipse cx="0" cy="0" rx="90" ry="32"/><ellipse cx="50" cy="-20" rx="60" ry="36"/><ellipse cx="-45" cy="-10" rx="50" ry="28"/></g>
+<g fill="#ffffff" opacity=".9" transform="translate(620 90) scale(0.8)"><ellipse cx="0" cy="0" rx="90" ry="32"/><ellipse cx="50" cy="-20" rx="60" ry="36"/><ellipse cx="-45" cy="-10" rx="50" ry="28"/></g>
+<g fill="#ffffff" opacity=".9" transform="translate(1050 170) scale(0.7)"><ellipse cx="0" cy="0" rx="90" ry="32"/><ellipse cx="50" cy="-20" rx="60" ry="36"/><ellipse cx="-45" cy="-10" rx="50" ry="28"/></g>
+<path d="M0 820 Q200 700 420 780 T860 760 T1300 740 T1600 780 V1000 H0Z" fill="#a7f3d0"/>
+<rect x="0" y="880" width="1600" height="120" fill="url(#ground)"/>
+<path d="M720 1000 L860 890 H1040 L1180 1000Z" fill="#e5e7eb"/><path d="M860 890 H1040 L1046 900 H854Z" fill="#cbd5e1"/>
+<g filter="url(#shadow)">
+<rect x="224" y="250" width="1152" height="640" fill="url(#wall)"/>
+</g>
+<rect x="200" y="226" width="1200" height="44" rx="6" fill="#0f172a"/>
+<text x="800" y="258" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="26" font-weight="800" letter-spacing="8" fill="#ffffff">COMMUNE · WORK NEAR HOME</text>
+<rect x="210" y="572" width="1180" height="18" fill="#334155"/>
+<rect x="260" y="300" width="760" height="240" rx="4" fill="url(#glass)"/>
+<rect x="352" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="447" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="542" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="637" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="732" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="827" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="922" y="300" width="6" height="240" fill="#0f172a" opacity=".55"/>
+<rect x="260" y="410" width="760" height="6" fill="#0f172a" opacity=".45"/>
+<path d="M300 540 L420 300 H470 L350 540Z" fill="#ffffff" opacity=".18"/><path d="M620 540 L740 300 H760 L640 540Z" fill="#ffffff" opacity=".15"/>
+<rect x="1060" y="300" width="280" height="240" fill="url(#slats)"/>
+<g fill="#0f172a" opacity=".35"><circle cx="330" cy="455" r="14"/><rect x="312" y="472" width="36" height="46" rx="12"/><rect x="290" y="505" width="80" height="8" rx="3"/></g>
+<g fill="#0f172a" opacity=".35"><circle cx="520" cy="455" r="14"/><rect x="502" y="472" width="36" height="46" rx="12"/><rect x="480" y="505" width="80" height="8" rx="3"/></g>
+<g fill="#0f172a" opacity=".35"><circle cx="700" cy="455" r="14"/><rect x="682" y="472" width="36" height="46" rx="12"/><rect x="660" y="505" width="80" height="8" rx="3"/></g>
+<g fill="#0f172a" opacity=".35"><circle cx="880" cy="455" r="14"/><rect x="862" y="472" width="36" height="46" rx="12"/><rect x="840" y="505" width="80" height="8" rx="3"/></g>
+<rect x="260" y="620" width="560" height="270" fill="url(#glassWarm)" opacity=".9"/>
+<rect x="337" y="620" width="6" height="270" fill="#0f172a" opacity=".55"/>
+<rect x="417" y="620" width="6" height="270" fill="#0f172a" opacity=".55"/>
+<rect x="497" y="620" width="6" height="270" fill="#0f172a" opacity=".55"/>
+<rect x="577" y="620" width="6" height="270" fill="#0f172a" opacity=".55"/>
+<rect x="657" y="620" width="6" height="270" fill="#0f172a" opacity=".55"/>
+<rect x="737" y="620" width="6" height="270" fill="#0f172a" opacity=".55"/>
+<rect x="260" y="720" width="560" height="5" fill="#0f172a" opacity=".4"/>
+<g fill="#78350f" opacity=".45"><circle cx="310" cy="780" r="13"/><rect x="294" y="795" width="32" height="44" rx="11"/><rect x="272" y="828" width="76" height="8" rx="3"/></g>
+<g fill="#78350f" opacity=".45"><circle cx="460" cy="780" r="13"/><rect x="444" y="795" width="32" height="44" rx="11"/><rect x="422" y="828" width="76" height="8" rx="3"/></g>
+<g fill="#78350f" opacity=".45"><circle cx="610" cy="780" r="13"/><rect x="594" y="795" width="32" height="44" rx="11"/><rect x="572" y="828" width="76" height="8" rx="3"/></g>
+<g fill="#78350f" opacity=".45"><circle cx="760" cy="780" r="13"/><rect x="744" y="795" width="32" height="44" rx="11"/><rect x="722" y="828" width="76" height="8" rx="3"/></g>
+
+<rect x="860" y="618" width="180" height="272" fill="#1e293b"/>
+<rect x="872" y="640" width="72" height="250" fill="url(#glass)"/><rect x="956" y="640" width="72" height="250" fill="url(#glass)"/>
+<rect x="936" y="740" width="4" height="40" rx="2" fill="#e2e8f0"/><rect x="960" y="740" width="4" height="40" rx="2" fill="#e2e8f0"/>
+<rect x="840" y="600" width="220" height="20" rx="4" fill="#0f172a"/>
+<text x="950" y="615" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" letter-spacing="3" fill="#fbbf24">ENTRY</text>
+<rect x="1080" y="620" width="260" height="270" fill="#1d4ed8"/>
+<path d="M1240 684 A46 46 0 1 0 1240 756" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/><circle cx="1214" cy="720" r="12" fill="#fbbf24"/>
+<text x="1210" y="810" text-anchor="middle" font-family="system-ui,sans-serif" font-size="30" font-weight="800" fill="#ffffff" letter-spacing="2">K-DISC</text>
+<text x="1210" y="842" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="#bfdbfe" letter-spacing="4">KOTTARAKARA</text>
+<rect x="142" y="760" width="16" height="130" fill="#78350f"/><circle cx="150" cy="720" r="80" fill="#16a34a"/><circle cx="110" cy="760" r="55" fill="#22c55e"/><circle cx="195" cy="750" r="60" fill="#15803d"/>
+<rect x="1452" y="760" width="16" height="130" fill="#78350f"/><circle cx="1460" cy="720" r="80" fill="#16a34a"/><circle cx="1420" cy="760" r="55" fill="#22c55e"/><circle cx="1505" cy="750" r="60" fill="#15803d"/>
+<rect x="260" y="862" width="80" height="28" rx="6" fill="#475569"/><ellipse cx="300" cy="858" rx="46" ry="22" fill="#22c55e"/>
+<rect x="380" y="862" width="80" height="28" rx="6" fill="#475569"/><ellipse cx="420" cy="858" rx="46" ry="22" fill="#22c55e"/>
+<rect x="500" y="862" width="80" height="28" rx="6" fill="#475569"/><ellipse cx="540" cy="858" rx="46" ry="22" fill="#22c55e"/>
+<rect x="640" y="862" width="80" height="28" rx="6" fill="#475569"/><ellipse cx="680" cy="858" rx="46" ry="22" fill="#22c55e"/>
+<text x="1580" y="985" text-anchor="end" font-family="system-ui,sans-serif" font-size="16" fill="#166534" opacity=".7">Placeholder illustration — replace with the real building photo</text>
+</svg>

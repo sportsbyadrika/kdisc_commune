@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="Executive cabin (placeholder illustration)">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#5b21b6"/></linearGradient><linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".35"/><stop offset="1" stop-color="#ffffff" stop-opacity=".05"/></linearGradient></defs>
+<rect width="800" height="500" fill="url(#bg)"/>
+<circle cx="690" cy="80" r="140" fill="#ffffff" opacity=".08"/><circle cx="80" cy="460" r="170" fill="#ffffff" opacity=".07"/>
+<path d="M0 360 L800 330 V500 H0Z" fill="url(#floor)"/>
+<rect x="120" y="70" width="560" height="330" rx="10" fill="#ffffff" opacity=".12" stroke="#ffffff" stroke-opacity=".6" stroke-width="6"/>
+<rect x="258" y="70" width="4" height="330" fill="#ffffff" opacity=".4"/>
+<rect x="398" y="70" width="4" height="330" fill="#ffffff" opacity=".4"/>
+<rect x="538" y="70" width="4" height="330" fill="#ffffff" opacity=".4"/>
+<rect x="600" y="160" width="70" height="240" rx="4" fill="#4c1d95" opacity=".6"/><circle cx="614" cy="285" r="5" fill="#fbbf24"/>
+<text x="160" y="118" font-family="system-ui,sans-serif" font-size="28" font-weight="800" fill="#ffffff" letter-spacing="3">CABIN B</text>
+<rect x="200" y="280" width="340" height="24" rx="8" fill="#fef3c7"/><rect x="220" y="304" width="12" height="80" fill="#78350f"/><rect x="508" y="304" width="12" height="80" fill="#78350f"/>
+<g transform="translate(370 280)"><rect x="-36" y="-62" width="72" height="46" rx="5" fill="#0f172a"/><rect x="-31" y="-57" width="62" height="36" rx="2" fill="#60a5fa"/><rect x="-4" y="-16" width="8" height="14" fill="#334155"/><rect x="-18" y="-4" width="36" height="5" rx="2" fill="#334155"/></g>
+<g transform="translate(260 280)"><rect x="-30" y="-40" width="60" height="38" rx="4" fill="#e2e8f0"/><rect x="-26" y="-36" width="52" height="30" rx="2" fill="#38bdf8"/><rect x="-38" y="-3" width="76" height="6" rx="3" fill="#cbd5e1"/></g>
+<g transform="translate(270 400) scale(1)"><rect x="-22" y="-44" width="44" height="40" rx="12" fill="#1e1b4b"/><rect x="-26" y="-8" width="52" height="14" rx="6" fill="#1e1b4b" opacity=".85"/><rect x="-3" y="6" width="6" height="26" fill="#334155"/><rect x="-22" y="30" width="44" height="6" rx="3" fill="#334155"/></g>
+<g transform="translate(370 400) scale(1)"><rect x="-22" y="-44" width="44" height="40" rx="12" fill="#1e1b4b"/><rect x="-26" y="-8" width="52" height="14" rx="6" fill="#1e1b4b" opacity=".85"/><rect x="-3" y="6" width="6" height="26" fill="#334155"/><rect x="-22" y="30" width="44" height="6" rx="3" fill="#334155"/></g>
+<g transform="translate(470 400) scale(1)"><rect x="-22" y="-44" width="44" height="40" rx="12" fill="#1e1b4b"/><rect x="-26" y="-8" width="52" height="14" rx="6" fill="#1e1b4b" opacity=".85"/><rect x="-3" y="6" width="6" height="26" fill="#334155"/><rect x="-22" y="30" width="44" height="6" rx="3" fill="#334155"/></g>
+<g transform="translate(160 400) scale(0.9)"><rect x="-22" y="0" width="44" height="46" rx="8" fill="#f8fafc"/><ellipse cx="0" cy="-18" rx="30" ry="34" fill="#22c55e"/><ellipse cx="-18" cy="-4" rx="18" ry="22" fill="#16a34a"/><ellipse cx="18" cy="-6" rx="18" ry="24" fill="#15803d"/></g>
+</svg>
