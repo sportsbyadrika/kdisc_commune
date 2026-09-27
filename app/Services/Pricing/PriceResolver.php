@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Pricing;
+
+use App\Core\Database;
+use App\Enums\BillingUnit;
+
+/**
+ * Resolves the effective rate for a date (spec 5.5):
+ *   seat price = seat override ?? zone rate ?? category base rate   (effective on the booking start date)
+ *
+ * Returns rows like ['amount' => 4000.0, 'gst_rate' => 18.0, 'scope' => 'category', 'rate_id' => 3].
+ */
+final class PriceResolver
+{
+    public function __construct(private readonly Database $db)
+    {
+    }
+
+    /** @return array{amount: float, gst_rate: float, scope: string, rate_id: int}|null */
+    public function forSeat(int $seatId, BillingUnit $unit, ?string $onDate = null): ?array
+    {
+        $seat = $this->db->first(
+            'SELECT s.id, s.zone_id, z.seat_category_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id = ?',
+            [$seatId],
+        );
+        if ($seat === null) {
+            return null;
+        }
+        return $this->rate('seat', (int) $seat['id'], $unit, $onDate)
+            ?? $this->rate('zone', (int) $seat['zone_id'], $unit, $onDate)
+            ?? ($seat['seat_category_id'] !== null ? $this->rate('category', (int) $seat['seat_category_id'], $unit, $onDate) : null);
+    }
+
+    /** @return array{amount: float, gst_rate: float, scope: string, rate_id: int}|null */
+    public function forCategory(int $categoryId, BillingUnit $unit, ?string $onDate = null): ?array
+    {
+        return $this->rate('category', $categoryId, $unit, $onDate);
+    }
+
+    /**
+     * Current category rates for every unit, keyed by category id then unit.
+     *
+     * @return array<int, array<string, array{amount: float, gst_rate: float}>>
+     */
+    public function categoryRateCard(?string $onDate = null): array
+    {
+        $onDate ??= date('Y-m-d');
+        $rows = $this->db->select(
+            "SELECT r.scope_id, r.unit, r.amount, r.gst_rate FROM rates r
+             WHERE r.scope = 'category' AND r.effective_from <= ? AND (r.effective_to IS NULL OR r.effective_to >= ?)
+             ORDER BY r.effective_from ASC, r.id ASC",
+            [$onDate, $onDate],
+        );
+        $card = [];
+        foreach ($rows as $r) {
+            // later effective_from overrides earlier
+            $card[(int) $r['scope_id']][(string) $r['unit']] = ['amount' => (float) $r['amount'], 'gst_rate' => (float) $r['gst_rate']];
+        }
+        return $card;
+    }
+
+    /** @return array{amount: float, gst_rate: float, scope: string, rate_id: int}|null */
+    private function rate(string $scope, int $scopeId, BillingUnit $unit, ?string $onDate): ?array
+    {
+        $onDate ??= date('Y-m-d');
+        $row = $this->db->first(
+            'SELECT id, amount, gst_rate FROM rates
+             WHERE scope = ? AND scope_id = ? AND unit = ? AND effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)
+             ORDER BY effective_from DESC, id DESC LIMIT 1',
+            [$scope, $scopeId, $unit->value, $onDate, $onDate],
+        );
+        return $row === null ? null : [
+            'amount' => (float) $row['amount'],
+            'gst_rate' => (float) $row['gst_rate'],
+            'scope' => $scope,
+            'rate_id' => (int) $row['id'],
+        ];
+    }
+}
