@@ -15,7 +15,7 @@ return [
             ['label' => 'Dedicated seats', 'href' => '/spaces#dedicated', 'icon' => 'monitor', 'text' => 'Your own desk in a quiet room'],
             ['label' => 'Executive cabins', 'href' => '/spaces#cabin', 'icon' => 'door-open', 'text' => 'Private cabins for three'],
             ['label' => 'Conference room', 'href' => '/spaces#conference', 'icon' => 'presentation', 'text' => 'Nine seats, hourly'],
-            ['label' => 'Explore the building', 'route' => 'spaces', 'icon' => 'building-2', 'text' => 'Floors, zones and seat map'],
+            ['label' => 'Explore the building', 'route' => 'spaces.explore', 'icon' => 'building-2', 'text' => 'Live seat map — pick your seat'],
         ]],
         ['label' => 'Facilities', 'route' => 'facilities', 'children' => [
             ['label' => 'Included with every seat', 'href' => '/facilities#included', 'icon' => 'wifi', 'text' => 'Wi-Fi, AC, power backup, pantry'],

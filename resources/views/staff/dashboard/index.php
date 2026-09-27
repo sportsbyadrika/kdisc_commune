@@ -10,6 +10,8 @@
  * @var list<array<string, mixed>> $floors
  * @var int $totalSeats
  * @var list<array<string, mixed>> $recentLogins
+ * @var array<string, mixed>|null $desk     front-desk board (receptionist / Centre Manager)
+ * @var list<array<string, mixed>> $occupancy
  */
 $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
@@ -18,10 +20,17 @@ $this->layout('layouts/staff', [
     'subtitle' => $role->label() . ' · ' . $role->description(),
 ]);
 ?>
+<?php if (!empty($occupancy)): ?>
+<?php $this->start('head') ?>
+<script defer src="<?= e(asset('assets/js/space-render.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/frontdesk.js')) ?>"></script>
+<?php $this->stop() ?>
+<?php endif ?>
 <?php $this->start('actions') ?>
     <?= $this->component('badge', ['label' => date('l, j F Y'), 'tone' => 'neutral', 'icon' => 'calendar']) ?>
 <?php $this->stop() ?>
 
+<?php if (!empty($occupancy)): ?><?= $this->partial('partials/space/sprite', ['extra' => []]) ?><?php endif ?>
 <?= $this->partial($role->dashboardView()) ?>
 
 <div class="mt-8 grid gap-6 xl:grid-cols-3">

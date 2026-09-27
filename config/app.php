@@ -18,7 +18,7 @@ return [
     'uploads_path' => env('UPLOADS_PATH', dirname(__DIR__) . '/storage/uploads'),
 
     // Loaded in order by the router. Earlier files win on identical paths.
-    'route_files' => ['site.php', 'portal.php', 'staff.php'],
+    'route_files' => ['site.php', 'portal.php', 'staff.php', 'api.php'],
 
     // Organisation details used in headers / footers / PDFs.
     'org' => [

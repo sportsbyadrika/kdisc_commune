@@ -309,6 +309,24 @@ if (!function_exists('icon')) {
     }
 }
 
+if (!function_exists('icon_symbol')) {
+    /**
+     * A Lucide icon as an SVG <symbol id="i-{name}"> for sprite sheets (Space Explorer maps use <use href="#i-armchair">).
+     * Stroke/fill are set on an inner <g> so `color` on the <use> element tints it.
+     */
+    function icon_symbol(string $name): string
+    {
+        $file = App::basePath('resources/icons/' . basename($name) . '.svg');
+        if (!is_file($file)) {
+            return '';
+        }
+        $svg = (string) file_get_contents($file);
+        $inner = (string) preg_replace(['/^.*?<svg[^>]*>/s', '/<\/svg>\s*$/s'], '', $svg);
+        return '<symbol id="i-' . e($name) . '" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            . $inner . '</g></symbol>';
+    }
+}
+
 if (!function_exists('money')) {
     /** Indian-format rupee amount: money(125000) -> "₹1,25,000"; money(99.5, 2) -> "₹99.50" */
     function money(int|float|string|null $amount, int $decimals = 0): string
@@ -423,5 +441,21 @@ if (!function_exists('format_phone')) {
     {
         $phone = (string) $phone;
         return preg_match('/^\+91([6-9]\d{4})(\d{5})$/', $phone, $m) === 1 ? "+91 {$m[1]} {$m[2]}" : $phone;
+    }
+}
+
+if (!function_exists('mask_id')) {
+    /** Mask an identifier for display, keeping the first/last characters: mask_id('ABCDE1234F') → "AB•••••34F". */
+    function mask_id(?string $value, int $keepStart = 2, int $keepEnd = 3): string
+    {
+        $value = trim((string) $value);
+        $len = mb_strlen($value);
+        if ($len === 0) {
+            return '';
+        }
+        if ($len <= $keepStart + $keepEnd) {
+            return str_repeat('•', $len);
+        }
+        return mb_substr($value, 0, $keepStart) . str_repeat('•', $len - $keepStart - $keepEnd) . mb_substr($value, -$keepEnd);
     }
 }

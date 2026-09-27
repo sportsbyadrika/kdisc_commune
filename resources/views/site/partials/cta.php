@@ -5,7 +5,7 @@
         <h2 class="mx-auto max-w-2xl font-display text-3xl font-extrabold !text-white sm:text-4xl">Ready to work near home?</h2>
         <p class="mx-auto mt-4 max-w-xl text-lg text-white/75">Visit the centre for a walkthrough, or check seat availability for your dates now.</p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="<?= e(url('spaces')) ?>" class="btn btn-primary btn-lg">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
+            <a href="<?= e(url('spaces.explore')) ?>" class="btn btn-primary btn-lg">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
             <a href="<?= e(url('contact')) ?>" class="btn btn-lg bg-white/10 text-white ring-1 ring-white/25 hover:bg-white/20">Talk to us</a>
         </div>
     </div>

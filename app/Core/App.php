@@ -58,6 +58,8 @@ final class App
             $c->get(LoggerInterface::class),
         ));
         $container->singleton(\App\Services\Kyc\AadhaarVault::class, fn () => new \App\Services\Kyc\AadhaarVault());
+        // One clock per request so time-based rules (seat holds) agree; tests freeze it.
+        $container->singleton(\App\Support\Clock::class, fn () => new \App\Support\Clock());
         $container->singleton(Router::class, function (Container $c) use ($basePath, $config): Router {
             $router = new Router($c);
             $router->aliasMiddleware((array) $config->get('middleware.aliases', []));

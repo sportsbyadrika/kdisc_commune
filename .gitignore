@@ -15,3 +15,5 @@
 .idea/
 .vscode/
 /storage/mail/*
+/public/media/uploads/*
+!/public/media/uploads/.gitkeep

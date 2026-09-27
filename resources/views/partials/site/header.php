@@ -99,7 +99,7 @@ foreach (array_slice(explode(' ', $visitorName), 0, 2) as $part) {
                 <a href="<?= e(url('portal.login')) ?>" class="btn btn-ghost hidden md:inline-flex"><?= icon('circle-user-round', 'size-[18px]') ?> Sign in</a>
                 <a href="<?= e(url('portal.register')) ?>" class="btn btn-outline hidden xl:inline-flex">Register</a>
             <?php endif ?>
-            <a href="<?= e(url('spaces')) ?>" class="btn btn-primary btn-lg hidden !px-6 !py-3 sm:inline-flex">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
+            <a href="<?= e(url('spaces.explore')) ?>" class="btn btn-primary btn-lg hidden !px-6 !py-3 sm:inline-flex">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
             <button type="button" class="btn btn-ghost btn-icon lg:hidden" @click="drawer = true" aria-label="Open menu" :aria-expanded="drawer.toString()" aria-controls="mobile-drawer">
                 <?= icon('menu', 'size-6') ?>
             </button>
@@ -140,7 +140,7 @@ foreach (array_slice(explode(' ', $visitorName), 0, 2) as $part) {
                 <?php endforeach ?>
             </nav>
             <div class="space-y-3 border-t border-line p-5">
-                <a href="<?= e(url('spaces')) ?>" class="btn btn-primary btn-lg w-full">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
+                <a href="<?= e(url('spaces.explore')) ?>" class="btn btn-primary btn-lg w-full">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
                 <?php if ($visitor !== null): ?>
                     <a href="<?= e(url('portal.dashboard')) ?>" class="btn btn-outline w-full"><?= icon('layout-dashboard', 'size-[18px]') ?> My account</a>
                     <form method="post" action="<?= e(url('portal.logout')) ?>"><?= csrf_field() ?><button type="submit" class="btn btn-ghost w-full !text-red-600"><?= icon('log-out', 'size-4') ?> Sign out</button></form>

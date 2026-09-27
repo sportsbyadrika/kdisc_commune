@@ -77,6 +77,21 @@ const isoDate = (d) => {
 document.addEventListener('alpine:init', () => {
   const Alpine = window.Alpine;
 
+  /** Seat-hold countdown (checkout page): x-data="holdTimer(540)"; exposes text, low, expired. */
+  Alpine.data('holdTimer', (seconds = 0) => ({
+    left: Math.max(0, Number(seconds) || 0),
+    init() {
+      const end = Date.now() + this.left * 1000;
+      const t = setInterval(() => {
+        this.left = Math.max(0, Math.round((end - Date.now()) / 1000));
+        if (this.left === 0) clearInterval(t);
+      }, 1000);
+    },
+    get text() { return `${String(Math.floor(this.left / 60)).padStart(2, '0')}:${String(this.left % 60).padStart(2, '0')}`; },
+    get low() { return this.left > 0 && this.left <= 60; },
+    get expired() { return this.left === 0; },
+  }));
+
   /** Hero "Check availability" bar: keeps "to" >= "from" and defaults to a 1-month range. */
   Alpine.data('availabilityBar', (from = '', to = '') => ({
     from: from || isoDate(new Date()),

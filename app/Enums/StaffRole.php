@@ -56,13 +56,13 @@ enum StaffRole: string
     {
         $reception = [
             'dashboard.view', 'visitors.view', 'visitors.register', 'documents.upload', 'documents.view',
-            'bookings.view', 'bookings.create', 'checkins.manage', 'payments.log', 'space.explore',
+            'bookings.view', 'bookings.create', 'bookings.cancel', 'bookings.extend', 'checkins.manage', 'payments.log', 'space.explore',
         ];
         return match ($this) {
             self::Receptionist => $reception,
             self::CentreManager => [
                 ...$reception,
-                'bookings.approve', 'kyc.verify', 'seats.handover', 'renewals.view', 'dues.view',
+                'bookings.approve', 'space.override', 'kyc.verify', 'seats.handover', 'renewals.view', 'dues.view', 'payments.void',
                 'layout.design', 'pricing.manage', 'facilities.manage', 'staff.manage', 'bulk.import', 'reports.view',
             ],
             self::FinanceAdmin => [

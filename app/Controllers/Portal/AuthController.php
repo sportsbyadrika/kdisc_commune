@@ -197,9 +197,21 @@ final class AuthController extends Controller
 
     // ---------------------------------------------------------------- login / logout
 
-    public function showLogin(): Response
+    public function showLogin(Request $request, Session $session): Response
     {
+        // ?next=/spaces/explore/… (Space Explorer "sign in to pick seats") — same-site paths only.
+        $next = $request->string('next');
+        if ($next !== '' && self::safeNext($next, $request->basePath())) {
+            $session->put('_intended', $next);
+        }
         return $this->view('portal/auth/login', ['title' => 'Sign in']);
+    }
+
+    /** Post-login redirect targets: the portal and the Space Explorer only (no open redirects). */
+    private static function safeNext(string $path, string $base): bool
+    {
+        return preg_match('#^/[A-Za-z0-9/_\-?=&.%]*$#', $path) === 1 && !str_starts_with($path, '//')
+            && (str_starts_with($path, $base . '/my') || str_starts_with($path, $base . '/spaces'));
     }
 
     public function login(Request $request, Session $session): Response
@@ -233,7 +245,7 @@ final class AuthController extends Controller
         $this->audit->record('account.login', 'account', (int) $account['id'], actorType: 'account', actorId: (int) $account['id']);
 
         $intended = $session->pull('_intended');
-        if (is_string($intended) && str_starts_with($intended, $request->basePath() . '/my')) {
+        if (is_string($intended) && self::safeNext($intended, $request->basePath())) {
             return redirect($intended);
         }
         $customer = Customer::findByAccount((int) $account['id']);

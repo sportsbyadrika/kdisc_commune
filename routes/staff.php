@@ -11,8 +11,15 @@
 declare(strict_types=1);
 
 use App\Controllers\Staff\AuthController;
+use App\Controllers\Staff\BookingController;
+use App\Controllers\Staff\CheckinController;
 use App\Controllers\Staff\DashboardController;
+use App\Controllers\Staff\ExplorerController;
+use App\Controllers\Staff\FacilityController;
 use App\Controllers\Staff\KycController;
+use App\Controllers\Staff\LayoutApiController;
+use App\Controllers\Staff\LayoutController;
+use App\Controllers\Staff\PaymentController;
 use App\Controllers\Staff\VisitorController;
 use App\Controllers\Staff\VisitorDocumentController;
 use App\Core\Router;
@@ -50,6 +57,71 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
         $r->post('/kyc/{id:\d+}/approve', [KycController::class, 'approve'])->name('kyc.approve')->middleware('can:kyc.verify');
         $r->post('/kyc/{id:\d+}/reject', [KycController::class, 'reject'])->name('kyc.reject')->middleware('can:kyc.verify');
 
-        // Batch 3+: Space Explorer, bookings, layout designer, finance ...
+        // Space Explorer — receptionist mode (spec 5.2); JSON API under /staff/api/space (routes/api.php).
+        $r->get('/spaces', [ExplorerController::class, 'index'])->name('explorer')->middleware('can:space.explore');
+
+        // Bookings console + lifecycle (batch 5). Rules: BookingWorkflow / PaymentService / CheckinService /
+        // SeatTransferService / RenewalService. {no} = booking number BK-YYYY-NNNNNN.
+        $r->get('/bookings', [BookingController::class, 'index'])->name('bookings.index')->middleware('can:bookings.view');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}', [BookingController::class, 'show'])->name('bookings.show')->middleware('can:bookings.view');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/approve', [BookingController::class, 'approve'])->name('bookings.approve')->middleware('can:bookings.approve');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/reject', [BookingController::class, 'reject'])->name('bookings.reject')->middleware('can:bookings.approve');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/confirm', [BookingController::class, 'confirm'])->name('bookings.confirm')->middleware('can:payments.log');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel')->middleware('can:bookings.cancel');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/early-exit', [BookingController::class, 'earlyExit'])->name('bookings.early_exit')->middleware('can:bookings.cancel');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/check-in', [BookingController::class, 'checkIn'])->name('bookings.checkin')->middleware('can:checkins.manage');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/check-out', [BookingController::class, 'checkOut'])->name('bookings.checkout')->middleware('can:checkins.manage');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/handover', [BookingController::class, 'handover'])->name('bookings.handover')->middleware('can:seats.handover');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/handover/quote', [BookingController::class, 'handoverQuote'])->name('bookings.handover.quote')->middleware('can:seats.handover');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/handover', [BookingController::class, 'handoverStore'])->name('bookings.handover.store')->middleware('can:seats.handover');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/extend', [BookingController::class, 'extend'])->name('bookings.extend')->middleware('can:bookings.extend');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/extend', [BookingController::class, 'extendStore'])->name('bookings.extend.store')->middleware('can:bookings.extend');
+
+        // Payments: logged at the desk, voided by the Centre Manager; Finance verifies in batch 6.
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/payments', [PaymentController::class, 'store'])->name('payments.store')->middleware('can:payments.log');
+        $r->post('/payments/{id:\d+}/void', [PaymentController::class, 'void'])->name('payments.void')->middleware('can:payments.void');
+        $r->get('/payments/{id:\d+}/proof', [PaymentController::class, 'proof'])->name('payments.proof')->middleware('can:bookings.view');
+
+        // Check-in desk (QR / Unique ID) + the explorer seat popover endpoint.
+        $r->get('/checkin', [CheckinController::class, 'index'])->name('checkins.index')->middleware('can:checkins.manage');
+        $r->post('/checkin/seat', [CheckinController::class, 'seat'])->name('checkins.seat')->middleware('can:checkins.manage');
+
+        // Layout & Pricing Designer (spec 5.4) — Centre Manager. Pages + the canvas JSON API (/staff/layout/api).
+        $r->get('/layout', [LayoutController::class, 'index'])->name('layout.index')->middleware('can:layout.design');
+        $r->get('/layout/rates', [LayoutController::class, 'rates'])->name('layout.rates')->middleware('can:pricing.manage');
+        $r->post('/layout/rates', [LayoutController::class, 'storeRate'])->name('layout.rates.store')->middleware('can:pricing.manage');
+        $r->get('/layout/building', [LayoutController::class, 'building'])->name('layout.building')->middleware('can:layout.design');
+        $r->post('/layout/building/photo', [LayoutController::class, 'buildingPhoto'])->name('layout.building.photo')->middleware('can:layout.design');
+        $r->put('/layout/building/hotspots', [LayoutController::class, 'hotspots'])->name('layout.hotspots')->middleware('can:layout.design');
+        $r->post('/layout/floors', [LayoutController::class, 'storeFloor'])->name('layout.floors.store')->middleware('can:layout.design');
+        $r->post('/layout/floors/{floor:\d+}/photo', [LayoutController::class, 'floorPhoto'])->name('layout.floors.photo')->middleware('can:layout.design');
+        $r->delete('/layout/floors/{floor:\d+}', [LayoutController::class, 'destroyFloor'])->name('layout.floors.destroy')->middleware('can:layout.design');
+        $r->get('/layout/floors/{floor:[a-z0-9-]+}', [LayoutController::class, 'designer'])->name('layout.floor')->middleware('can:layout.design');
+        $r->get('/layout/floors/{floor:[a-z0-9-]+}/preview', [LayoutController::class, 'preview'])->name('layout.preview')->middleware('can:layout.design');
+        $r->get('/layout/floors/{floor:[a-z0-9-]+}/history', [LayoutController::class, 'history'])->name('layout.history')->middleware('can:layout.design');
+        $r->post('/layout/floors/{floor:[a-z0-9-]+}/restore/{version:\d+}', [LayoutController::class, 'restore'])->name('layout.restore')->middleware('can:layout.design');
+
+        $r->group(['prefix' => '/layout/api', 'as' => 'layout.api.', 'middleware' => ['can:layout.design']], function (Router $r): void {
+            $r->post('/floors/{floor:\d+}/draft', [LayoutApiController::class, 'createDraft'])->name('draft');
+            $r->get('/versions/{version:\d+}', [LayoutApiController::class, 'show'])->name('show');
+            $r->put('/versions/{version:\d+}', [LayoutApiController::class, 'save'])->name('save');
+            $r->delete('/versions/{version:\d+}', [LayoutApiController::class, 'discard'])->name('discard');
+            $r->get('/versions/{version:\d+}/check', [LayoutApiController::class, 'check'])->name('check');
+            $r->post('/versions/{version:\d+}/publish', [LayoutApiController::class, 'publish'])->name('publish');
+            $r->get('/versions/{version:\d+}/pricing', [LayoutApiController::class, 'pricing'])->name('pricing');
+            $r->post('/versions/{version:\d+}/rates', [LayoutApiController::class, 'setRates'])->name('rates')->middleware('can:pricing.manage');
+            $r->post('/versions/{version:\d+}/rates/clear', [LayoutApiController::class, 'clearRates'])->name('rates.clear')->middleware('can:pricing.manage');
+        });
+
+        // Facility master (spec 5.3).
+        $r->get('/facilities', [FacilityController::class, 'index'])->name('facilities.index')->middleware('can:facilities.manage');
+        $r->get('/facilities/new', [FacilityController::class, 'create'])->name('facilities.create')->middleware('can:facilities.manage');
+        $r->post('/facilities', [FacilityController::class, 'store'])->name('facilities.store')->middleware('can:facilities.manage');
+        $r->get('/facilities/{id:\d+}/edit', [FacilityController::class, 'edit'])->name('facilities.edit')->middleware('can:facilities.manage');
+        $r->put('/facilities/{id:\d+}', [FacilityController::class, 'update'])->name('facilities.update')->middleware('can:facilities.manage');
+        $r->post('/facilities/{id:\d+}/toggle', [FacilityController::class, 'toggle'])->name('facilities.toggle')->middleware('can:facilities.manage');
+        $r->delete('/facilities/{id:\d+}', [FacilityController::class, 'destroy'])->name('facilities.destroy')->middleware('can:facilities.manage');
+
+        // Batch 6+: finance (invoices, receipts, credit notes), reports ...
     });
 });

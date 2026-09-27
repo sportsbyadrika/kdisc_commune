@@ -8,15 +8,16 @@ use App\Controllers\Controller;
 use App\Core\Database;
 use App\Core\Response;
 use App\Enums\StaffRole;
+use App\Services\Bookings\FrontDeskService;
 use App\Services\Space\CatalogService;
 
 /**
- * Role-aware dashboard. Each role gets resources/views/staff/dashboard/{role}.php;
- * counts are real queries — future batches replace placeholders with live widgets.
+ * Role-aware dashboard. Each role gets resources/views/staff/dashboard/{role}.php; receptionists and Centre
+ * Managers share the front-desk board (staff/dashboard/front-desk: FrontDeskService + live occupancy maps).
  */
 final class DashboardController extends Controller
 {
-    public function __construct(private readonly Database $db, private readonly CatalogService $catalog)
+    public function __construct(private readonly Database $db, private readonly CatalogService $catalog, private readonly FrontDeskService $frontDesk)
     {
     }
 
@@ -31,8 +32,8 @@ final class DashboardController extends Controller
             'bookings_requested' => (int) $this->db->scalar("SELECT COUNT(*) FROM bookings WHERE status = 'requested'"),
             'bookings_active' => (int) $this->db->scalar("SELECT COUNT(*) FROM bookings WHERE status IN ('confirmed','active')"),
             'arrivals_today' => (int) $this->db->scalar("SELECT COUNT(*) FROM bookings WHERE start_date = CURDATE() AND status IN ('confirmed','active')"),
-            'payments_pending' => (int) $this->db->scalar("SELECT COUNT(*) FROM payments WHERE status = 'pending'"),
-            'payments_pending_amount' => (float) $this->db->scalar("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status = 'pending'"),
+            'payments_pending' => (int) $this->db->scalar("SELECT COUNT(*) FROM payments WHERE status = 'logged'"),
+            'payments_pending_amount' => (float) $this->db->scalar("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status = 'logged'"),
             'invoices_this_month' => (int) $this->db->scalar("SELECT COUNT(*) FROM invoices WHERE invoice_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')"),
             'collected_this_month' => (float) $this->db->scalar("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status = 'verified' AND paid_on >= DATE_FORMAT(CURDATE(), '%Y-%m-01')"),
             'facilities' => (int) $this->db->scalar('SELECT COUNT(*) FROM facilities WHERE is_active = 1'),
@@ -40,7 +41,11 @@ final class DashboardController extends Controller
             'centres' => (int) $this->db->scalar('SELECT COUNT(*) FROM centres WHERE is_active = 1'),
         ];
 
+        $frontDesk = in_array($role, [StaffRole::Receptionist, StaffRole::CentreManager], true);
+
         return $this->view('staff/dashboard/index', [
+            'desk' => $frontDesk ? $this->frontDesk->summary() : null,
+            'occupancy' => $frontDesk ? $this->frontDesk->occupancyMaps() : [],
             'title' => 'Dashboard',
             'user' => $user,
             'role' => $role,

@@ -94,6 +94,95 @@ only to the owner or authorised staff. Password links are single-use and expire 
 Test identifiers for development (valid checksums, not real people): Aadhaar `2341 2341 2346`, `4991 2345 6783`;
 PAN `ABCPE1234F`; institution PAN `AABCK1234L` + GSTIN `32AABCK1234L1ZV`; TAN `TVDK12345E`.
 
+## Space Explorer & booking requests (batch 3)
+
+| Flow | Where |
+|---|---|
+| Level 1 — building | `/spaces/explore?from=&to=&type=` (home hero date bar and "Book a Seat" link here); floor hotspots with live free counts |
+| Level 2 — floor map | `/spaces/explore/{ground-floor\|first-floor}` — tap seats (guests are asked to sign in), zoom/pan, list view, add-ons, live quote |
+| Checkout | `/spaces/checkout` → `/spaces/checkout/done/{BK-…}` (visitor must be signed in with a submitted profile; KYC may be pending) |
+| My bookings | `/my/bookings`, `/my/bookings/{BK-…}` (status timeline) |
+| Receptionist mode | `/staff/spaces` — visitor picker, occupant popovers, manager override (reason, audit-logged), creates **approved** bookings |
+| Staff bookings | `/staff/bookings`, `/staff/bookings/{BK-…}` (lifecycle, payments and check-in: batch 5 below) |
+| JSON API | `/api/space/*` (site session) and `/staff/api/space/*` (staff session) — see `routes/api.php` |
+
+Selected seats are **held for 10 minutes** (`settings.seat_hold_minutes`, renewable); the map polls every
+`settings.availability_poll_seconds` (20 s). Pricing assumptions pending K-DISC confirmation (all in `settings`):
+flexi under a month = daily rate × days, a month or more = monthly × months + remaining days at the daily rate, the
+daily part capped at one month (`flexi_pricing_rule`, `flexi_daily_cap_monthly`); dedicated seats and cabins pro-rate
+partial months as days ÷ 30 (`proration_days_per_month`); tenures over 6 months need a security deposit of
+`security_deposit_months` (2) months' rent instead of an advance; IGST applies when the visitor's state code ≠ 32.
+
+## Layout & Pricing Designer (batch 4)
+
+Sign in as `manager@commune.test` → **Layout & pricing** (`/staff/layout`).
+
+- **Floor plans** (`/staff/layout/floors/{floor}`): the live layout opens read-only — click **Edit layout** to start a
+  draft (a copy of the live version). Drag a *Seat* from the palette onto the plan, or use *Row of N*, *Grid R×C*,
+  *Cabin*, *Conf. room*; draw zones with the rectangle / polygon tools and give them a space type and tint.
+  Select with click, Shift-click or a drag lasso; move by dragging or with the arrow keys (Shift = ×10); rotate with
+  the handle, `[` `]` or the toolbar; Ctrl+D duplicates, Del deletes, Ctrl+Z / Ctrl+Shift+Z undo/redo, Shift+2 zooms to
+  the selection, Space-drag pans, Ctrl+scroll zooms. Snap-to-grid and grid size are in the toolbar. The inspector edits
+  code/label/geometry/status (blocked / repairs with dates + note) and attached facilities; its **Pricing** tab shows
+  the effective price (seat → zone → base rate) and sets seat/zone overrides, in bulk for multi-selections. Drag
+  facilities (🔒 locker, …) from the palette onto a seat, a zone or the floor. Drafts autosave ("Saved ✓").
+  **Preview** opens the draft in the visitor explorer; **Publish** runs validation (duplicate codes, seats outside a
+  zone, cabins without chairs, missing base rates = errors; removed/moved/blocked booked seats = warnings to confirm).
+- **Rates** (`/staff/layout/rates`): base rate per space type with effective-dated history. A new rate closes the
+  previous one the day before; a rate that already priced bookings is never changed.
+- **Building & floors** (`/staff/layout/building`): building photo, floor hotspot polygons (click to add points, drag,
+  Alt-click to delete, click the first point to close), plan images, add/remove floors.
+- **Version history** per floor: who created/published what and when; preview or restore an old version as a draft.
+- **Facilities** (`/staff/facilities`): the facility master (included / add-on / landmark, price, GST, stock, icon).
+
+### Swapping in real photos
+Upload a JPG/PNG/WebP (≤ 15 MB) on *Building & floors* (or *Replace…* in the designer's left panel). It is re-encoded
+to WebP under `public/media/uploads/` (random name, EXIF stripped, max 3200 px wide) and its pixel size stored in
+`floors.photo_w/h` / `buildings.photo_w/h`. All seat, zone and hotspot coordinates are **percentages of the image**, so
+a photo with the same framing lines up immediately; if the new photo is framed differently, open a draft and nudge the
+zones/seats (or redraw the hotspots), then publish. The seeded SVG placeholders stay in `public/media/`.
+
+## Booking lifecycle, front desk & payments (batch 5)
+
+**States.** `requested → approved → confirmed → active → completed`, or `rejected` / `cancelled`
+(`App\Enums\BookingStatus::transitions()`, enforced by `BookingWorkflow`; every change is audit-logged with actor
+and reason and emailed to the visitor and to the centre staff).
+
+| Step | Who / when |
+|---|---|
+| approve / reject | Centre Manager. Approval **requires verified KYC** (the page shows "Verify KYC first" with a link). Sets a pay-by date (`settings.approval_payment_days`, 7). Rejection needs a reason and frees the seats. |
+| confirm | Automatically when the required payment is logged (and KYC is verified); otherwise the **Confirm** button. |
+| active | First check-in, or the start date (`bookings:tick`). |
+| completed | Check-out on/after the end date, or the end date has passed (`bookings:tick`). |
+| cancel | Visitor: own `requested`/`approved` booking from the portal. Staff: any pre-active booking, with a reason. Approved-but-unpaid bookings **expire** after the pay-by date. Active bookings can **end early** (seats released from a date). |
+
+**What must be paid before confirmation** (`App\Services\Payments\ConfirmationRule` — the one place it is defined):
+tenure ≤ 6 months (or hourly) → the **full booking amount** (grand total incl. GST); longer → the **security deposit +
+the first month's rent** (incl. GST). Longer bookings get a monthly **rent schedule** (`rent_schedules`, due on the
+first day of each period) shown on the booking and in the portal.
+
+| Page | Where |
+|---|---|
+| Bookings console | `/staff/bookings?tab=requests\|payment\|upcoming\|active\|renewals\|completed\|cancelled\|all` + filters (type, floor, dates, source, customer) |
+| Booking detail | `/staff/bookings/{BK-…}` — timeline, customer card (masked IDs, KYC), seats + mini-map, dues, payments (log / void), check-in/out, actions |
+| Log payment | modal on the booking page: kind, mode (Cash / UPI / NEFT / Cheque / Card …), reference (required unless cash), date, optional proof upload → status `logged` (Finance verifies in the next batch) |
+| Handover | `/staff/bookings/{BK-…}/handover` — pick a free seat of the same type on the map; history kept, price difference shown (not billed) |
+| Extend | `/staff/bookings/{BK-…}/extend` — linked follow-on booking from the day after the end date, same seats (or replacements), re-quoted at the then-current rate |
+| Check-in desk | `/staff/checkin` — type or scan (camera, BarcodeDetector) the visitor's Unique ID QR; also Check in / out from the seat popover in `/staff/spaces` |
+| Front-desk dashboard | `/staff/dashboard` (receptionist / Centre Manager) — arrivals, departures, checked in, requests, awaiting payment, renewals due, outstanding dues, live occupancy maps |
+| Visitor portal | `/my/bookings/{BK-…}` — timeline, dues, payment history, rent schedule, **Cancel request**, **Renew** (reopens the explorer with the same seats: `/spaces/explore/{floor}?renew=BK-…`) |
+
+**Scheduled commands** — add to cron (the app's timezone is `Asia/Kolkata`):
+
+```cron
+*/15 * * * * cd /var/www/commune && php bin/console bookings:tick  >> storage/logs/cron.log 2>&1
+*/10 * * * * cd /var/www/commune && php bin/console holds:cleanup  >> storage/logs/cron.log 2>&1
+```
+
+`bookings:tick` activates bookings on their start date, completes them after the end date, expires unpaid approvals
+and sends renewal reminders 15 / 7 / 1 days before the end (`settings.renewal_reminder_days`). It is idempotent —
+reminders are de-duplicated in `notifications.dedupe_key` — so running it often is safe.
+
 ## Everyday commands
 
 ```bash
@@ -102,6 +191,7 @@ composer lint                     # php -l over all PHP files
 composer analyse                  # PHPStan (level 6)
 php bin/console migrate:status    # which migrations have run
 php bin/console routes            # list routes
+php bin/console bookings:tick     # run the booking scheduler now (idempotent)
 npm run watch:css                 # rebuild CSS while editing views
 php bin/make-placeholder-plans.php  # regenerate placeholder floor-plan SVGs from the seed layout
 ```
