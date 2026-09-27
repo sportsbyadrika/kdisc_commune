@@ -40,7 +40,7 @@ return [
         ['section' => 'Centre'],
         ['label' => 'Layout & pricing', 'route' => 'staff.layout.index', 'icon' => 'pen-tool', 'can' => 'layout.design'],
         ['label' => 'Facilities', 'route' => 'staff.facilities.index', 'icon' => 'sparkles', 'can' => 'facilities.manage'],
-        ['label' => 'Bulk upload', 'route' => 'staff.imports.index', 'icon' => 'file-spreadsheet', 'can' => 'bulk.import'],
+        ['label' => 'Bulk upload', 'route' => 'staff.imports.index', 'icon' => 'file-spreadsheet', 'can' => 'imports.manage'],
         ['label' => 'Staff users', 'route' => 'staff.users.index', 'icon' => 'users-round', 'can' => 'staff.manage'],
         ['section' => 'Finance'],
         ['label' => 'Finance overview', 'route' => 'staff.finance.dashboard', 'icon' => 'chart-pie', 'can' => 'reports.finance'],
@@ -48,6 +48,9 @@ return [
         ['label' => 'Invoices & receipts', 'route' => 'staff.invoices.index', 'icon' => 'receipt-indian-rupee', 'can' => 'invoices.view'],
         ['label' => 'Registers', 'route' => 'staff.registers.index', 'icon' => 'book-open-text', 'can' => 'reports.finance'],
         ['label' => 'Finance settings', 'route' => 'staff.finance.settings', 'icon' => 'settings', 'can' => 'finance.settings'],
+        ['section' => 'Insights'],
         ['label' => 'Reports', 'route' => 'staff.reports.index', 'icon' => 'chart-column', 'can' => 'reports.view'],
+        ['label' => 'Audit log', 'route' => 'staff.audit.index', 'icon' => 'history', 'can' => 'audit.view'],
+        ['label' => 'Notifications', 'route' => 'staff.notifications.index', 'icon' => 'bell', 'can' => 'dashboard.view'],
     ],
 ];

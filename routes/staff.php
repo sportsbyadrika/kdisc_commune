@@ -10,6 +10,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\Staff\AuditController;
 use App\Controllers\Staff\AuthController;
 use App\Controllers\Staff\BookingController;
 use App\Controllers\Staff\BookingDocumentController;
@@ -17,6 +18,7 @@ use App\Controllers\Staff\CheckinController;
 use App\Controllers\Staff\DashboardController;
 use App\Controllers\Staff\ExplorerController;
 use App\Controllers\Staff\FacilityController;
+use App\Controllers\Staff\ImportController;
 use App\Controllers\Staff\Finance\DepositRefundController;
 use App\Controllers\Staff\Finance\FinanceController;
 use App\Controllers\Staff\Finance\FinanceDocumentController;
@@ -27,7 +29,9 @@ use App\Controllers\Staff\Finance\RegisterController;
 use App\Controllers\Staff\KycController;
 use App\Controllers\Staff\LayoutApiController;
 use App\Controllers\Staff\LayoutController;
+use App\Controllers\Staff\NotificationController;
 use App\Controllers\Staff\PaymentController;
+use App\Controllers\Staff\ReportController;
 use App\Controllers\Staff\VisitorController;
 use App\Controllers\Staff\VisitorDocumentController;
 use App\Core\Router;
@@ -155,6 +159,30 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
         $r->get('/finance/registers', [RegisterController::class, 'index'])->name('registers.index')->middleware('can:reports.finance');
         $r->get('/finance/registers/{type:[a-z-]+}.pdf', [RegisterController::class, 'pdf'])->name('registers.pdf')->middleware('can:reports.finance');
 
-        // Batch 7+: reports & XLSX ...
+        // Reports hub + every report page / XLSX / PDF (batch 7). Each report checks its own ability
+        // (Reports\Report::ability()); list exports (visitors, bookings-list, payments, invoices) mirror their pages.
+        $r->get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('can:reports.view');
+        $r->get('/reports/{key:[a-z0-9-]+}.xlsx', [ReportController::class, 'xlsx'])->name('reports.xlsx')->middleware('can:dashboard.view');
+        $r->get('/reports/{key:[a-z0-9-]+}.pdf', [ReportController::class, 'pdf'])->name('reports.pdf')->middleware('can:dashboard.view');
+        $r->get('/reports/{key:[a-z0-9-]+}', [ReportController::class, 'show'])->name('reports.show')->middleware('can:dashboard.view');
+
+        // XLSX bulk import (spec 10): templates, upload → validate → masked preview → confirm, error reports, history.
+        $r->get('/imports', [ImportController::class, 'index'])->name('imports.index')->middleware('can:imports.manage');
+        $r->get('/imports/templates/{type:[a-z]+}.xlsx', [ImportController::class, 'template'])->name('imports.template')->middleware('can:imports.manage');
+        $r->post('/imports', [ImportController::class, 'upload'])->name('imports.upload')->middleware('can:imports.manage');
+        $r->get('/imports/{id:\d+}', [ImportController::class, 'show'])->name('imports.show')->middleware('can:imports.manage');
+        $r->post('/imports/{id:\d+}/confirm', [ImportController::class, 'confirm'])->name('imports.confirm')->middleware('can:imports.manage');
+        $r->post('/imports/{id:\d+}/discard', [ImportController::class, 'discard'])->name('imports.discard')->middleware('can:imports.manage');
+        $r->get('/imports/{id:\d+}/errors.xlsx', [ImportController::class, 'errors'])->name('imports.errors')->middleware('can:imports.manage');
+
+        // Audit log viewer (Centre Manager / State Admin).
+        $r->get('/audit', [AuditController::class, 'index'])->name('audit.index')->middleware('can:audit.view');
+        $r->get('/audit/{id:\d+}', [AuditController::class, 'show'])->name('audit.show')->middleware('can:audit.view');
+
+        // Staff notification inbox (header bell + page).
+        $r->get('/notifications', [NotificationController::class, 'index'])->name('notifications.index')->middleware('can:dashboard.view');
+        $r->post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read_all')->middleware('can:dashboard.view');
+        $r->post('/notifications/{id:\d+}/read', [NotificationController::class, 'read'])->name('notifications.read')->middleware('can:dashboard.view');
+        $r->get('/notifications/{id:\d+}/open', [NotificationController::class, 'open'])->name('notifications.open')->middleware('can:dashboard.view');
     });
 });

@@ -32,6 +32,7 @@ $docLinks = function (string $type, array $row) use ($pdf, $canManage): string {
 };
 ?>
 <?php $this->start('actions') ?>
+<?php if (in_array($tab, ['invoices', 'receipts', 'credit-notes'], true)): ?><?= $this->partial('partials/report/export-buttons', ['key' => 'invoices', 'query' => ['tab' => $tab, 'fy' => $fy, 'q' => $q]]) ?><?php endif ?>
 <a href="<?= e(url('staff.payments.index')) ?>" class="btn btn-outline"><?= icon('wallet', 'size-4') ?><span class="hidden sm:inline">Verify payments</span><?php if ($pendingPayments > 0): ?><span class="rounded-full bg-accent-500 px-1.5 text-xs text-white"><?= $pendingPayments ?></span><?php endif ?></a>
 <a href="<?= e(url('staff.registers.index')) ?>" class="btn btn-outline"><?= icon('book-open-text', 'size-4') ?><span class="hidden sm:inline">Registers</span></a>
 <?php $this->stop() ?>

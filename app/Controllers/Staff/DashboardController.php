@@ -6,15 +6,19 @@ namespace App\Controllers\Staff;
 
 use App\Controllers\Controller;
 use App\Core\Database;
+use App\Core\Request;
 use App\Core\Response;
 use App\Enums\StaffRole;
 use App\Services\Bookings\FrontDeskService;
 use App\Services\Finance\FinanceOverview;
+use App\Services\Reports\DashboardService;
 use App\Services\Space\CatalogService;
 
 /**
  * Role-aware dashboard. Each role gets resources/views/staff/dashboard/{role}.php; receptionists and Centre
- * Managers share the front-desk board (staff/dashboard/front-desk: FrontDeskService + live occupancy maps).
+ * Managers share the front-desk board (staff/dashboard/front-desk: FrontDeskService + live occupancy maps); the
+ * Centre Manager adds centre insights and the State Admin gets the read-only network dashboard
+ * (Reports\DashboardService — heat-maps, trends, KPIs; ?range= period preset).
  */
 final class DashboardController extends Controller
 {
@@ -23,11 +27,12 @@ final class DashboardController extends Controller
         private readonly CatalogService $catalog,
         private readonly FrontDeskService $frontDesk,
         private readonly FinanceOverview $finance,
+        private readonly DashboardService $dashboards,
     )
     {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = staff() ?? [];
         $role = StaffRole::from((string) $user['role']);
@@ -53,6 +58,8 @@ final class DashboardController extends Controller
             'desk' => $frontDesk ? $this->frontDesk->summary() : null,
             'occupancy' => $frontDesk ? $this->frontDesk->occupancyMaps() : [],
             'finance' => $role === StaffRole::FinanceAdmin ? $this->finance->build() : null,
+            'dash' => $role === StaffRole::StateAdmin ? $this->dashboards->stateAdmin($request->string('range', 'month')) : null,
+            'insights' => $role === StaffRole::CentreManager ? $this->dashboards->centreManager($request->string('range', 'month')) : null,
             'title' => 'Dashboard',
             'user' => $user,
             'role' => $role,

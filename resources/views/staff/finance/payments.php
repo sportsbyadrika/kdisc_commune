@@ -23,6 +23,7 @@ $bulk = $canVerify && in_array($filters['status'], ['pending', 'queried', 'all']
 ?>
 <?php $this->start('head') ?><script defer src="<?= e(asset('assets/js/finance.js')) ?>"></script><?php $this->stop() ?>
 <?php $this->start('actions') ?>
+<?= $this->partial('partials/report/export-buttons', ['key' => 'payments', 'query' => $filters]) ?>
 <a href="<?= e(url('staff.invoices.index')) ?>" class="btn btn-outline"><?= icon('receipt-indian-rupee', 'size-4') ?><span class="hidden sm:inline">Invoice queue</span></a>
 <?php $this->stop() ?>
 

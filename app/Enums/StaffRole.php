@@ -63,7 +63,7 @@ enum StaffRole: string
             self::CentreManager => [
                 ...$reception,
                 'bookings.approve', 'space.override', 'kyc.verify', 'seats.handover', 'renewals.view', 'dues.view', 'payments.void', 'payments.view', 'finance.settings',
-                'layout.design', 'pricing.manage', 'facilities.manage', 'staff.manage', 'bulk.import', 'reports.view',
+                'layout.design', 'pricing.manage', 'facilities.manage', 'staff.manage', 'imports.manage', 'reports.view', 'audit.view',
             ],
             self::FinanceAdmin => [
                 'dashboard.view', 'visitors.view', 'bookings.view', 'payments.view', 'payments.verify',
@@ -72,6 +72,7 @@ enum StaffRole: string
             ],
             self::StateAdmin => [
                 'dashboard.view', 'visitors.view', 'bookings.view', 'payments.view', 'invoices.view', 'reports.view', 'reports.finance', 'space.explore',
+                'dues.view', 'renewals.view', 'audit.view',
             ],
         };
     }

@@ -52,6 +52,9 @@ const ICONS = [
   'utensils-crossed', 'heart-pulse', 'droplets', 'cigarette-off', 'lamp', 'phone-call', 'router', 'battery-charging', 'sofa',
   // batch 6 — finance
   'file-minus', 'piggy-bank', 'message-circle-question', 'check-check', 'banknote', 'file-down', 'scroll-text', 'stamp', 'list-checks',
+  // batch 7 — dashboards, reports, imports, audit, inbox
+  'arrow-up', 'chevrons-up-down', 'bell-ring', 'table-2', 'percent', 'flame', 'sheet', 'chart-line', 'chart-bar', 'list-filter',
+  'file-warning', 'file-json', 'user-cog', 'activity', 'gauge', 'git-compare', 'mail-open',
 ];
 
 mkdirSync(vendorDir, { recursive: true });

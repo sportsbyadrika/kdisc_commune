@@ -35,6 +35,7 @@ $hint = [
 ][$tab];
 ?>
 <?php $this->start('actions') ?>
+<?= $this->partial('partials/report/export-buttons', ['key' => 'bookings-list', 'query' => ['tab' => $tab] + $filters]) ?>
 <a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-outline"><?= icon('scan-line', 'size-4') ?><span class="hidden sm:inline">Check-in desk</span></a>
 <a href="<?= e(url('staff.explorer')) ?>" class="btn btn-brand"><?= icon('map', 'size-4') ?>Book on the map</a>
 <?php $this->stop() ?>

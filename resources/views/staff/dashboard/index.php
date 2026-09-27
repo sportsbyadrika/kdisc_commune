@@ -13,6 +13,8 @@
  * @var array<string, mixed>|null $desk     front-desk board (receptionist / Centre Manager)
  * @var list<array<string, mixed>> $occupancy
  * @var array<string, mixed>|null $finance   FinanceOverview (Finance Admin)
+ * @var array<string, mixed>|null $dash      DashboardService::stateAdmin() (State Admin)
+ * @var array<string, mixed>|null $insights  DashboardService::centreManager() (Centre Manager)
  */
 $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
@@ -21,10 +23,14 @@ $this->layout('layouts/staff', [
     'subtitle' => $role->label() . ' · ' . $role->description(),
 ]);
 ?>
-<?php if (!empty($occupancy)): ?>
+<?php if (!empty($occupancy) || !empty($dash)): ?>
 <?php $this->start('head') ?>
 <script defer src="<?= e(asset('assets/js/space-render.js')) ?>"></script>
-<script defer src="<?= e(asset('assets/js/frontdesk.js')) ?>"></script>
+<?php if (!empty($occupancy)): ?><script defer src="<?= e(asset('assets/js/frontdesk.js')) ?>"></script><?php endif ?>
+<?php if (!empty($dash) || !empty($insights)): ?>
+<script defer src="<?= e(asset('assets/vendor/chart.umd.min.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/dashboards.js')) ?>"></script>
+<?php endif ?>
 <?php $this->stop() ?>
 <?php endif ?>
 <?php if (!empty($finance)): ?>
@@ -37,10 +43,10 @@ $this->layout('layouts/staff', [
     <?= $this->component('badge', ['label' => date('l, j F Y'), 'tone' => 'neutral', 'icon' => 'calendar']) ?>
 <?php $this->stop() ?>
 
-<?php if (!empty($occupancy)): ?><?= $this->partial('partials/space/sprite', ['extra' => []]) ?><?php endif ?>
+<?php if (!empty($occupancy) || !empty($dash)): ?><?= $this->partial('partials/space/sprite', ['extra' => []]) ?><?php endif ?>
 <?= $this->partial($role->dashboardView()) ?>
 
-<?php if (empty($finance)): ?>
+<?php if (empty($finance) && empty($dash)): ?>
 <div class="mt-8 grid gap-6 xl:grid-cols-3">
     <section class="card card-body xl:col-span-2">
         <div class="flex items-center justify-between">
