@@ -30,7 +30,7 @@ Seeded staff logins (password `Password@123`): `reception@commune.test`, `manage
 Checks to run before committing:
 
 ```bash
-composer test          # PHPUnit (tests/Unit)
+composer test          # PHPUnit: tests/Unit + tests/Integration (needs the commune_test DB; skipped if unreachable)
 composer lint          # php -l over every PHP file
 composer analyse       # PHPStan level 6 (phpstan.neon) — keep it at 0 errors
 npm run build:css      # whenever you add/change Tailwind classes in views
@@ -47,8 +47,9 @@ app/
   Middleware/      VerifyCsrfToken, StaffAuth, VisitorAuth, Guest, Role, Can
   Enums/           backed enums for every status/type column (StaffRole, SeatCategory, BookingStatus, …)
   Models/          thin table gateways returning arrays (Model::find/where/create/update)
-  Services/        business logic: Auth/, Pricing/, Space/, SettingsService, AuditLog
-  Support/helpers.php  global helpers (e(), url(), asset(), icon(), money(), old(), errors(), csrf_field(), …)
+  Services/        business logic: Auth/, Kyc/, Notify/, Visitors/, Pricing/, Space/, SettingsService, AuditLog
+  Support/helpers.php  global helpers (e(), url(), asset(), icon(), money(), old(), errors(), csrf_field(), visitor(),
+                   format_phone(), format_bytes(), …); Support/IndianStates (GST state codes)
 config/            app, auth, database, session, middleware, navigation, security, mail
 routes/            site.php (public), portal.php (visitor), staff.php (staff console)
 resources/
@@ -190,8 +191,50 @@ to `DatabaseSeeder::run()`. Run one: `php bin/console db:seed --class=ThingSeede
 - Map coordinates are **percentages** of the floor image (`x_pct/y_pct` = top-left, `w_pct/h_pct` = size).
   Use `App\Services\Space\GridLayout` helpers. Cabins/rooms are parent `seats` rows with child chairs.
 - Only published `layout_versions` count for inventory/availability.
-- Uploads (KYC) go under `storage/uploads` and are streamed by an authorised controller with `Response::file()`.
+- Uploads (KYC) go through `DocumentStore` into `storage/uploads/kyc/{customer_id}/` (config `app.uploads_path`) and
+  are streamed by an authorised controller with `Response::file()` + `DocumentStore::FILE_CSP`.
 - Logging: `logger()->info('Booking {no} approved', ['no' => $no])` → `storage/logs/app-YYYY-MM-DD.log`.
+
+## Visitors, accounts & KYC (batch 2)
+
+Flows (spec §4): **online** `/register` → set-password email → `/password/set/{token}` (verifies email, logs in) →
+wizard `/my/profile/wizard/{1-4}` → submit issues the Unique Visitor ID → Centre Manager approves at `/staff/kyc`.
+**Assisted** `/staff/visitors/new?type=individual|institution` (same partials + rules, one long form) with optional
+portal invite and "mark verified". Visitor URLs on the staff side use `{ref}` = Unique ID, or the numeric id before
+submission (`Customer::ref()` / `Customer::findByRef()`).
+
+| Service | Use it for |
+|---|---|
+| `Services\Visitors\ProfileService` | THE rules for spec §4.3: `basicRules()/identityRules()`, `saveBasic()/saveIdentity()` (verified profile edited → back to pending), `documentChecklist()`, `missing()`, `submit()` (issues ID, optional staff verify). Never duplicate these rules in controllers. |
+| `Services\Visitors\RegistrationService` | accounts: `register()` (no email enumeration; claims a walk-in profile with the same email), `sendSetLink()`, `forgot()`, `resendSetLink()`, `setPassword()`, `invite()` |
+| `Services\Visitors\UniqueIdGenerator` | `CMN-KTR-{I\|N}-{YYYY}-{00001}` from `number_sequences` (`visitor_I`/`visitor_N`, period = year) under `SELECT … FOR UPDATE` |
+| `Services\Visitors\DuplicateFinder` | email / mobile / Aadhaar hash (incl. signatories) / PAN / GSTIN matches; `POST /staff/visitors/duplicates` (JSON) |
+| `Services\Visitors\VisitorDirectory` | staff search/pagination and the KYC queue |
+| `Services\Auth\PasswordTokenService` | single-use links: 32 random bytes, SHA-256 stored, `setting('password_token_minutes')`, `find()` / `consume()` / `failureReason()` |
+| `Services\Auth\Captcha` | session math question + honeypot field (`Captcha::HONEYPOT`) for public forms |
+| `Services\Kyc\IdValidator`, `Verhoeff` | Aadhaar (Verhoeff), PAN, GSTIN (mod-36 check + PAN + state), TAN, passport, mobile/phone |
+| `Services\Kyc\KycRules` | registers Validator rules `aadhaar`, `pan`, `gstin`, `gstin_pan:field`, `gstin_state:field`, `tan`, `passport`, `phone_in` (called in `App::boot()`) |
+| `Services\Kyc\AadhaarVault` | `protect($n)` → `aadhaar_enc` (secretbox), `aadhaar_hash` (HMAC, dup checks), `aadhaar_last4`; sub-keys derived from `APP_KEY` |
+| `Services\Kyc\DocumentStore` | finfo MIME sniff + extension whitelist, 5 MB, random names, images re-encoded (EXIF stripped), one file per type (replace), audit-logged |
+| `Services\Kyc\KycReviewService` | approve / reject (reason) + email + audit |
+| `Services\Notify\Mailer` | `send($to, $subject, 'template', $data)` → `resources/views/emails/{template}.php` on `emails/layout`; text part auto-derived; never throws |
+| `Services\Visitors\QrCodeRenderer` | SVG data-URI QR codes (chillerlan/php-qrcode) |
+
+Rules of thumb:
+- **Aadhaar is never rendered.** Views get `Customer::safe($row)` (drops `aadhaar_enc/hash`) and show
+  `AadhaarVault::mask($last4)` → `XXXX XXXX 1234`. Aadhaar inputs are always blank (blank = keep) and are excluded from
+  flashed old input (`Session::flashInput`). Consent time goes to `customers.consent_at`.
+- Portal controllers extend `Portal\PortalController` and load data only via `$this->customer()` (own row); document
+  ids from other visitors → 404. Staff document views are audit-logged (`kyc.document.view`, ability `documents.view`).
+- Documents lock once KYC is verified (`ProfileService::documentsLocked()`); staff with `kyc.verify` may still change them.
+- Shared view partials: `partials/visitor/{basic-fields,identity-fields,aadhaar-field,documents,summary,stepper,kyc-timeline,id-card}`.
+  `documents` has `mode` = `forms` (one upload form per type) or `inline` (file inputs `doc_{type}` inside a larger form).
+- Front-end helpers in `resources/js/app.js`: `Commune.kyc` (client mirror of IdValidator — keep in sync),
+  `kycCheck(kind, opts)`, `passwordStrength`, `docUpload` (drag-drop, phone camera, webcam), `duplicateCheck(url, excludeId)`.
+- Email: the dev transport `MAIL_DSN=log://default` appends every message to `storage/logs/mail.log` and saves
+  `storage/mail/*.eml` + `*.html` (open the .html to click links). Email colours live in `config('mail.theme')`
+  (mirror of the @theme tokens); wrap decorative email markup in `<!--notext-->…<!--/notext-->`.
+- Emails build absolute links from `APP_URL` — set it to the host you browse with.
 
 ## Front-end
 
@@ -217,11 +260,11 @@ to `DatabaseSeeder::run()`. Run one: `php bin/console db:seed --class=ThingSeede
 ## Batch roadmap / hand-off notes
 
 - **Batch 1 (done):** framework, full schema, seeds, design system, public pages, staff auth + role dashboards.
-- **Batch 2 — accounts & KYC:** `routes/portal.php` has stub `/login` and `/register` (`Portal\AuthController`).
-  Tables ready: `accounts`, `password_tokens` (sha256 token hash, purpose set/reset/invite), `customers`,
-  `customer_signatories`, `customer_documents`. Use `PasswordHasher`, `LoginThrottle` (`guard = 'visitor'`),
-  `auth('visitor')->login($account)`. Aadhaar encryption key: `APP_KEY` (base64, 32 bytes, libsodium secretbox).
-  Unique IDs via `number_sequences` row lock (`SELECT … FOR UPDATE`).
+- **Batch 2 (done) — accounts & KYC:** see "Visitors, accounts & KYC" above. Hooks for later batches: booking
+  confirmation must require `customers.kyc_status = 'verified'` (requests are allowed before); the portal dashboard has
+  "coming soon" tiles for bookings / dues / invoices and the portal sub-nav has "Soon" tabs (`layouts/portal.php`);
+  the QR on the ID card holds the Unique ID for check-in scanning. Not built yet: captcha on login, staff password
+  reset, APP_KEY rotation/re-encryption, antivirus scanning of uploads.
 - **Batch 3 — Space Explorer / Designer:** data model in place (`floors.hotspot_polygon`, `zones`, `seats` with
   percentage coords, `facility_placements`, `seat_holds`); `CatalogService`, `PriceResolver`, `GridLayout`,
   `LayoutBlueprint`; `.seat-*` classes and `--color-seat-*` tokens; `public/assets/vendor/panzoom.min.js`.

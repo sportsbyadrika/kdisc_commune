@@ -35,6 +35,9 @@ php bin/console key:generate   # paste the printed APP_KEY=… into .env
 mysql -u root -e "CREATE DATABASE commune CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
                   CREATE USER 'commune'@'localhost' IDENTIFIED BY 'commune';
                   GRANT ALL ON commune.* TO 'commune'@'localhost';"
+# (tests) the integration suite uses a separate database:
+mysql -u root -e "CREATE DATABASE commune_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+                  GRANT ALL ON commune_test.* TO 'commune'@'localhost';"
 php bin/console migrate        # create the full schema
 php bin/console db:seed        # centre, floors, seats, prices, facilities, settings, staff users
 #   or in one go (DROPS ALL TABLES):  php bin/console migrate:fresh --seed
@@ -68,10 +71,33 @@ All passwords: **`Password@123`** — change or deactivate these before go-live.
 Plus 14 facilities (included, add-ons, landmarks) placed on the floor plans, and settings such as GST 18 %,
 SAC 997212 and the invoice prefix `KDISC/CMN`.
 
+## Visitor registration & KYC (batch 2)
+
+| Flow | Where |
+|---|---|
+| Online sign-up | `/register` → email link → `/password/set/{token}` → profile wizard `/my/profile/wizard/1…4` → Unique Visitor ID |
+| Visitor portal | `/login`, `/my` (ID card + QR, KYC timeline), `/my/profile`, `/my/documents`, `/password/forgot` |
+| Assisted (front desk) | `/staff/visitors` (search), `/staff/visitors/new?type=individual\|institution`, `/staff/visitors/{uniqueId}` |
+| KYC verification | `/staff/kyc` (Centre Manager): documents side by side with the data, approve / reject with a reason |
+
+**Emails in development.** With `MAIL_DSN=log://default` (the default) nothing is sent: every message is appended to
+`storage/logs/mail.log` and saved as `storage/mail/<time>-<subject>.eml` and `.html` — open the `.html` file in a
+browser to click the set-password / invite links. Links use `APP_URL`, so set it to the address you browse with.
+For real delivery set `MAIL_DSN=smtp://user:pass@host:587` and `MAIL_FROM_ADDRESS`.
+
+**Security notes.** Aadhaar numbers are encrypted with libsodium using `APP_KEY` (keep it secret and backed up —
+losing it makes stored Aadhaar numbers unreadable) and only the last 4 digits are ever displayed. KYC documents are
+stored in `storage/uploads/kyc/` (outside `public/`), renamed randomly, images re-encoded to strip EXIF, and served
+only to the owner or authorised staff. Password links are single-use and expire after 60 minutes
+(`settings.password_token_minutes`).
+
+Test identifiers for development (valid checksums, not real people): Aadhaar `2341 2341 2346`, `4991 2345 6783`;
+PAN `ABCPE1234F`; institution PAN `AABCK1234L` + GSTIN `32AABCK1234L1ZV`; TAN `TVDK12345E`.
+
 ## Everyday commands
 
 ```bash
-composer test                     # PHPUnit
+composer test                     # PHPUnit (unit + integration against the commune_test DB)
 composer lint                     # php -l over all PHP files
 composer analyse                  # PHPStan (level 6)
 php bin/console migrate:status    # which migrations have run
