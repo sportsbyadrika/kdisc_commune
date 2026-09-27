@@ -3,10 +3,8 @@
 declare(strict_types=1);
 
 /*
- * Menus. 'route' is a named route (rendered only when it exists — so later
- * batches can list items before implementing them); 'href' is a literal path.
+ * Menus. 'route' is a named route (an item is rendered only when the route exists); 'href' is a literal path.
  * Staff items: 'can' = ability from App\Enums\StaffRole::abilities().
- * Items whose route is not yet defined render as disabled "Soon" entries.
  */
 return [
     'site' => [

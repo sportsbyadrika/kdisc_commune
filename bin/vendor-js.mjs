@@ -32,7 +32,7 @@ const ICONS = [
   'lock', 'log-in', 'log-out', 'mail', 'map', 'map-pin', 'menu', 'monitor', 'package', 'parking-meter',
   'pen-tool', 'phone', 'plug', 'plus', 'printer', 'projector', 'receipt', 'receipt-indian-rupee', 'search',
   'settings', 'shield-check', 'snowflake', 'sparkles', 'square-user', 'triangle-alert', 'upload', 'user',
-  'user-check', 'user-plus', 'square-plus', 'user-round', 'users', 'users-round', 'wallet', 'wifi', 'x', 'zap', 'chart-column',
+  'user-check', 'user-plus', 'user-x', 'square-plus', 'user-round', 'users', 'users-round', 'wallet', 'wifi', 'x', 'zap', 'chart-column',
   'chart-pie', 'badge-indian-rupee', 'indian-rupee', 'scan-line', 'sofa', 'presentation', 'utensils',
   'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'globe', 'heart-handshake', 'rocket', 'star',
   'moon', 'sun', 'toilet', 'circle-parking', 'square-parking', 'mailbox', 'lamp-desk', 'door-closed', 'panel-left', 'list', 'filter', 'ellipsis', 'external-link', 'accessibility', 'fire-extinguisher',

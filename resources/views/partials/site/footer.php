@@ -10,18 +10,22 @@ $cols = [
     'Facilities' => [['Included facilities', '/facilities#included'], ['Add-ons', '/facilities#addons'], ['Around the building', '/facilities#landmarks']],
     'Help' => [['About Commune', '/about'], ['Contact us', '/contact'], ['Visitor sign in', '/login'], ['Create an account', '/register'], ['Staff console', '/staff/login']],
 ];
-$socials = [['facebook', 'Facebook'], ['instagram', 'Instagram'], ['linkedin', 'LinkedIn'], ['youtube', 'YouTube']];
+// Social profiles come from .env (SOCIAL_FACEBOOK=https://…); unset ones are not shown (no dead links).
+$labels = ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube'];
+$socials = array_filter((array) config('app.org.social', []), static fn ($u, $k) => is_string($u) && str_starts_with($u, 'https://') && isset($labels[$k]), ARRAY_FILTER_USE_BOTH);
 ?>
 <footer class="mt-auto bg-brand-950 text-white/70">
     <div class="container-page grid gap-12 py-16 sm:grid-cols-2 lg:grid-cols-12">
         <div class="lg:col-span-3">
             <?= $this->partial('partials/logo', ['inverse' => true]) ?>
             <p class="mt-5 max-w-sm text-sm leading-6">Commune is a “Work Near Home” initiative of the Kerala Development and Innovation Strategic Council (K-DISC) — professional workspaces close to where you live.</p>
+            <?php if ($socials !== []): ?>
             <div class="mt-6 flex gap-2">
-                <?php foreach ($socials as [$ic, $label]): ?>
-                    <a href="#" class="grid size-10 place-items-center rounded-full bg-white/8 text-white/80 ring-1 ring-white/10 transition hover:bg-accent-500 hover:text-white" aria-label="<?= e($label) ?>"><?= icon($ic, 'size-[18px]') ?></a>
+                <?php foreach ($socials as $ic => $href): ?>
+                    <a href="<?= e($href) ?>" rel="noopener" target="_blank" class="grid size-10 place-items-center rounded-full bg-white/8 text-white/80 ring-1 ring-white/10 transition hover:bg-accent-500 hover:text-white" aria-label="<?= e($labels[$ic]) ?>"><?= icon($ic, 'size-[18px]') ?></a>
                 <?php endforeach ?>
             </div>
+            <?php endif ?>
         </div>
         <?php foreach ($cols as $heading => $links): ?>
             <div class="lg:col-span-2">

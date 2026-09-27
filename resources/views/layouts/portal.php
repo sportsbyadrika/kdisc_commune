@@ -32,15 +32,9 @@ $who = (array) ($customer ?? []);
             <?php foreach ($tabs as [$route, $label, $ico, $match]):
                 $active = $match !== [] && route_is(...$match);
             ?>
-                <?php if ($route !== null): ?>
-                    <a href="<?= e(url($route)) ?>" class="<?= e(class_names('inline-flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition', $active ? 'border-accent-500 text-ink' : 'border-transparent text-muted hover:border-line hover:text-ink')) ?>" <?= $active ? 'aria-current="page"' : '' ?>>
-                        <?= icon($ico, 'size-4') ?><?= e($label) ?>
-                    </a>
-                <?php else: ?>
-                    <span class="inline-flex shrink-0 cursor-not-allowed items-center gap-2 border-b-2 border-transparent px-3.5 py-3 text-sm font-semibold text-muted/60" title="Coming soon">
-                        <?= icon($ico, 'size-4') ?><?= e($label) ?><span class="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase">Soon</span>
-                    </span>
-                <?php endif ?>
+                <a href="<?= e(url($route)) ?>" class="<?= e(class_names('inline-flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition', $active ? 'border-accent-500 text-ink' : 'border-transparent text-muted hover:border-line hover:text-ink')) ?>" <?= $active ? 'aria-current="page"' : '' ?>>
+                    <?= icon($ico, 'size-4') ?><?= e($label) ?>
+                </a>
             <?php endforeach ?>
         </nav>
     </div>

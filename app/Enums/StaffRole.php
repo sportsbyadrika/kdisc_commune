@@ -72,7 +72,7 @@ enum StaffRole: string
             ],
             self::StateAdmin => [
                 'dashboard.view', 'visitors.view', 'bookings.view', 'payments.view', 'invoices.view', 'reports.view', 'reports.finance', 'space.explore',
-                'dues.view', 'renewals.view', 'audit.view',
+                'dues.view', 'renewals.view', 'audit.view', 'staff.manage',
             ],
         };
     }

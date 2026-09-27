@@ -35,5 +35,12 @@ return [
         'email' => 'commune.ktr@kdisc.kerala.gov.in',
         'hours' => 'Mon–Sat · 8:00 am – 8:00 pm',
         'map_url' => 'https://maps.google.com/?q=Kottarakara,Kerala',
+        // Footer social links — shown only when set (https:// URLs).
+        'social' => [
+            'facebook' => env('SOCIAL_FACEBOOK', ''),
+            'instagram' => env('SOCIAL_INSTAGRAM', ''),
+            'linkedin' => env('SOCIAL_LINKEDIN', ''),
+            'youtube' => env('SOCIAL_YOUTUBE', ''),
+        ],
     ],
 ];
