@@ -14,6 +14,9 @@
  *   php bin/console bookings:tick        Scheduled booking lifecycle: activate on start date, complete after end
  *                                        date, expire unpaid approvals, renewal reminders (idempotent; cron)
  *   php bin/console holds:cleanup        Delete expired seat holds (cron)
+ *   php bin/console imports:cleanup      Delete expired bulk-upload temp files (cron, hourly)
+ *   php bin/console demo:seed            Load ~30 visitors / ~40 bookings / payments / invoices through the real services
+ *                                        for UAT (refuses when APP_ENV=production; run after migrate:fresh --seed)
  */
 
 declare(strict_types=1);
@@ -137,6 +140,24 @@ try {
             /** @var \App\Services\Space\SeatHoldService $holds */
             $holds = App::container()->get(\App\Services\Space\SeatHoldService::class);
             $out(sprintf('holds:cleanup  removed %d expired seat hold(s)', $holds->purgeExpired()));
+            break;
+
+        case 'imports:cleanup':
+            /** @var \App\Services\Imports\ImportService $imports */
+            $imports = App::container()->get(\App\Services\Imports\ImportService::class);
+            $out(sprintf('imports:cleanup  expired %d upload(s)', $imports->cleanupExpired()));
+            break;
+
+        case 'demo:seed':
+            if (App::config('app.env') === 'production') {
+                $fail('Refusing to load demo data when APP_ENV=production.');
+            }
+            /** @var \App\Services\Demo\DemoSeeder $demo */
+            $demo = App::container()->get(\App\Services\Demo\DemoSeeder::class);
+            $start = microtime(true);
+            $counts = $demo->run($out);
+            $out(sprintf('Demo data loaded (%.1f s): %s', microtime(true) - $start, implode(', ', array_map(static fn ($k, $v) => "{$v} {$k}", array_keys($counts), $counts))));
+            $out('Staff logins (password Password@123): reception@ / manager@ / finance@ / stateadmin@commune.test');
             break;
 
         default:
