@@ -55,7 +55,7 @@ enum StaffRole: string
     public function abilities(): array
     {
         $reception = [
-            'dashboard.view', 'visitors.view', 'visitors.register', 'documents.upload',
+            'dashboard.view', 'visitors.view', 'visitors.register', 'documents.upload', 'documents.view',
             'bookings.view', 'bookings.create', 'checkins.manage', 'payments.log', 'space.explore',
         ];
         return match ($this) {

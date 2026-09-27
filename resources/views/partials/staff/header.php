@@ -1,6 +1,6 @@
 <?php
 /**
- * Staff top bar: mobile menu toggle, search placeholder, public-site link, user menu with sign-out.
+ * Staff top bar: mobile menu toggle, visitor search, public-site link, user menu with sign-out.
  *
  * @var App\Core\Template $this
  * @var array<string, mixed>|null $user
@@ -15,11 +15,13 @@ foreach (array_slice(explode(' ', (string) ($user['name'] ?? '')), 0, 2) as $par
     <div class="container-page flex h-[72px] items-center justify-between gap-4">
         <div class="flex items-center gap-3">
             <button type="button" class="btn btn-ghost btn-icon lg:hidden" @click="$store.sidebar.mobileOpen = true" aria-label="Open menu"><?= icon('menu', 'size-6') ?></button>
-            <label class="relative hidden md:block">
-                <span class="sr-only">Search visitors</span>
-                <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted"><?= icon('search', 'size-[18px]') ?></span>
-                <input type="search" disabled placeholder="Search visitors — coming soon" class="input w-80 rounded-full !bg-surface pl-10">
-            </label>
+            <?php if ($role?->can('visitors.view')): ?>
+                <form method="get" action="<?= e(url('staff.visitors.index')) ?>" class="relative hidden md:block" role="search">
+                    <label for="staff-search" class="sr-only">Search visitors</label>
+                    <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted"><?= icon('search', 'size-[18px]') ?></span>
+                    <input id="staff-search" type="search" name="q" value="<?= e(route_is('staff.visitors.index') ? (string) (App\Core\App::request()?->query('q') ?? '') : '') ?>" placeholder="Search visitors: ID, name, mobile, PAN…" class="input w-80 rounded-full !bg-surface pl-10">
+                </form>
+            <?php endif ?>
         </div>
         <div class="flex items-center gap-2">
             <a href="<?= e(url('home')) ?>" class="btn btn-ghost hidden sm:inline-flex" target="_blank" rel="noopener"><?= icon('external-link', 'size-4') ?> Public site</a>
