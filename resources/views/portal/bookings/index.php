@@ -5,6 +5,8 @@
  * @var App\Core\Template $this
  * @var array<string, mixed> $customer
  * @var list<array<string, mixed>> $bookings
+ * @var array<int, array<string, mixed>> $dues booking id => PaymentLedger::dues()
+ * @var array{due_now: float, balance: float, bookings: list<array<string, mixed>>} $outstanding
  */
 use App\Enums\BookingStatus;
 use App\Enums\SeatCategory;
@@ -15,6 +17,12 @@ $this->layout('layouts/portal', ['heading' => 'My bookings', 'subheading' => 'Re
     <p class="text-sm text-muted"><?= count($bookings) ?> <?= count($bookings) === 1 ? 'booking' : 'bookings' ?></p>
     <a href="<?= e(url('spaces.explore')) ?>" class="btn btn-primary"><?= icon('plus', 'size-4') ?>Book a seat</a>
 </div>
+<?php if ($outstanding['due_now'] > 0): ?>
+    <div class="mb-6 flex flex-wrap items-center gap-3 rounded-2xl bg-red-50 p-4 text-sm text-red-900 ring-1 ring-red-100">
+        <?= icon('wallet', 'size-5 text-red-600') ?>
+        <p><b><?= e(money($outstanding['due_now'], fmod($outstanding['due_now'], 1.0) ? 2 : 0)) ?></b> is due now across <?= count($outstanding['bookings']) ?> booking<?= count($outstanding['bookings']) === 1 ? '' : 's' ?> — pay at the front desk (cash, UPI, NEFT, card or cheque).</p>
+    </div>
+<?php endif ?>
 <?php if ($bookings === []): ?>
     <?= $this->component('empty', ['icon' => 'calendar-check', 'title' => 'No bookings yet', 'text' => 'Pick a floor and a seat in the Space Explorer — your requests show up here with their status.', 'action' => ['label' => 'Open the Space Explorer', 'href' => url('spaces.explore'), 'variant' => 'brand']]) ?>
 <?php else: ?>
@@ -44,6 +52,7 @@ $this->layout('layouts/portal', ['heading' => 'My bookings', 'subheading' => 'Re
                 <div class="shrink-0 sm:text-right">
                     <p class="font-display text-xl font-extrabold"><?= e(money($b['grand_total'])) ?></p>
                     <p class="text-xs text-muted">incl. GST · <?= e(App\Enums\PaymentRule::from((string) $b['payment_rule'])->label()) ?></p>
+                    <?php $d = $dues[(int) $b['id']] ?? null; if ($d !== null && $d['due_now'] > 0): ?><p class="mt-1 text-xs font-bold text-red-700"><?= e(money($d['due_now'], fmod($d['due_now'], 1.0) ? 2 : 0)) ?> due now</p><?php elseif ($d !== null && $d['balance'] <= 0): ?><p class="mt-1 text-xs font-bold text-emerald-700">Paid</p><?php endif ?>
                 </div>
                 <?= icon('chevron-right', 'hidden size-5 text-muted sm:block') ?>
             </a>

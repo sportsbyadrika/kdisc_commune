@@ -11,6 +11,9 @@
  * @var int $nextStep
  * @var array<int, list<string>> $missing
  * @var int $bookingCount
+ * @var list<array<string, mixed>> $current  approved / confirmed / active bookings
+ * @var array{due_now: float, balance: float, bookings: list<array<string, mixed>>} $outstanding
+ * @var string $today
  */
 use App\Enums\KycStatus;
 
@@ -19,7 +22,7 @@ $this->layout('layouts/portal', ['heading' => 'Hello, ' . $first, 'subheading' =
 $submitted = (int) $customer['profile_step'] >= 4 && $customer['unique_id'] !== null;
 $tiles = [
     ['calendar-check', 'My bookings', ($bookingCount ?? 0) > 0 ? 'Track your requests and active seats.' : 'Request seats, cabins and the conference room from the Space Explorer.', ($bookingCount ?? 0) > 0 ? $bookingCount . ' booking' . ($bookingCount === 1 ? '' : 's') : 'Book now', url('portal.bookings')],
-    ['wallet', 'Dues & payments', 'See advances, deposits and rent due, with payment history.', 'Coming soon', null],
+    ['wallet', 'Dues & payments', $outstanding['due_now'] > 0 ? 'Pay at the front desk — see each booking for the breakdown and history.' : ($outstanding['balance'] > 0 ? 'Nothing due right now; later rent periods are listed per booking.' : 'Nothing outstanding. Payment history is on each booking.'), $outstanding['due_now'] > 0 ? money($outstanding['due_now'], fmod($outstanding['due_now'], 1.0) ? 2 : 0) . ' due' : 'All clear', url('portal.bookings')],
     ['receipt-indian-rupee', 'Invoices & receipts', 'Download GST invoices and receipts as PDF.', 'Coming soon', null],
 ];
 ?>
@@ -75,6 +78,36 @@ $tiles = [
                 </<?= $href !== null ? 'a' : 'div' ?>>
             <?php endforeach ?>
         </div>
+        <?php if ($current !== []): ?>
+            <section class="card overflow-hidden">
+                <h3 class="px-5 pt-5 font-bold">Your seats</h3>
+                <ul class="mt-2 divide-y divide-line">
+                    <?php foreach (array_slice($current, 0, 4) as $b):
+                        $st = App\Enums\BookingStatus::from((string) $b['status']);
+                        $left = (int) round((strtotime((string) $b['end_date']) - strtotime($today)) / 86400);
+                        $startsIn = (int) round((strtotime((string) $b['start_date']) - strtotime($today)) / 86400); ?>
+                        <li class="flex flex-wrap items-center gap-3 px-5 py-4">
+                            <div class="min-w-0 flex-1">
+                                <p class="flex flex-wrap items-center gap-2"><a class="font-mono text-sm font-bold text-brand-800 hover:underline" href="<?= e(url('portal.bookings.show', ['no' => $b['booking_no']])) ?>"><?= e($b['booking_no']) ?></a><?= $this->component('badge', ['label' => $st->label(), 'tone' => $st->tone(), 'dot' => true]) ?></p>
+                                <p class="mt-0.5 truncate text-sm font-semibold"><?= e($b['category_name']) ?> · <?= e((string) $b['seat_codes']) ?></p>
+                            </div>
+                            <div class="text-right">
+                                <?php if ($st === App\Enums\BookingStatus::Approved): ?>
+                                    <p class="text-sm font-bold text-amber-700">Pay to confirm</p><p class="text-xs text-muted"><?= !empty($b['payment_due_by']) ? 'by ' . e(format_date((string) $b['payment_due_by'], 'd M')) : '' ?></p>
+                                <?php elseif ($startsIn > 0): ?>
+                                    <p class="font-display text-2xl font-extrabold tabular-nums"><?= $startsIn ?></p><p class="text-xs text-muted">day<?= $startsIn === 1 ? '' : 's' ?> to start</p>
+                                <?php else: ?>
+                                    <p class="font-display text-2xl font-extrabold tabular-nums <?= $left <= 7 ? 'text-accent-600' : '' ?>"><?= max(0, $left) ?></p><p class="text-xs text-muted">day<?= $left === 1 ? '' : 's' ?> left · ends <?= e(format_date((string) $b['end_date'], 'd M')) ?></p>
+                                <?php endif ?>
+                            </div>
+                            <?php if ($st !== App\Enums\BookingStatus::Approved && $b['start_time'] === null && $left <= 30): ?>
+                                <a href="<?= e(url('portal.bookings.renew', ['no' => $b['booking_no']])) ?>" class="btn btn-primary btn-sm"><?= icon('refresh-cw', 'size-4') ?>Renew</a>
+                            <?php endif ?>
+                        </li>
+                    <?php endforeach ?>
+                </ul>
+            </section>
+        <?php endif ?>
         <div class="card card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="font-bold">Explore the building</h3>

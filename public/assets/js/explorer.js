@@ -140,6 +140,7 @@
       overrideReason: '',
       notes: '',
       booked: null,
+      occ: { open: false, id: null, x: 0, y: 0, below: false, busy: false },
 
       // ------------------------------------------------------------ lifecycle
       init() {
@@ -157,6 +158,7 @@
           this.render();
           this.setupPanzoom();
           if (this.filter === 'CONF' && !this.selection) this.focusCategory('CONF');
+          if (this.cfg.renew && this.cfg.loggedIn && !this.cfg.staff) this.applyRenew();
         });
         this._tick = setInterval(() => this.tick(), 1000);
         if (!this.cfg.preview) {
@@ -342,12 +344,14 @@
           const dim = !!this.filter && unit.category !== this.filter;
           g.classList.toggle('is-dim', dim);
           g.classList.toggle('is-override', this.override && ['held', 'blocked'].includes(status));
+          g.classList.toggle('is-occupant', !!(this.cfg.staff && unit.occupant && status === 'occupied'));
+          g.classList.toggle('is-in', !!(this.cfg.staff && unit.occupant?.checked_in && status === 'occupied'));
           const glyphEl = g.querySelector('.glyph');
           if (glyphEl) glyphEl.setAttribute('href', `#i-${GLYPH[status] || 'armchair'}`);
           if (s.parent === null) {
             const meta = this.catMeta(s.category);
             g.setAttribute('aria-pressed', status === 'mine' ? 'true' : 'false');
-            g.setAttribute('aria-disabled', ['available', 'mine'].includes(status) ? 'false' : 'true');
+            g.setAttribute('aria-disabled', ['available', 'mine'].includes(status) || (this.cfg.staff && s.occupant && status === 'occupied') ? 'false' : 'true');
             g.setAttribute('aria-label', `${s.kind === 'seat' ? 'Seat ' : ''}${s.label.length <= 3 ? s.code : s.label}, ${meta?.short || ''}, ${STATUS[status]}, ${priceText(s.rates)}`);
           }
         }
@@ -448,8 +452,10 @@
         this.hideTip();
         if (this.cfg.preview) { this.toast('Preview of a draft layout — seats can be picked once it is published.', 'info'); this.flash(unitId); return; }
         if (!this.cfg.loggedIn) { this.signIn = true; return; }
+        if (this.cfg.staff && u.status === 'occupied' && u.occupant && !this.override) { this.openOccupant(unitId); return; }
         if (this.cfg.staff && !this.cfg.canBook) { this.toast('Your role can view the map but not hold seats.', 'info'); return; }
         const status = this.pending[unitId] ? 'mine' : u.status;
+        if (this.cfg.staff && status === 'occupied' && u.occupant && !this.override) { this.openOccupant(unitId); return; }
         if (status === 'mine') { this.release(unitId); return; }
         const overridable = this.override && ['held', 'blocked'].includes(status);
         if (status !== 'available' && !overridable) {
@@ -867,6 +873,45 @@
         const x = (vp.clientWidth / 2 - sw / 2) / s + sw / 2 - fx * sw;
         const y = (vp.clientHeight / 2 - sh / 2) / s + sh / 2 - fy * sh;
         this.panzoom.pan(x, y, { animate: true });
+      },
+
+      // ------------------------------------------------------------ renewal preselection (?renew=BK-…)
+      async applyRenew() {
+        const r = this.cfg.renew;
+        if (this.selection) return;
+        const ids = (r.seat_ids || []).filter((id) => this.byId[id]);
+        if (!ids.length) { this.toast(`The seats of ${r.booking_no} are on another floor or no longer exist — pick new ones.`, 'warning'); return; }
+        this.seatsNeeded = Math.min(this.cfg.maxSeats, Math.max(this.seatsNeeded, ids.length));
+        const res = await this.hold(ids, { period: { from: r.from, to: r.to }, replace: true, quiet: true });
+        if (!res) return;
+        const failed = Object.keys(res.failed || {}).map((id) => this.byId[id]?.code).filter(Boolean);
+        if (failed.length) this.toast(`${failed.join(', ')} ${failed.length === 1 ? 'is' : 'are'} taken for the new dates — pick ${failed.length === 1 ? 'another seat' : 'other seats'} to renew.`, 'warning');
+        else this.toast(`Renewing ${r.booking_no}: your seats ${r.codes.join(', ')} are held for the next period.`, 'success');
+        this.ensureVisible(ids[0]);
+      },
+
+      // ------------------------------------------------------------ reception: occupied seat popover (check-in / out)
+      openOccupant(id) {
+        const g = this.els[id];
+        if (!g) return;
+        const r = g.getBoundingClientRect();
+        const below = r.top < 260;
+        this.occ = { open: true, id, busy: false, below, x: Math.min(window.innerWidth - 170, Math.max(170, r.left + r.width / 2)), y: below ? r.bottom + 10 : r.top - 10 };
+      },
+      get occSeat() { return this.occ.id ? this.byId[this.occ.id] : null; },
+      bookingHref(no) { return (this.cfg.bookingUrl || '').replace('__NO__', encodeURIComponent(no)); },
+      async occToggle(action) {
+        const u = this.occSeat;
+        if (!u || !this.cfg.checkinUrl) return;
+        this.occ.busy = true;
+        try {
+          const res = await window.Commune.request(this.cfg.checkinUrl, { method: 'POST', data: { seat_id: u.id, action } });
+          u.occupant.checked_in = action === 'in';
+          if (res.activated) u.occupant.status = 'active';
+          if (res.completed) u.occupant.status = 'completed';
+          this.toast(res.message, 'success');
+          this.paint();
+        } catch (e) { this.handleError(e); } finally { this.occ.busy = false; }
       },
 
       // ------------------------------------------------------------ reception

@@ -45,6 +45,9 @@ final class ExplorerController extends Controller
                 'canBook' => $role->can('bookings.create'),
                 'customersUrl' => url('staff.api.space.customers'),
                 'registerVisitorUrl' => url('staff.visitors.create'),
+                'canCheckin' => $role->can('checkins.manage'),
+                'checkinUrl' => url('staff.checkins.seat'),
+                'bookingUrl' => url('staff.bookings.show', ['no' => '__NO__']),
                 'customer' => $customer !== null ? [
                     'id' => (int) $customer['id'], 'name' => (string) $customer['name'], 'unique_id' => $customer['unique_id'],
                     'mobile' => format_phone((string) ($customer['mobile'] ?? '')), 'kyc_status' => $customer['kyc_status'], 'state_code' => $customer['state_code'],

@@ -16,6 +16,8 @@ use App\Models\Account;
 use App\Models\Customer;
 use App\Models\CustomerSignatory;
 use App\Services\AuditLog;
+use App\Services\Bookings\BookingDirectory;
+use App\Services\Payments\PaymentLedger;
 use App\Services\Kyc\DocumentStore;
 use App\Services\Visitors\DuplicateFinder;
 use App\Services\Visitors\ProfileService;
@@ -137,7 +139,7 @@ final class VisitorController extends StaffController
         return $notes !== [] ? $redirect->with($failed !== [] || !$wantsVerify && $request->bool('mark_verified') ? 'warning' : 'info', implode(' ', $notes)) : $redirect;
     }
 
-    public function show(string $ref): Response
+    public function show(string $ref, PaymentLedger $ledger, BookingDirectory $bookings): Response
     {
         $customer = $this->findCustomer($ref);
         $account = $customer['account_id'] !== null ? Account::find((int) $customer['account_id']) : null;
@@ -163,6 +165,8 @@ final class VisitorController extends StaffController
             'canVerify' => $this->can('kyc.verify'),
             'canViewDocs' => $this->can('documents.view'),
             'qr' => (string) ($customer['unique_id'] ?? '') !== '' ? $this->qr->dataUri((string) $customer['unique_id']) : null,
+            'outstanding' => $ledger->customerOutstanding((int) $customer['id']),
+            'bookings' => array_slice($bookings->forCustomer((int) $customer['id']), 0, 6),
         ]);
     }
 

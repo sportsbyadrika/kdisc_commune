@@ -16,6 +16,12 @@ $currentFloor = $config['initial']['floor'];
      class="<?= $staffMode ? '' : 'pb-28 lg:pb-0' ?>">
     <?= $this->partial('partials/space/sprite', ['extra' => array_column($config['initial']['facilities'] ?? [], 'icon')]) ?>
 
+<?php if (!$staffMode): ?>
+    <div x-show="cfg.renew" x-cloak class="mb-4 flex items-start gap-3 rounded-2xl bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-brand-200">
+        <?= icon('refresh-cw', 'size-5 shrink-0 text-brand-600') ?>
+        <p>Renewing <b class="font-mono" x-text="cfg.renew?.booking_no"></b> — your seats <b x-text="(cfg.renew?.codes || []).join(', ')"></b> are preselected for <span x-text="fmtDate(cfg.renew?.from) + ' → ' + fmtDate(cfg.renew?.to)"></span> at today’s rates. Change the dates or seats if you like, then continue.</p>
+    </div>
+<?php endif ?>
 <?php if ($staffMode): ?>
     <!-- Reception: visitor picker + override -->
     <div class="card mb-4 flex flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center">
@@ -231,6 +237,7 @@ $currentFloor = $config['initial']['floor'];
                             <p class="font-bold text-red-800" x-text="tipSeat.occupant.name"></p>
                             <p class="font-mono text-red-700/80" x-text="(tipSeat.occupant.unique_id || '—') + ' · ' + tipSeat.occupant.booking_no"></p>
                             <p class="text-red-700/80" x-text="fmtDate(tipSeat.occupant.from) + ' → ' + fmtDate(tipSeat.occupant.to) + (tipSeat.occupant.start_time ? ' · ' + tipSeat.occupant.start_time + '–' + tipSeat.occupant.end_time : '') + ' · ' + tipSeat.occupant.status"></p>
+                            <p class="mt-1 font-semibold" :class="tipSeat.occupant.checked_in ? 'text-emerald-700' : 'text-red-800'" x-text="tipSeat.occupant.checked_in ? '● Checked in' : (tipSeat.occupant.can_check ? 'Click for check-in / booking' : 'Click to open the booking')"></p>
                         </div>
                     </template>
                     <p class="mt-2.5 text-[11px] font-semibold text-brand-700" x-show="tipStatus() === 'available'" x-text="catMeta(tipSeat.category)?.hourly ? 'Click to pick a time slot' : (catMeta(tipSeat.category)?.whole_unit ? 'Click to select the whole cabin' : 'Click to select')"></p>
@@ -319,6 +326,40 @@ $currentFloor = $config['initial']['floor'];
             </div>
         </div>
     </div>
+
+<?php if ($staffMode): ?>
+    <!-- Reception: occupied seat popover — who sits here, check-in / check-out, open booking -->
+    <div x-show="occ.open && occSeat" x-cloak class="fixed inset-0 z-[65]" @click="occ.open = false" @keydown.escape.window="occ.open = false"></div>
+    <div x-show="occ.open && occSeat" x-cloak x-transition.opacity class="fixed z-[66] w-80" :style="`left:${occ.x}px;top:${occ.y}px;transform:translate(-50%, ${occ.below ? '0' : '-100%'})`" role="dialog" aria-label="Seat occupant">
+        <template x-if="occSeat && occSeat.occupant">
+            <div class="rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-line">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-display text-lg font-extrabold" x-text="occSeat.kind === 'seat' ? occSeat.code : occSeat.label"></p>
+                        <p class="truncate text-sm font-bold" x-text="occSeat.occupant.name"></p>
+                        <p class="font-mono text-xs text-muted" x-text="(occSeat.occupant.unique_id || '—') + ' · ' + occSeat.occupant.booking_no"></p>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-icon -mt-1 -mr-2" @click="occ.open = false" aria-label="Close"><?= icon('x', 'size-4') ?></button>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span class="badge" :class="occSeat.occupant.checked_in ? 'badge-success' : 'badge-neutral'" x-text="occSeat.occupant.checked_in ? 'Checked in' : 'Not checked in'"></span>
+                    <span class="badge badge-brand capitalize" x-text="occSeat.occupant.status"></span>
+                    <span class="text-muted" x-text="fmtDate(occSeat.occupant.from) + ' → ' + fmtDate(occSeat.occupant.to)"></span>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    <template x-if="cfg.canCheckin && occSeat.occupant.can_check && !occSeat.occupant.checked_in">
+                        <button type="button" class="btn btn-brand btn-sm" :disabled="occ.busy" @click="occToggle('in')"><?= icon('log-in', 'size-4') ?>Check in</button>
+                    </template>
+                    <template x-if="cfg.canCheckin && occSeat.occupant.can_check && occSeat.occupant.checked_in">
+                        <button type="button" class="btn btn-outline btn-sm" :disabled="occ.busy" @click="occToggle('out')"><?= icon('log-out', 'size-4') ?>Check out</button>
+                    </template>
+                    <a :href="bookingHref(occSeat.occupant.booking_no)" class="btn btn-ghost btn-sm" :class="!(cfg.canCheckin && occSeat.occupant.can_check) && 'col-span-2'"><?= icon('file-text', 'size-4') ?>Open booking</a>
+                </div>
+                <p x-show="!occSeat.occupant.can_check" class="mt-3 text-xs text-muted">Check-in opens for confirmed bookings on their dates.</p>
+            </div>
+        </template>
+    </div>
+<?php endif ?>
 
 <?php if ($staffMode): ?>
     <!-- Reception booking created -->

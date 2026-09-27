@@ -10,6 +10,9 @@ use App\Core\Exceptions\NotFoundException;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Models\Customer;
+use App\Services\Bookings\BookingDirectory;
+use App\Services\Bookings\RenewalService;
 use App\Services\Space\CatalogService;
 use App\Services\Space\ExplorerPresenter;
 use App\Services\Space\FloorMapService;
@@ -26,6 +29,8 @@ final class ExplorerController extends Controller
         private readonly FloorMapService $maps,
         private readonly CatalogService $catalog,
         private readonly Session $session,
+        private readonly BookingDirectory $bookings,
+        private readonly RenewalService $renewals,
     ) {
     }
 
@@ -50,8 +55,27 @@ final class ExplorerController extends Controller
             'title' => $row['name'] . ' · Space Explorer',
             'floor' => $row,
             'filters' => $filters,
-            'config' => $this->presenter->floorConfig($row, $filters, false, $holder),
+            'config' => $this->presenter->floorConfig($row, $filters, false, $holder, ['renew' => $this->renewal($request->string('renew'))]),
         ]);
+    }
+
+    /**
+     * ?renew={bookingNo}: the visitor's own booking → preselect its seats (matched by seat_key) for the next dates.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function renewal(string $no): ?array
+    {
+        $guard = App::guard('visitor');
+        if ($no === '' || !$guard->check()) {
+            return null;
+        }
+        $customer = Customer::findByAccount((int) $guard->id());
+        $booking = $customer !== null ? $this->bookings->findByNo($no, (int) $customer['id']) : null;
+        if ($booking === null || $booking['start_time'] !== null) {
+            return null;
+        }
+        return $this->renewals->explorerPreset($booking);
     }
 
     private function holder(): ?SeatHolder

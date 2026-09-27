@@ -49,5 +49,7 @@ $router->group(['as' => 'portal.'], function (Router $r): void {
         $r->get('/documents/{id:\d+}/file', [DocumentController::class, 'file'])->name('documents.file');
         $r->get('/bookings', [BookingController::class, 'index'])->name('bookings');
         $r->get('/bookings/{no:[A-Za-z0-9-]+}', [BookingController::class, 'show'])->name('bookings.show');
+        $r->post('/bookings/{no:[A-Za-z0-9-]+}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/renew', [BookingController::class, 'renew'])->name('bookings.renew');
     });
 });

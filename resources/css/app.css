@@ -218,6 +218,9 @@
   .sx-seat.is-flash .pop { animation: seat-flash 900ms ease-out; }
   .sx-seat.is-focus .ring { stroke: var(--color-brand-900); stroke-width: 4; }
   .sx-seat.is-override { cursor: pointer; }
+  .sx-seat.is-occupant, .sx-unit.is-occupant { cursor: pointer; }
+  .sx-seat.is-in .ring { stroke: var(--color-seat-free); stroke-width: 6; }
+  .sx-unit.is-in .outline { stroke: var(--color-seat-free); stroke-opacity: 1; }
 
   .sx-unit .outline { fill: #fff; fill-opacity: 0; stroke: var(--color-seat-free); stroke-width: 3; stroke-dasharray: 10 7; transition: all .25s; }
   .sx-unit:hover .outline, .sx-unit.is-focus .outline { fill-opacity: .55; stroke-dasharray: none; }

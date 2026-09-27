@@ -17,6 +17,8 @@
  * @var bool $canVerify
  * @var bool $canViewDocs
  * @var string|null $qr
+ * @var array{due_now: float, balance: float, bookings: list<array<string, mixed>>} $outstanding
+ * @var list<array<string, mixed>> $bookings latest bookings
  */
 use App\Enums\AccountStatus;
 use App\Enums\CustomerSubCategory;
@@ -82,6 +84,28 @@ $actionLabels = [
                 <div class="flex justify-between gap-3"><dt class="text-muted">Verified</dt><dd class="text-right font-medium"><?= $customer['kyc_verified_at'] !== null ? e(format_date((string) $customer['kyc_verified_at'], 'd M Y')) . ' · ' . e($verifiedBy ?? '') : '—' ?></dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-muted">Registered by</dt><dd class="font-medium"><?= e($registeredBy ?? 'Self (online)') ?></dd></div>
             </dl>
+        </section>
+
+        <section class="card card-body">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-base font-bold">Bookings &amp; dues</h2>
+                <?php if (!empty($customer['unique_id'])): ?><a class="text-sm font-semibold text-brand-700 hover:underline" href="<?= e(url('staff.bookings.index', ['tab' => 'all', 'q' => $customer['unique_id']])) ?>">All</a><?php endif ?>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+                <div class="rounded-2xl p-3 <?= $outstanding['due_now'] > 0 ? 'bg-red-50 ring-1 ring-red-100' : 'bg-surface' ?>"><p class="text-[11px] font-bold uppercase <?= $outstanding['due_now'] > 0 ? 'text-red-700' : 'text-muted' ?>">Due now</p><p class="mt-1 font-bold tabular-nums <?= $outstanding['due_now'] > 0 ? 'text-red-700' : '' ?>"><?= e(money($outstanding['due_now'], fmod($outstanding['due_now'], 1.0) ? 2 : 0)) ?></p></div>
+                <div class="rounded-2xl bg-surface p-3"><p class="text-[11px] font-bold text-muted uppercase">Balance</p><p class="mt-1 font-bold tabular-nums"><?= e(money($outstanding['balance'], fmod($outstanding['balance'], 1.0) ? 2 : 0)) ?></p></div>
+            </div>
+            <?php if ($bookings === []): ?>
+                <p class="mt-3 text-sm text-muted">No bookings yet.</p>
+            <?php else: ?>
+                <ul class="mt-3 divide-y divide-line text-sm">
+                    <?php foreach ($bookings as $b): $bs = App\Enums\BookingStatus::from((string) $b['status']); ?>
+                        <li><a class="flex items-center justify-between gap-3 py-2.5 hover:text-brand-700" href="<?= e(url('staff.bookings.show', ['no' => $b['booking_no']])) ?>">
+                            <span class="min-w-0"><span class="block font-mono text-xs font-bold"><?= e($b['booking_no']) ?></span><span class="block truncate text-xs text-muted"><?= e($b['category_name']) ?> · <?= e(format_date($b['start_date'], 'd M') . ' → ' . format_date($b['end_date'], 'd M Y')) ?></span></span>
+                            <?= $this->component('badge', ['label' => $bs->label(), 'tone' => $bs->tone()]) ?></a></li>
+                    <?php endforeach ?>
+                </ul>
+            <?php endif ?>
         </section>
 
         <section class="card card-body">

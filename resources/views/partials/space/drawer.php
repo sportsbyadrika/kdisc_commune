@@ -160,13 +160,14 @@
             <span x-show="!busy" class="inline-flex items-center gap-2"><?= icon('calendar-check', 'size-5') ?>Create booking</span>
             <span x-show="busy">Creating…</span>
         </button>
-        <p class="text-center text-xs text-muted">Created as <b>Approved</b> — log the payment to confirm it (next step).</p>
+        <p class="text-center text-xs text-muted">Created as <b>Approved</b> — log the payment on the booking page to confirm it.</p>
     </div>
 <?php else: ?>
     <form method="post" action="<?= e(url('spaces.checkout.start')) ?>" <?= $place === 'panel' ? 'x-ref="checkoutForm"' : '' ?>>
         <?= csrf_field() ?>
         <input type="hidden" name="addons" :value="addonsJson">
         <input type="hidden" name="back" :value="backUrl">
+        <input type="hidden" name="renew" :value="cfg.renew ? cfg.renew.booking_no : ''">
         <button type="submit" :disabled="!quote" class="btn btn-primary btn-lg w-full">Continue to review<?= icon('arrow-right', 'size-5') ?></button>
         <p class="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-muted"><?= icon('shield-check', 'size-3.5') ?>No payment now — the Centre Manager confirms your request first.</p>
     </form>

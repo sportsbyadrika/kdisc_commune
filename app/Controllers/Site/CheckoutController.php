@@ -15,6 +15,7 @@ use App\Enums\BookingStatus;
 use App\Enums\KycStatus;
 use App\Models\Customer;
 use App\Services\Bookings\BookingDirectory;
+use App\Services\Bookings\BookingNotifier;
 use App\Services\Bookings\BookingService;
 use App\Services\Notify\Mailer;
 use App\Services\Pricing\QuoteService;
@@ -40,6 +41,7 @@ final class CheckoutController extends Controller
         private readonly BookingDirectory $directory,
         private readonly Mailer $mailer,
         private readonly Session $session,
+        private readonly BookingNotifier $notifier,
     ) {
     }
 
@@ -50,6 +52,7 @@ final class CheckoutController extends Controller
         $this->session->put(self::CART, [
             'addons' => is_array($addons) ? array_map('intval', array_filter($addons, 'is_numeric')) : [],
             'back' => $this->safeBack($request->string('back')),
+            'renew' => preg_match('/^[A-Za-z0-9-]{1,30}$/', $request->string('renew')) === 1 ? $request->string('renew') : null,
         ]);
         return redirect(url('spaces.checkout'));
     }
@@ -115,6 +118,7 @@ final class CheckoutController extends Controller
                     'terms' => true,
                     'notes' => $request->string('notes') !== '' ? $request->string('notes') : null,
                     'requested_by' => $holder->id,
+                    'renewed_from_id' => $this->renewedFrom($cart, (int) $customer['id']),
                 ],
             );
         } catch (SpaceRuleException $e) {
@@ -131,6 +135,7 @@ final class CheckoutController extends Controller
                 'url' => absolute_url('portal.bookings.show', ['no' => $booking['booking_no']]),
             ]);
         }
+        $this->notifier->requested($booking);
         logger()->info('Online booking request {no} from {customer} ({seats}) — awaiting Centre Manager approval', [
             'no' => $booking['booking_no'],
             'customer' => $customer['unique_id'] ?? $customer['id'],
@@ -150,6 +155,18 @@ final class CheckoutController extends Controller
             'facilities' => $this->directory->facilities((int) $booking['id']),
             'customer' => Customer::safe($customer),
         ]);
+    }
+
+    /**
+     * Renewal link from the explorer (?renew=) — only for the visitor's own booking.
+     *
+     * @param array<string, mixed> $cart
+     */
+    private function renewedFrom(array $cart, int $customerId): ?int
+    {
+        $no = (string) ($cart['renew'] ?? '');
+        $b = $no !== '' ? $this->directory->findByNo($no, $customerId) : null;
+        return $b !== null ? (int) $b['id'] : null;
     }
 
     private function holder(): SeatHolder
