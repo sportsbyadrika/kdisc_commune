@@ -11,6 +11,7 @@ $this->layout('layouts/site', ['description' => 'Pick your seat on the ' . $floo
 ?>
 <?php $this->start('head') ?>
 <script defer src="<?= e(asset('assets/vendor/panzoom.min.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/space-render.js')) ?>"></script>
 <script defer src="<?= e(asset('assets/js/explorer.js')) ?>"></script>
 <?php $this->stop() ?>
 

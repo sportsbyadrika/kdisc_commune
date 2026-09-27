@@ -14,6 +14,7 @@ $this->layout('layouts/staff', [
 ?>
 <?php $this->start('head') ?>
 <script defer src="<?= e(asset('assets/vendor/panzoom.min.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/space-render.js')) ?>"></script>
 <script defer src="<?= e(asset('assets/js/explorer.js')) ?>"></script>
 <?php $this->stop() ?>
 <?php $this->start('actions') ?>

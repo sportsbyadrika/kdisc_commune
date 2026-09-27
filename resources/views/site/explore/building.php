@@ -20,6 +20,7 @@ $config = [
 ];
 ?>
 <?php $this->start('head') ?>
+<script defer src="<?= e(asset('assets/js/space-render.js')) ?>"></script>
 <script defer src="<?= e(asset('assets/js/explorer.js')) ?>"></script>
 <?php $this->stop() ?>
 

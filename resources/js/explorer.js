@@ -2,7 +2,9 @@
  * Space Explorer (spec 5) — Level 1 building + Level 2 floor seat map, shared by the public site
  * (/spaces/explore*) and receptionist mode (/staff/spaces).
  * Source: resources/js/explorer.js → public/assets/js/explorer.js (npm run vendor:js).
- * Load it (defer) BEFORE alpine.min.js, via the view's `head` section, together with panzoom.min.js.
+ * Load it (defer) BEFORE alpine.min.js, via the view's `head` section, after space-render.js (shared SVG
+ * drawing, also used by the Layout Designer) and together with panzoom.min.js.
+ * cfg.preview = true renders a Designer draft read-only (no holds, no polling).
  *
  * Alpine components
  *   buildingExplorer   Level 1: hotspot polygons on the building photo + live free counts per floor
@@ -18,37 +20,15 @@
  * The SVG is built with DOM calls (Alpine x-for does not work inside <svg>); Alpine drives everything else.
  */
 (() => {
-  const NS = 'http://www.w3.org/2000/svg';
+  // Drawing primitives are shared with the Layout Designer: resources/js/space-render.js (load it first).
+  const R = window.CommuneSpace;
+  const { el, glyph, priceText, fromPrice, UNIT_SHORT, money } = R;
   const STATUS = { available: 'Available', mine: 'Selected', held: 'On hold', occupied: 'Booked', blocked: 'Blocked' };
   const GLYPH = { available: 'armchair', mine: 'check', held: 'hourglass', occupied: 'user', blocked: 'lock' };
-  const UNIT_SHORT = { day: 'day', month: 'mo', hour: 'hr', use: 'use' };
-  const money = (n, d = 0) => window.Commune.formatINR(Number(n || 0), d);
   const pad = (n) => String(n).padStart(2, '0');
-  const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const hourLabel = (h) => { const hh = ((h + 11) % 12) + 1; return `${hh}${h < 12 || h === 24 ? ' am' : ' pm'}`; };
   const fmtDate = (s) => (s ? new Date(`${s}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   const fmtShort = (s) => (s ? new Date(`${s}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '');
-
-  function el(tag, attrs = {}, parent = null) {
-    const n = document.createElementNS(NS, tag);
-    for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined && v !== false) n.setAttribute(k, v);
-    if (parent) parent.appendChild(n);
-    return n;
-  }
-  function glyph(name, attrs, parent) {
-    const u = el('use', attrs, parent);
-    u.setAttribute('href', `#i-${name}`);
-    return u;
-  }
-  function priceText(rates = {}) {
-    const parts = [];
-    for (const u of ['hour', 'day', 'month']) if (rates[u] != null) parts.push(`${money(rates[u])}/${UNIT_SHORT[u]}`);
-    return parts.join(' · ');
-  }
-  function fromPrice(rates = {}) {
-    for (const u of ['hour', 'day', 'month']) if (rates[u] != null) return `${money(rates[u])}/${UNIT_SHORT[u]}`;
-    return '';
-  }
 
   document.addEventListener('alpine:init', () => {
     const Alpine = window.Alpine;
@@ -179,8 +159,10 @@
           if (this.filter === 'CONF' && !this.selection) this.focusCategory('CONF');
         });
         this._tick = setInterval(() => this.tick(), 1000);
-        this._poll = setInterval(() => { if (!document.hidden) this.poll(); }, this.cfg.pollSeconds * 1000);
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) this.poll(); });
+        if (!this.cfg.preview) {
+          this._poll = setInterval(() => { if (!document.hidden) this.poll(); }, this.cfg.pollSeconds * 1000);
+          document.addEventListener('visibilitychange', () => { if (!document.hidden) this.poll(); });
+        }
         window.addEventListener('resize', () => this.layoutStage());
         this.$watch('view', (v) => { if (v === 'map') this.$nextTick(() => this.layoutStage()); this.syncUrl(); });
         this.$watch('filter', () => { this.paint(); this.syncUrl(); });
@@ -265,16 +247,11 @@
       render() {
         const svg = this.$refs.svg;
         if (!svg) return;
+        const geo = { W: this.W, H: this.H };
         svg.setAttribute('viewBox', `0 0 ${this.W} ${this.H}`);
         svg.innerHTML = '';
         this.els = {};
-        const defs = el('defs', {}, svg);
-        const pat = el('pattern', { id: 'sx-stripes', width: 10, height: 10, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
-        el('rect', { width: 5, height: 10, fill: 'rgba(255,255,255,.55)' }, pat);
-        const pat2 = el('pattern', { id: 'sx-stripes-soft', width: 14, height: 14, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
-        el('rect', { width: 14, height: 14, fill: 'rgba(254,226,226,.55)' }, pat2);
-        el('rect', { width: 5, height: 14, fill: 'rgba(239,68,68,.16)' }, pat2);
-
+        R.defs(svg);
         const zoneLayer = el('g', { class: 'sx-zones' }, svg);
         const unitLayer = el('g', { class: 'sx-units' }, svg);
         const seatLayer = el('g', { class: 'sx-seats' }, svg);
@@ -284,50 +261,25 @@
         // Zones: soft tint + price tag (not for whole-unit zones — those get a unit tag)
         for (const z of this.map.zones) {
           if (!z.category) continue;
-          const colour = z.colour || '#94a3b8';
-          const poly = el('polygon', {
-            class: 'sx-zone', 'data-zone': z.id,
-            points: z.polygon.map(([x, y]) => `${this.px(x)},${this.py(y)}`).join(' '),
-            fill: colour, stroke: colour,
-          }, zoneLayer);
-          this.els[`z${z.id}`] = poly;
+          this.els[`z${z.id}`] = R.zonePolygon(zoneLayer, z, geo);
           const meta = this.catMeta(z.category);
           if (meta?.whole_unit) continue;
-          const first = this.units.find((u) => u.zone === z.id);
-          const title = `${meta?.short || ''} · from ${fromPrice(first?.rates)}`;
-          const sub = `${z.free} of ${z.units} free`;
-          const w = Math.max(title.length * 11.6, sub.length * 9.6) + 64;
-          // pill straddling the zone's top wall, centred (the plan's own zone label sits top-left)
-          const x = this.px(z.rect.x + z.rect.w / 2) - w / 2;
-          const y = Math.max(4, this.py(z.rect.y) - 34);
-          const tag = el('g', { class: 'sx-zone-tag', transform: `translate(${x},${y})`, 'data-ztag': z.id }, tagLayer);
-          el('rect', { width: w, height: 64, rx: 32 }, tag);
-          el('circle', { class: 'dot', cx: 32, cy: 32, r: 9, fill: colour }, tag);
-          el('text', { x: 52, y: 29 }, tag).textContent = title;
-          const t2 = el('text', { x: 52, y: 51, class: 'sub' }, tag);
-          t2.textContent = sub;
-          this.els[`zt${z.id}`] = t2;
+          // "from" = the lowest rate per unit among the zone's seats (seat overrides may differ)
+          const low = {};
+          for (const u of this.units) if (u.zone === z.id) for (const [k, v] of Object.entries(u.rates || {})) low[k] = low[k] == null ? v : Math.min(low[k], v);
+          const tag = R.zoneTag(tagLayer, z, geo, { title: `${meta?.short || ''} · from ${fromPrice(low)}`, sub: `${z.free} of ${z.units} free` });
+          this.els[`zt${z.id}`] = tag.sub;
         }
 
         // Whole units (cabin / conference): outline + tag, clickable as one block
         for (const u of this.units.filter((s) => s.kind !== 'seat')) {
-          const g = el('g', {
-            class: 'sx-unit', 'data-id': u.id, role: 'button', tabindex: -1,
-            'data-status': u.status,
-          }, unitLayer);
-          el('rect', { class: 'outline', x: this.px(u.x), y: this.py(u.y), width: this.px(u.w), height: this.py(u.h), rx: 18 }, g);
           const meta = this.catMeta(u.category);
-          const line1 = u.label;
-          const line2 = meta?.hourly ? `${fromPrice(u.rates)} · pick a slot` : fromPrice(u.rates);
-          const tw = Math.min(this.px(u.w) - 12, Math.max(line1.length * 11.5, line2.length * 8.6) + 56);
-          const tx = this.px(u.x + u.w / 2) - tw / 2;
-          // cabins: inside, near the bottom; the conference room: straddling its bottom wall (chairs fill the room)
-          const ty = meta?.hourly ? this.py(u.y + u.h) - 22 : this.py(u.y + u.h) - 70;
-          const tag = el('g', { class: 'tag', transform: `translate(${tx},${ty})` }, g);
-          el('rect', { width: tw, height: 58, rx: 18 }, tag);
-          glyph(meta?.hourly ? 'clock' : 'door-open', { x: 12, y: 17, width: 24, height: 24, style: 'color:#fff' }, tag);
-          el('text', { x: 44, y: 26 }, tag).textContent = line1;
-          el('text', { x: 44, y: 46, class: 'sub' }, tag).textContent = line2;
+          const g = R.unitBlock(unitLayer, u, geo, {
+            line1: u.label,
+            line2: meta?.hourly ? `${fromPrice(u.rates)} · pick a slot` : fromPrice(u.rates),
+            hourly: !!meta?.hourly,
+            attrs: { role: 'button', tabindex: -1 },
+          });
           this.bindUnit(g, u.id);
           this.els[u.id] = g;
           for (const cid of this.chairsOf[u.id] || []) this.drawChair(seatLayer, this.byId[cid], true);
@@ -337,11 +289,7 @@
 
         // Facilities & landmarks
         for (const f of this.map.facilities) {
-          const g = el('g', { class: 'sx-fac', 'data-kind': f.kind, transform: `translate(${this.px(f.x)},${this.py(f.y)})`, tabindex: -1 }, facLayer);
-          el('circle', { r: 19 }, g);
-          glyph(f.icon || 'info', { x: -11, y: -11, width: 22, height: 22 }, g);
-          if (f.kind === 'addon') el('circle', { class: 'plus', cx: 14, cy: -14, r: 6 }, g);
-          el('title', {}, g).textContent = f.name;
+          const g = R.facility(facLayer, f, geo);
           g.addEventListener('pointerenter', () => this.showFacTip(f, g));
           g.addEventListener('pointerleave', () => this.hideTip());
           g.addEventListener('click', (e) => { e.stopPropagation(); this.showFacTip(f, g); });
@@ -351,19 +299,7 @@
       },
 
       drawChair(layer, s, child) {
-        const x = this.px(s.x); const y = this.py(s.y); const w = this.px(s.w); const h = this.py(s.h);
-        const g = el('g', {
-          class: 'sx-seat', 'data-id': s.id, transform: `translate(${x},${y})`,
-          ...(child ? { 'aria-hidden': 'true' } : { role: 'button', tabindex: -1 }),
-        }, layer);
-        const pop = el('g', { class: 'pop' }, g);
-        el('rect', { class: 'ring', x: -5, y: -5, width: w + 10, height: h + 10, rx: 16 }, pop);
-        el('rect', { class: 'body', width: w, height: h, rx: Math.min(14, w * 0.28) }, pop);
-        el('rect', { class: 'stripes', width: w, height: h, rx: Math.min(14, w * 0.28) }, pop);
-        const small = w < 48;
-        const gs = small ? w * 0.56 : w * 0.46;
-        glyph('armchair', { class: 'glyph', x: (w - gs) / 2, y: small ? (h - gs) / 2 : h * 0.14, width: gs, height: gs }, pop);
-        if (!small) el('text', { class: 'num', x: w / 2, y: h - 8 }, pop).textContent = s.label;
+        const g = R.chair(layer, s, { W: this.W, H: this.H }, { child });
         this.els[s.id] = g;
         if (!child) this.bindUnit(g, s.id);
         return g;
@@ -510,6 +446,7 @@
         const u = this.byId[unitId];
         if (!u) return;
         this.hideTip();
+        if (this.cfg.preview) { this.toast('Preview of a draft layout — seats can be picked once it is published.', 'info'); this.flash(unitId); return; }
         if (!this.cfg.loggedIn) { this.signIn = true; return; }
         if (this.cfg.staff && !this.cfg.canBook) { this.toast('Your role can view the map but not hold seats.', 'info'); return; }
         const status = this.pending[unitId] ? 'mine' : u.status;
@@ -806,6 +743,7 @@
         window.history.replaceState(null, '', url);
       },
       async reload(rehold = false) {
+        if (this.cfg.preview) { this.syncUrl(); window.location.reload(); return; }
         this.loading = true;
         try {
           const q = new URLSearchParams({ from: this.from, to: this.to });
@@ -870,18 +808,7 @@
         this.resetZoom(false);
       },
       layoutStage() {
-        const vp = this.$refs.viewport; const stage = this.$refs.stage;
-        if (!vp || !stage || !vp.clientWidth) return;
-        const aspect = this.W / this.H;
-        const mobile = window.innerWidth < 768;
-        const vw = vp.clientWidth;
-        let vh = mobile ? Math.max(340, Math.round(window.innerHeight * 0.58)) : Math.round(vw / aspect);
-        if (!mobile) vh = Math.min(vh, Math.round(window.innerHeight * 0.78));
-        vp.style.height = `${vh}px`;
-        let sw = vw; let sh = vw / aspect;
-        if (sh < vh) { sh = vh; sw = vh * aspect; }
-        stage.style.width = `${sw}px`;
-        stage.style.height = `${sh}px`;
+        R.fitStage(this.$refs.viewport, this.$refs.stage, this.W, this.H);
         this.updateMini();
       },
       zoomIn() { this.panzoom?.zoomIn(); },
