@@ -27,8 +27,15 @@ final class SettingsSeeder extends Seeder
             ['visitor_id_prefix', 'CMN-KTR', 'string', 'numbering', 'Unique visitor ID prefix → CMN-KTR-I-2026-00001'],
             ['seat_hold_minutes', '10', 'int', 'booking', 'Seat hold duration while choosing (minutes)'],
             ['advance_max_months', '6', 'int', 'booking', 'Tenures up to this many months need an advance; longer need a security deposit'],
-            ['security_deposit_months', '1', 'int', 'booking', 'Security deposit = N months of rent (to be confirmed)'],
-            ['availability_poll_seconds', '25', 'int', 'booking', 'Space Explorer availability refresh interval'],
+            ['security_deposit_months', '2', 'int', 'booking', 'Security deposit = N months of rent (to be confirmed)'],
+            ['availability_poll_seconds', '20', 'int', 'booking', 'Space Explorer availability refresh interval (seconds)'],
+            ['flexi_pricing_rule', 'monthly_plus_daily', 'string', 'booking', 'Flexi pricing: under a month = daily rate x days; a month or more = monthly rate x months + remaining days at the daily rate'],
+            ['flexi_daily_cap_monthly', '1', 'bool', 'booking', 'Cap the daily-rate part of a flexi booking at one month\'s rate'],
+            ['proration_days_per_month', '30', 'int', 'booking', 'Partial months of monthly-billed seats are pro-rated as days / N'],
+            ['conference_open_hour', '8', 'int', 'booking', 'Conference room bookable from (hour, 24h)'],
+            ['conference_close_hour', '20', 'int', 'booking', 'Conference room bookable until (hour, 24h)'],
+            ['max_seats_per_booking', '40', 'int', 'booking', 'Maximum seats in one booking request'],
+            ['max_booking_months', '36', 'int', 'booking', 'Longest tenure that can be requested online (months)'],
             ['password_token_minutes', '60', 'int', 'auth', 'Set/reset password link validity (minutes)'],
         ];
         foreach ($settings as [$key, $value, $type, $group, $label]) {

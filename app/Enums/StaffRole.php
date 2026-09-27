@@ -62,7 +62,7 @@ enum StaffRole: string
             self::Receptionist => $reception,
             self::CentreManager => [
                 ...$reception,
-                'bookings.approve', 'kyc.verify', 'seats.handover', 'renewals.view', 'dues.view',
+                'bookings.approve', 'space.override', 'kyc.verify', 'seats.handover', 'renewals.view', 'dues.view',
                 'layout.design', 'pricing.manage', 'facilities.manage', 'staff.manage', 'bulk.import', 'reports.view',
             ],
             self::FinanceAdmin => [

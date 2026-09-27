@@ -34,6 +34,49 @@ final class PriceResolver
             ?? ($seat['seat_category_id'] !== null ? $this->rate('category', (int) $seat['seat_category_id'], $unit, $onDate) : null);
     }
 
+    /**
+     * Bulk version of forSeat() for maps and quotes: every unit's effective rates in 2 queries.
+     *
+     * @param list<int> $seatIds
+     * @return array<int, array<string, array{amount: float, gst_rate: float, scope: string, rate_id: int}>> seat id => unit => rate
+     */
+    public function forSeats(array $seatIds, ?string $onDate = null): array
+    {
+        if ($seatIds === []) {
+            return [];
+        }
+        $onDate ??= date('Y-m-d');
+        $seatIds = array_values($seatIds);
+        $in = implode(',', array_fill(0, count($seatIds), '?'));
+        $seats = $this->db->select(
+            "SELECT s.id, s.zone_id, z.seat_category_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id IN ({$in})",
+            $seatIds,
+        );
+        $latest = [];
+        foreach ($this->db->select(
+            'SELECT id, scope, scope_id, unit, amount, gst_rate FROM rates
+             WHERE effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)
+             ORDER BY effective_from ASC, id ASC',
+            [$onDate, $onDate],
+        ) as $r) {
+            $latest[$r['scope'] . ':' . $r['scope_id'] . ':' . $r['unit']] = [
+                'amount' => (float) $r['amount'], 'gst_rate' => (float) $r['gst_rate'], 'scope' => (string) $r['scope'], 'rate_id' => (int) $r['id'],
+            ];
+        }
+        $out = [];
+        foreach ($seats as $s) {
+            foreach (BillingUnit::cases() as $unit) {
+                $rate = $latest['seat:' . $s['id'] . ':' . $unit->value]
+                    ?? $latest['zone:' . $s['zone_id'] . ':' . $unit->value]
+                    ?? ($s['seat_category_id'] !== null ? ($latest['category:' . $s['seat_category_id'] . ':' . $unit->value] ?? null) : null);
+                if ($rate !== null) {
+                    $out[(int) $s['id']][$unit->value] = $rate;
+                }
+            }
+        }
+        return $out;
+    }
+
     /** @return array{amount: float, gst_rate: float, scope: string, rate_id: int}|null */
     public function forCategory(int $categoryId, BillingUnit $unit, ?string $onDate = null): ?array
     {
