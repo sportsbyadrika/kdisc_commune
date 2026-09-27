@@ -37,6 +37,8 @@ const ICONS = [
   'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'globe', 'heart-handshake', 'rocket', 'star',
   'moon', 'sun', 'toilet', 'circle-parking', 'square-parking', 'mailbox', 'lamp-desk', 'door-closed', 'panel-left', 'list', 'filter', 'ellipsis', 'external-link', 'accessibility', 'fire-extinguisher',
   'arrow-up-down', 'trending-up', 'inbox', 'history', 'hourglass', 'circle-user-round', 'shield', 'badge-check',
+  'camera', 'trash-2', 'file-check', 'file-up', 'qr-code', 'refresh-cw', 'image', 'pencil', 'send', 'user-search', 'circle-x',
+  'circle-dashed', 'mail-check', 'scan-face', 'file-x', 'video', 'clipboard-check', 'hand', 'circle-dot', 'shield-alert', 'book-open-text', 'file-image',
 ];
 
 mkdirSync(vendorDir, { recursive: true });

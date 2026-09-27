@@ -22,7 +22,7 @@ return [
             "font-src 'self' https://fonts.gstatic.com data:",
             "img-src 'self' data: blob:",
             "connect-src 'self'",
-            "frame-src https://www.google.com https://maps.google.com",
+            "frame-src 'self' https://www.google.com https://maps.google.com", // 'self': inline PDF viewer for KYC documents
             "form-action 'self'",
             "base-uri 'self'",
             "object-src 'none'",

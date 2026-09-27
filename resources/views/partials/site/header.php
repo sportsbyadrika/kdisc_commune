@@ -14,6 +14,12 @@ $href = static function (array $item): ?string {
     return isset($item['route']) && route_exists($item['route']) ? url($item['route']) : null;
 };
 $isActive = static fn (array $item): bool => isset($item['route']) && route_is($item['route']);
+$visitor = visitor();
+$visitorName = (string) ($visitor['name'] ?? '');
+$initials = '';
+foreach (array_slice(explode(' ', $visitorName), 0, 2) as $part) {
+    $initials .= mb_strtoupper(mb_substr($part, 0, 1));
+}
 ?>
 <div class="bg-brand-950 text-[13px] text-white/75">
     <div class="container-page flex h-9 items-center justify-between gap-4">
@@ -67,7 +73,32 @@ $isActive = static fn (array $item): bool => isset($item['route']) && route_is($
         </nav>
 
         <div class="flex items-center gap-2">
-            <a href="<?= e(url('portal.login')) ?>" class="btn btn-ghost hidden md:inline-flex"><?= icon('circle-user-round', 'size-[18px]') ?> Sign in</a>
+            <?php if ($visitor !== null): ?>
+                <div class="relative hidden md:block" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+                    <button type="button" class="flex items-center gap-2 rounded-full py-1 pr-3 pl-1 transition hover:bg-surface-2" @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true">
+                        <span class="grid size-9 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white"><?= e($initials) ?></span>
+                        <span class="text-sm font-semibold">My account</span><?= icon('chevron-down', 'size-4 text-muted') ?>
+                    </button>
+                    <div x-cloak x-show="open" x-transition.opacity.scale.origin.top.right class="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-line bg-white p-2 shadow-[var(--shadow-card-hover)]">
+                        <div class="px-3 py-2">
+                            <p class="truncate text-sm font-semibold"><?= e($visitorName) ?></p>
+                            <p class="truncate text-xs text-muted"><?= e($visitor['email']) ?></p>
+                        </div>
+                        <div class="my-1 border-t border-line"></div>
+                        <a href="<?= e(url('portal.dashboard')) ?>" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-surface"><?= icon('layout-dashboard', 'size-4 text-muted') ?> Dashboard</a>
+                        <a href="<?= e(url('portal.profile')) ?>" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-surface"><?= icon('id-card', 'size-4 text-muted') ?> My profile</a>
+                        <a href="<?= e(url('portal.documents')) ?>" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-surface"><?= icon('file-text', 'size-4 text-muted') ?> Documents</a>
+                        <div class="my-1 border-t border-line"></div>
+                        <form method="post" action="<?= e(url('portal.logout')) ?>">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"><?= icon('log-out', 'size-4') ?> Sign out</button>
+                        </form>
+                    </div>
+                </div>
+            <?php else: ?>
+                <a href="<?= e(url('portal.login')) ?>" class="btn btn-ghost hidden md:inline-flex"><?= icon('circle-user-round', 'size-[18px]') ?> Sign in</a>
+                <a href="<?= e(url('portal.register')) ?>" class="btn btn-outline hidden xl:inline-flex">Register</a>
+            <?php endif ?>
             <a href="<?= e(url('spaces')) ?>" class="btn btn-primary btn-lg hidden !px-6 !py-3 sm:inline-flex">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
             <button type="button" class="btn btn-ghost btn-icon lg:hidden" @click="drawer = true" aria-label="Open menu" :aria-expanded="drawer.toString()" aria-controls="mobile-drawer">
                 <?= icon('menu', 'size-6') ?>
@@ -110,7 +141,15 @@ $isActive = static fn (array $item): bool => isset($item['route']) && route_is($
             </nav>
             <div class="space-y-3 border-t border-line p-5">
                 <a href="<?= e(url('spaces')) ?>" class="btn btn-primary btn-lg w-full">Book a Seat <?= icon('arrow-right', 'size-4') ?></a>
-                <a href="<?= e(url('portal.login')) ?>" class="btn btn-outline w-full"><?= icon('circle-user-round', 'size-[18px]') ?> Visitor sign in</a>
+                <?php if ($visitor !== null): ?>
+                    <a href="<?= e(url('portal.dashboard')) ?>" class="btn btn-outline w-full"><?= icon('layout-dashboard', 'size-[18px]') ?> My account</a>
+                    <form method="post" action="<?= e(url('portal.logout')) ?>"><?= csrf_field() ?><button type="submit" class="btn btn-ghost w-full !text-red-600"><?= icon('log-out', 'size-4') ?> Sign out</button></form>
+                <?php else: ?>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="<?= e(url('portal.login')) ?>" class="btn btn-outline"><?= icon('circle-user-round', 'size-[18px]') ?> Sign in</a>
+                        <a href="<?= e(url('portal.register')) ?>" class="btn btn-outline"><?= icon('user-plus', 'size-[18px]') ?> Register</a>
+                    </div>
+                <?php endif ?>
                 <p class="pt-2 text-center text-xs text-muted"><?= e($org['phone'] ?? '') ?> · <?= e($org['hours'] ?? '') ?></p>
             </div>
         </aside>

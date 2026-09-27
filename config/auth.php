@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
     'guards' => [
         'staff' => ['table' => 'staff_users', 'active_column' => 'is_active', 'login_route' => 'staff.login', 'home_route' => 'staff.dashboard'],
-        'visitor' => ['table' => 'accounts', 'active_column' => 'status', 'login_route' => 'portal.login', 'home_route' => 'home'],
+        'visitor' => ['table' => 'accounts', 'active_column' => 'status', 'login_route' => 'portal.login', 'home_route' => 'portal.dashboard'],
     ],
     // Login throttling (App\Services\Auth\LoginThrottle)
     'throttle' => [
