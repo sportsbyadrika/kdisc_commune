@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 use App\Controllers\Portal\AuthController;
+use App\Controllers\Portal\BookingController;
 use App\Controllers\Portal\DashboardController;
 use App\Controllers\Portal\DocumentController;
 use App\Controllers\Portal\WizardController;
@@ -46,5 +47,7 @@ $router->group(['as' => 'portal.'], function (Router $r): void {
         $r->post('/documents', [DocumentController::class, 'store'])->name('documents.store');
         $r->delete('/documents/{id:\d+}', [DocumentController::class, 'destroy'])->name('documents.destroy');
         $r->get('/documents/{id:\d+}/file', [DocumentController::class, 'file'])->name('documents.file');
+        $r->get('/bookings', [BookingController::class, 'index'])->name('bookings');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}', [BookingController::class, 'show'])->name('bookings.show');
     });
 });

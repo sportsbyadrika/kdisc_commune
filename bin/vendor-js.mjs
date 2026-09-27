@@ -39,6 +39,9 @@ const ICONS = [
   'arrow-up-down', 'trending-up', 'inbox', 'history', 'hourglass', 'circle-user-round', 'shield', 'badge-check',
   'camera', 'trash-2', 'file-check', 'file-up', 'qr-code', 'refresh-cw', 'image', 'pencil', 'send', 'user-search', 'circle-x',
   'circle-dashed', 'mail-check', 'scan-face', 'file-x', 'video', 'clipboard-check', 'hand', 'circle-dot', 'shield-alert', 'book-open-text', 'file-image',
+  // batch 3 — Space Explorer
+  'ban', 'zoom-in', 'zoom-out', 'minus', 'timer', 'wand-sparkles', 'calendar-range', 'mouse-pointer-click', 'grip-horizontal',
+  'chevron-up', 'party-popper', 'calendar-clock', 'rotate-ccw', 'locate-fixed', 'ticket', 'move', 'sparkle',
 ];
 
 mkdirSync(vendorDir, { recursive: true });

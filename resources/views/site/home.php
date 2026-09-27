@@ -47,7 +47,7 @@ $steps = [
 
 <!-- Check availability bar -->
 <div class="container-page relative z-10 -mt-28 lg:-mt-20">
-    <form action="<?= e(url('spaces')) ?>" method="get" x-data="availabilityBar()" class="card grid gap-4 p-4 shadow-[var(--shadow-card-hover)] sm:p-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end lg:gap-3 lg:rounded-full lg:p-3 lg:pl-8">
+    <form action="<?= e(url('spaces.explore')) ?>" method="get" x-data="availabilityBar()" class="card grid gap-4 p-4 shadow-[var(--shadow-card-hover)] sm:p-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end lg:gap-3 lg:rounded-full lg:p-3 lg:pl-8">
         <div>
             <label for="hb-type" class="text-xs font-bold tracking-wide text-muted uppercase">Space type</label>
             <select id="hb-type" name="type" class="mt-1 w-full border-0 bg-transparent p-0 text-base font-semibold text-ink focus:ring-0 lg:py-1">
@@ -110,7 +110,7 @@ $steps = [
             <ul class="mt-8 space-y-3">
                 <?php foreach (array_reverse($floors) as $floor): ?>
                     <li>
-                        <a href="<?= e(url('spaces')) ?>#<?= e($floor['slug']) ?>" class="group flex items-center justify-between rounded-2xl bg-white/5 px-5 py-4 ring-1 ring-white/10 transition hover:bg-white/10">
+                        <a href="<?= e(url('spaces.floor', ['floor' => $floor['slug']])) ?>" class="group flex items-center justify-between rounded-2xl bg-white/5 px-5 py-4 ring-1 ring-white/10 transition hover:bg-white/10">
                             <span>
                                 <span class="block font-semibold text-white"><?= e($floor['name']) ?></span>
                                 <span class="text-sm text-white/60">
@@ -131,7 +131,7 @@ $steps = [
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="absolute inset-0 size-full" aria-hidden="true">
                 <?php foreach ($floors as $floor):
                     $points = implode(' ', array_map(static fn ($p) => $p[0] . ',' . $p[1], $floor['hotspot'])); ?>
-                    <a href="<?= e(url('spaces')) ?>#<?= e($floor['slug']) ?>">
+                    <a href="<?= e(url('spaces.floor', ['floor' => $floor['slug']])) ?>">
                         <polygon points="<?= e($points) ?>" class="cursor-pointer fill-accent-500/0 stroke-white/0 transition hover:fill-accent-500/25 hover:stroke-white" stroke-width=".4" vector-effect="non-scaling-stroke"
                                  @mouseenter="hover = '<?= e($floor['slug']) ?>'" @mouseleave="hover = null"/>
                     </a>

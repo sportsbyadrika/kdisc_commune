@@ -7,13 +7,14 @@ namespace App\Controllers\Portal;
 use App\Core\Response;
 use App\Models\Customer;
 use App\Models\CustomerSignatory;
+use App\Services\Bookings\BookingDirectory;
 use App\Services\Visitors\ProfileService;
 use App\Services\Visitors\QrCodeRenderer;
 
 /** Visitor portal home (/my) and profile view (/my/profile). */
 final class DashboardController extends PortalController
 {
-    public function __construct(private readonly ProfileService $profiles, private readonly QrCodeRenderer $qr)
+    public function __construct(private readonly ProfileService $profiles, private readonly QrCodeRenderer $qr, private readonly BookingDirectory $bookings)
     {
     }
 
@@ -30,6 +31,7 @@ final class DashboardController extends PortalController
             'qr' => $uniqueId !== '' ? $this->qr->dataUri($uniqueId) : null,
             'nextStep' => ProfileService::nextStep($customer),
             'missing' => $this->profiles->missing($customer),
+            'bookingCount' => array_sum($this->bookings->statusCounts((int) $customer['id'])),
         ]);
     }
 

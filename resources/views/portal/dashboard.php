@@ -10,6 +10,7 @@
  * @var string|null $qr
  * @var int $nextStep
  * @var array<int, list<string>> $missing
+ * @var int $bookingCount
  */
 use App\Enums\KycStatus;
 
@@ -17,9 +18,9 @@ $first = explode(' ', (string) $customer['name'])[0];
 $this->layout('layouts/portal', ['heading' => 'Hello, ' . $first, 'subheading' => 'Your Commune account at a glance.']);
 $submitted = (int) $customer['profile_step'] >= 4 && $customer['unique_id'] !== null;
 $tiles = [
-    ['calendar-check', 'My bookings', 'Request seats, cabins and the conference room from the Space Explorer.', 'Coming soon'],
-    ['wallet', 'Dues & payments', 'See advances, deposits and rent due, with payment history.', 'Coming soon'],
-    ['receipt-indian-rupee', 'Invoices & receipts', 'Download GST invoices and receipts as PDF.', 'Coming soon'],
+    ['calendar-check', 'My bookings', ($bookingCount ?? 0) > 0 ? 'Track your requests and active seats.' : 'Request seats, cabins and the conference room from the Space Explorer.', ($bookingCount ?? 0) > 0 ? $bookingCount . ' booking' . ($bookingCount === 1 ? '' : 's') : 'Book now', url('portal.bookings')],
+    ['wallet', 'Dues & payments', 'See advances, deposits and rent due, with payment history.', 'Coming soon', null],
+    ['receipt-indian-rupee', 'Invoices & receipts', 'Download GST invoices and receipts as PDF.', 'Coming soon', null],
 ];
 ?>
 <?php if (!$submitted): ?>
@@ -63,15 +64,15 @@ $tiles = [
     </div>
     <div class="space-y-6 lg:col-span-3">
         <div class="grid gap-4 sm:grid-cols-3">
-            <?php foreach ($tiles as [$ico, $label, $text, $badge]): ?>
-                <div class="card card-body flex flex-col">
+            <?php foreach ($tiles as [$ico, $label, $text, $badge, $href]): ?>
+                <<?= $href !== null ? 'a href="' . e($href) . '"' : 'div' ?> class="card card-body flex flex-col <?= $href !== null ? 'card-hover' : '' ?>">
                     <div class="flex items-center justify-between">
-                        <span class="grid size-10 place-items-center rounded-xl bg-surface text-ink/60"><?= icon($ico, 'size-5') ?></span>
-                        <?= $this->component('badge', ['label' => $badge, 'tone' => 'neutral']) ?>
+                        <span class="grid size-10 place-items-center rounded-xl <?= $href !== null ? 'bg-brand-50 text-brand-700' : 'bg-surface text-ink/60' ?>"><?= icon($ico, 'size-5') ?></span>
+                        <?= $this->component('badge', ['label' => $badge, 'tone' => $href !== null ? 'brand' : 'neutral']) ?>
                     </div>
                     <h3 class="mt-4 text-sm font-bold"><?= e($label) ?></h3>
                     <p class="mt-1 text-xs text-muted"><?= e($text) ?></p>
-                </div>
+                </<?= $href !== null ? 'a' : 'div' ?>>
             <?php endforeach ?>
         </div>
         <div class="card card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -79,7 +80,7 @@ $tiles = [
                 <h3 class="font-bold">Explore the building</h3>
                 <p class="text-sm text-muted">Browse floors, zones and seat types while your KYC is being verified.</p>
             </div>
-            <a href="<?= e(url('spaces')) ?>" class="btn btn-outline shrink-0"><?= icon('building-2', 'size-4') ?> View spaces</a>
+            <a href="<?= e(url('spaces.explore')) ?>" class="btn btn-outline shrink-0"><?= icon('building-2', 'size-4') ?> Open Space Explorer</a>
         </div>
     </div>
 </div>

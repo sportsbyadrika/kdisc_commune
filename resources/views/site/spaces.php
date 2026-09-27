@@ -17,22 +17,12 @@ $this->layout('layouts/site');
 <?php $this->begin('page-hero', [
     'eyebrow' => 'Spaces',
     'title' => 'Choose your floor, then your seat',
-    'subtitle' => 'Two floors of flexible workspace in the heart of Kottarakara. The interactive seat map is launching soon — here is what each floor offers.',
+    'subtitle' => 'Two floors of flexible workspace in the heart of Kottarakara. Open the live seat map to pick your exact desk, cabin or conference slot.',
     'breadcrumb' => [['Home', url('home')], ['Spaces']],
 ]) ?>
-    <a href="#floors" class="btn btn-primary btn-lg">Explore floors <?= icon('arrow-down', 'size-4') ?></a>
+    <a href="<?= e(url('spaces.explore', array_filter(['from' => $from, 'to' => $to, 'type' => $type]))) ?>" class="btn btn-primary btn-lg"><?= icon('map', 'size-4') ?> Open the Space Explorer</a>
     <a href="<?= e(url('pricing')) ?>" class="btn btn-lg bg-white/10 text-white ring-1 ring-white/25 hover:bg-white/20">View pricing</a>
 <?= $this->end() ?>
-
-<div class="container-page">
-    <?php if ($from !== ''): ?>
-        <?= $this->component('alert', [
-            'tone' => 'info', 'class' => 'mt-8',
-            'title' => 'Availability for ' . format_date($from) . ($to !== '' ? ' – ' . format_date($to) : ''),
-            'message' => 'Live seat availability arrives with the Space Explorer. For now, call or visit the front desk and we will hold a seat for you.',
-        ]) ?>
-    <?php endif ?>
-</div>
 
 <section id="floors" class="section">
     <div class="container-page space-y-16">
@@ -54,8 +44,8 @@ $this->layout('layouts/site');
                         <?php endforeach ?>
                     </ul>
                     <div class="mt-6 flex flex-wrap gap-3">
-                        <span class="btn btn-dark cursor-default opacity-90"><?= icon('map', 'size-4') ?> Seat map — coming soon</span>
-                        <a href="<?= e(url('contact')) ?>" class="btn btn-outline">Reserve via front desk</a>
+                        <a href="<?= e(url('spaces.floor', array_filter(['floor' => $floor['slug'], 'from' => $from, 'to' => $to]))) ?>" class="btn btn-dark"><?= icon('map', 'size-4') ?> Pick a seat on this floor</a>
+                        <a href="<?= e(url('contact')) ?>" class="btn btn-outline">Ask the front desk</a>
                     </div>
                 </div>
             </article>

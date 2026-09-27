@@ -11,7 +11,9 @@
 declare(strict_types=1);
 
 use App\Controllers\Staff\AuthController;
+use App\Controllers\Staff\BookingController;
 use App\Controllers\Staff\DashboardController;
+use App\Controllers\Staff\ExplorerController;
 use App\Controllers\Staff\KycController;
 use App\Controllers\Staff\VisitorController;
 use App\Controllers\Staff\VisitorDocumentController;
@@ -50,6 +52,13 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
         $r->post('/kyc/{id:\d+}/approve', [KycController::class, 'approve'])->name('kyc.approve')->middleware('can:kyc.verify');
         $r->post('/kyc/{id:\d+}/reject', [KycController::class, 'reject'])->name('kyc.reject')->middleware('can:kyc.verify');
 
-        // Batch 3+: Space Explorer, bookings, layout designer, finance ...
+        // Space Explorer — receptionist mode (spec 5.2); JSON API under /staff/api/space (routes/api.php).
+        $r->get('/spaces', [ExplorerController::class, 'index'])->name('explorer')->middleware('can:space.explore');
+
+        // Bookings (read-only in batch 3; approvals, payments, check-in in batch 4).
+        $r->get('/bookings', [BookingController::class, 'index'])->name('bookings.index')->middleware('can:bookings.view');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}', [BookingController::class, 'show'])->name('bookings.show')->middleware('can:bookings.view');
+
+        // Batch 4+: layout designer, payments, check-in, finance ...
     });
 });

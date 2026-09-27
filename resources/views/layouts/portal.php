@@ -11,7 +11,7 @@ $tabs = [
     ['portal.dashboard', 'Dashboard', 'layout-dashboard', ['portal.dashboard']],
     ['portal.profile', 'Profile', 'id-card', ['portal.profile', 'portal.wizard*']],
     ['portal.documents', 'Documents', 'file-text', ['portal.documents*']],
-    [null, 'Bookings', 'calendar-check', []],
+    ['portal.bookings', 'Bookings', 'calendar-check', ['portal.bookings*']],
     [null, 'Invoices', 'receipt-indian-rupee', []],
 ];
 $who = (array) ($customer ?? []);

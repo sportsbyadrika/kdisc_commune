@@ -15,7 +15,7 @@ $role = $user !== null ? App\Enums\StaffRole::tryFrom((string) $user['role']) : 
 
     <div class="flex min-w-0 flex-1 flex-col">
         <?= $this->partial('partials/staff/header', ['user' => $user, 'role' => $role]) ?>
-        <main id="main" class="container-page flex-1 py-8">
+        <main id="main" class="<?= !empty($wide) ? 'mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8' : 'container-page' ?> flex-1 py-8">
             <?php if (!empty($breadcrumb)): ?><div class="mb-4"><?= $this->component('breadcrumb', ['items' => $breadcrumb]) ?></div><?php endif ?>
             <?php if (!empty($title) && empty($hideTitle)): ?>
                 <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
