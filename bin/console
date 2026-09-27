@@ -15,6 +15,11 @@
  *                                        date, expire unpaid approvals, renewal reminders (idempotent; cron)
  *   php bin/console holds:cleanup        Delete expired seat holds (cron)
  *   php bin/console imports:cleanup      Delete expired bulk-upload temp files (cron, hourly)
+ *   php bin/console user:create --name="Full Name" --email=a@b.c --role=centre_manager [--invite]
+ *                                        Create a staff user (first manager on a new server). Prompts for the
+ *                                        password (hidden), or --invite emails a set-password link instead.
+ *   php bin/console app:check            Environment report: PHP version/extensions, writable dirs, APP_KEY, DB,
+ *                                        pending migrations, mail, demo logins, cron freshness (exit 1 on FAIL)
  *   php bin/console demo:seed            Load ~30 visitors / ~40 bookings / payments / invoices through the real services
  *                                        for UAT (refuses when APP_ENV=production; run after migrate:fresh --seed)
  */
@@ -124,6 +129,7 @@ try {
             $ticker = App::container()->get(\App\Services\Bookings\BookingTicker::class);
             $start = microtime(true);
             $r = $ticker->run();
+            \App\Services\System\EnvironmentCheck::stamp($basePath, 'bookings:tick');
             $out(sprintf(
                 'bookings:tick  activated %d · completed %d · expired %d · reminders %d  (%.2f s)',
                 $r['activated'], $r['completed'], $r['expired'], $r['reminders'], microtime(true) - $start,
@@ -140,12 +146,73 @@ try {
             /** @var \App\Services\Space\SeatHoldService $holds */
             $holds = App::container()->get(\App\Services\Space\SeatHoldService::class);
             $out(sprintf('holds:cleanup  removed %d expired seat hold(s)', $holds->purgeExpired()));
+            \App\Services\System\EnvironmentCheck::stamp($basePath, 'holds:cleanup');
             break;
 
         case 'imports:cleanup':
             /** @var \App\Services\Imports\ImportService $imports */
             $imports = App::container()->get(\App\Services\Imports\ImportService::class);
             $out(sprintf('imports:cleanup  expired %d upload(s)', $imports->cleanupExpired()));
+            \App\Services\System\EnvironmentCheck::stamp($basePath, 'imports:cleanup');
+            // housekeeping for the request rate limiter as well
+            App::container()->get(\App\Services\Security\RateLimiter::class)->purge();
+            break;
+
+        case 'user:create':
+            $role = \App\Enums\StaffRole::tryFrom(is_string($options['role'] ?? null) ? $options['role'] : '')
+                ?? $fail('Usage: user:create --name="Full Name" --email=you@example.org --role=' . implode('|', \App\Enums\StaffRole::values()) . ' [--invite]');
+            $name = is_string($options['name'] ?? null) ? trim($options['name']) : '';
+            $email = is_string($options['email'] ?? null) ? mb_strtolower(trim($options['email'])) : '';
+            if (mb_strlen($name) < 2 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                $fail('A --name (2+ characters) and a valid --email are required.');
+            }
+            /** @var \App\Services\Staff\StaffUserService $staffUsers */
+            $staffUsers = App::container()->get(\App\Services\Staff\StaffUserService::class);
+            if (isset($options['invite'])) {
+                $id = $staffUsers->createWithPassword($name, $email, $role, bin2hex(random_bytes(24)));
+                \App\Models\StaffUser::update($id, ['password_changed_at' => null]);
+                $sent = $staffUsers->sendLink((array) \App\Models\StaffUser::find($id), \App\Enums\TokenPurpose::Invite);
+                $out(sprintf('Created %s (%s, id %d). Invite %s.', $email, $role->label(), $id, $sent ? 'emailed' : 'NOT sent — check MAIL_DSN, then use "Resend invite" in /staff/users'));
+                break;
+            }
+            $ask = static function (string $prompt): string {
+                fwrite(STDOUT, $prompt);
+                $tty = function_exists('posix_isatty') && posix_isatty(STDIN);
+                if ($tty) {
+                    shell_exec('stty -echo');
+                }
+                $line = rtrim((string) fgets(STDIN), "\r\n");
+                if ($tty) {
+                    shell_exec('stty echo');
+                    fwrite(STDOUT, PHP_EOL);
+                }
+                return $line;
+            };
+            $password = $ask('Password (8+ chars, upper & lower case, a number and a symbol): ');
+            $validator = \App\Core\Validator::make(['password' => $password, 'password_confirmation' => $ask('Repeat password: ')], ['password' => 'required|password|confirmed']);
+            if ($validator->fails()) {
+                $fail(implode(' ', array_merge(...array_values($validator->errors()))));
+            }
+            $id = $staffUsers->createWithPassword($name, $email, $role, $password);
+            $out(sprintf('Created %s (%s, id %d). Sign in at %s', $email, $role->label(), $id, absolute_url('staff.login')));
+            break;
+
+        case 'app:check':
+            $checks = (new \App\Services\System\EnvironmentCheck($basePath))->run();
+            $colour = ['ok' => "\033[32m OK \033[0m", 'warn' => "\033[33mWARN\033[0m", 'fail' => "\033[31mFAIL\033[0m"];
+            $group = '';
+            foreach ($checks as $c) {
+                if ($c['group'] !== $group) {
+                    $group = $c['group'];
+                    $out(PHP_EOL . $group);
+                }
+                $out(sprintf('  [%s] %-34s %s', $colour[$c['status']], $c['name'], $c['detail']));
+            }
+            $counts = array_count_values(array_column($checks, 'status'));
+            $out(PHP_EOL . sprintf('%d ok · %d warning(s) · %d failure(s)', $counts['ok'] ?? 0, $counts['warn'] ?? 0, $counts['fail'] ?? 0));
+            if (($counts['fail'] ?? 0) > 0) {
+                exit(1);
+            }
             break;
 
         case 'demo:seed':
