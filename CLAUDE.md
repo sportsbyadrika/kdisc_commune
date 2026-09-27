@@ -48,7 +48,7 @@ app/
   Middleware/      VerifyCsrfToken, StaffAuth, VisitorAuth, Guest, Role, Can
   Enums/           backed enums for every status/type column (StaffRole, SeatCategory, BookingStatus, …)
   Models/          thin table gateways returning arrays (Model::find/where/create/update)
-  Services/        business logic: Auth/, Kyc/, Notify/, Visitors/, Pricing/, Space/, Bookings/, SettingsService, AuditLog
+  Services/        business logic: Auth/, Kyc/, Notify/, Visitors/, Pricing/, Space/, Bookings/, Payments/, SettingsService, AuditLog
   Support/Clock.php    request-scoped "now" (container singleton; tests freeze it)
   Support/helpers.php  global helpers (e(), url(), asset(), icon(), icon_symbol(), money(), old(), errors(), csrf_field(), visitor(),
                    format_phone(), format_bytes(), …); Support/IndianStates (GST state codes)
@@ -64,7 +64,7 @@ database/
   seeds/           Database\Seeds\*Seeder classes + data/kottarakara_layout.php
 public/            web root ONLY: index.php, .htaccess, assets/ (built CSS, vendored JS), media/ (images)
 storage/           logs, sessions, uploads (KYC — never public), pdf, exports, cache
-bin/console        migrations, seeding, routes list, key generation
+bin/console        migrations, seeding, routes list, key generation, bookings:tick, holds:cleanup (cron — see README)
 tests/Unit         PHPUnit tests
 ```
 
@@ -309,6 +309,42 @@ map page). Views: `staff/layout/{designer,inspector-design,inspector-pricing,dia
 (the draft preview passes `extra.preview = true`: no holds, no polling). Sprite: pass facility icons via
 `partials/space/sprite` `extra`. Alpine `x-for` does not work inside `<svg>` — draw with DOM calls or a PHP loop.
 
+## Booking lifecycle, front desk & payments (batch 5)
+
+Spec §1.2, 6.1–6.3, 7.2. **All status changes go through `Bookings\BookingWorkflow`** — never `UPDATE bookings SET
+status` elsewhere. `BookingStatus::transitions()` is the state machine; `transition()` locks the booking row, checks the
+transition, runs the guard + side effects, audits `booking.{status}` (actor + reason) and notifies
+(`BookingNotifier`: visitor `emails/booking-update`, staff `emails/staff-booking-update`, `notifications` rows).
+Failures throw `Bookings\WorkflowException` (`kind` = state|permission|kyc|payment|seats|input, optional `link`);
+controllers turn it into a flash / 422 JSON. Actors: `Bookings\Actor::staff($row)|visitor($account, $customer)|system()`
+(`can()` = StaffRole abilities; new abilities: `bookings.cancel`, `bookings.extend`, `payments.void`).
+
+| Service | Use it for |
+|---|---|
+| `Bookings\BookingWorkflow` | `approve` (KYC verified required; sets `payment_due_by`), `reject`, `confirm` / `confirmIfReady`, `activate`, `complete` (closes check-ins), `cancel` (visitor: own requested/approved), `expire`, `earlyExit` (shortens `end_date`, keeps `original_end_date`, cancels later rent periods), `actions()` = buttons per state + role |
+| `Payments\ConfirmationRule` | **the** "what must be paid before confirmation" rule: advance → grand total; security deposit → deposit + first rent period |
+| `Payments\RentSchedule` / `DuesCalculator` | pure maths: monthly periods (sum = grand total exactly); dues/allocation (deposit-kind → deposit, others → periods FIFO, surplus spills), `due_now`, `confirmation_met` |
+| `Payments\PaymentLedger` | read side: `schedule()` (lazily generated, `rent_schedules`), `payments()`, `dues()`, `customerOutstanding()`, `topOutstanding()` |
+| `Payments\PaymentService` | `log()` (status `logged`, reference required unless cash, no overpayment, proof via `DocumentStore::storeFile()` into `storage/uploads/payments/{booking}`; then `confirmIfReady`), `void()` (manager, reason; never delete). `verified_by/verified_at` are Finance's (batch 6) |
+| `Bookings\CheckinService` | `checkIn/checkOut` per booking seat (first check-in activates; last check-out on/after end completes), `toggleBySeat()` (explorer popover), `forVisitor()` (QR desk), `bySeatKey()` |
+| `Bookings\SeatTransferService` | handover: old `booking_seats` row released (`released_at`, `transferred_to_id`, end cut to the day before) + new row; open check-in moves; `priceDifference()` shown, never billed |
+| `Bookings\RenewalService` | extensions = new booking with `renewed_from_id`, from end+1, seats matched by `seat_key` (replacements when taken), re-quoted at the rate on the new start date; `explorerPreset()` for `?renew=` |
+| `Bookings\BookingTicker` | `bookings:tick` (activate / complete / expire / reminders; idempotent via `notifications.dedupe_key`) |
+| `Bookings\FrontDeskService` + `Space\MiniMapPresenter` | dashboard board + read-only mini-maps (`partials/booking/minimap`, Alpine `seatMiniMap` in `resources/js/frontdesk.js`) |
+
+Rules of thumb:
+- Released `booking_seats` rows (`released_at` set) never count for occupancy; current seats = `transferred_to_id IS NULL`.
+  `uq_booking_seats` was dropped (a seat may return to a booking) — insert rows, never update `seat_id`.
+- `checkins` carry `booking_seat_id` + `seat_key`; "who is checked in here" matches on `seat_key`.
+- Payments: statuses `logged|verified|rejected|refunded|void` (`PaymentStatus::countingValues()` = logged + verified count
+  towards dues). Money on early exit / handover is never re-billed automatically — Finance issues credit notes.
+- Views: `staff/bookings/{index,show,handover,extend}`, `staff/checkin/index`, `staff/dashboard/front-desk`,
+  shared `partials/booking/{dues,payments,minimap,timeline,price-summary}`. `frontdesk.js` also has `paymentForm`,
+  `handoverForm`, `checkinScanner` (BarcodeDetector with typed fallback). Load `space-render.js` before `frontdesk.js`.
+- The staff explorer seat popover (occupied seats) calls `POST /staff/checkin/seat`; map rows now carry `key` (= seat_key)
+  and `occupant.checked_in / can_check`.
+- Settings: `approval_payment_days`, `renewal_reminder_days` ("15,7,1").
+
 ## Front-end
 
 - **Tailwind v4, CSS-first.** All brand values are tokens in the `@theme` block of `resources/css/app.css`
@@ -341,15 +377,14 @@ map page). Views: `staff/layout/{designer,inspector-design,inspector-pricing,dia
 - **Batch 3 (done) — Space Explorer & booking requests:** see "Space Explorer & bookings" above. Not built: the
   Layout & Pricing Designer (spec 5.4 — reuse `GridLayout`/`LayoutBlueprint`, `ExplorerPresenter` and explorer.js
   rendering in an edit mode — DONE in batch 4), quick
-  check-in/out from the seat popover, SSE instead of polling, a cron for `SeatHoldService::purgeExpired()`.
+  check-in/out from the seat popover (DONE in batch 5), SSE instead of polling, a cron for `SeatHoldService::purgeExpired()` (DONE: `holds:cleanup`).
 - **Batch 4 (done) — Layout & Pricing Designer:** see above. Not built: State Admin read-only designer view,
   scheduled (future-dated) layout publishes, resizing seats with handles (use the inspector), per-seat facility
   stock, audit viewer UI.
-- **Next — bookings/payments:** approve/reject on `/staff/bookings/{no}` (only `requested` → `approved`; require
-  `kyc_status = verified` to confirm), payments against `bookings.payment_rule` / `deposit_amount` / `grand_total`,
-  confirmation + allotment, check-in (`checkins`), cancellation (`released_at`, status `cancelled` frees seats
-  automatically), renewals reopening the explorer with seats preselected, notifications to staff on new requests
-  (currently only logged).
-- **Batch 5 — finance PDFs (dompdf) / Batch 6 — dashboards & XLSX (PhpSpreadsheet, Chart.js):** `invoices`,
+- **Batch 5 (done) — booking lifecycle, front desk & payments:** see above. Not built: online payment gateway,
+  staff notification inbox UI (rows are written to `notifications`), handover of part of a cabin, rescheduling hourly
+  bookings, automatic re-billing / refunds (Finance credit notes), SMS/WhatsApp reminders.
+- **Next: batch 6 — finance PDFs (dompdf): verify logged payments (`payments.verified_by/at`), GST invoices from
+  `rent_schedules` periods / advances, receipts, credit notes for early exits & handover differences; then dashboards & XLSX (PhpSpreadsheet, Chart.js):** `invoices`,
   `invoice_items`, `receipts`, `credit_notes`, `number_sequences`, `import_batches`; `setting('invoice_prefix')` etc.
   PDF templates go in `resources/views/pdf/` (tables + inline CSS, no Tailwind).
