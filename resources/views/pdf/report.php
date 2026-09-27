@@ -11,7 +11,7 @@
  * @var array<string, string> $supplier
  * @var int $maxRows
  */
-$this->layout('pdf/layout', ['title' => $result->title, 'extraCss' => '@page { margin: 11mm 10mm 14mm 10mm; } body { font-size: 7.2pt; } .grid td, .grid th { padding: 2.8pt 3.4pt; } .sheet-title { font-size: 9.5pt; font-weight: bold; color: #0b1b3f; margin: 12pt 0 0 0; } .filters td { padding: 1pt 8pt 1pt 0; } .note { color: #6b7280; font-size: 6.8pt; margin-top: 3pt; } .page-foot { position: fixed; bottom: -8mm; left: 0; right: 0; font-size: 6.4pt; color: #9ca3af; }']);
+$this->layout('pdf/layout', ['title' => $result->title, 'extraCss' => '@page { margin: 11mm 10mm 14mm 10mm; } body { font-size: 7.2pt; } .grid td, .grid th { padding: 2.8pt 3.4pt; } .sheet-title { font-size: 9.5pt; font-weight: bold; color: #0b1b3f; margin: 12pt 0 0 0; } .filters td { padding: 1pt 8pt 1pt 0; } .note { color: #6b7280; font-size: 6.8pt; margin-top: 3pt; } .grid.dense td, .grid.dense th { font-size: 5.9pt; padding: 2pt 2.4pt; } .grid.dense td.mono { font-size: 5.6pt; } .grid.dense td { word-wrap: break-word; } .page-foot { position: fixed; bottom: -8mm; left: 0; right: 0; font-size: 6.4pt; color: #9ca3af; }']);
 ?>
 <div class="page-foot"><?= e($supplier['legal_name'] ?? '') ?> · <?= e($result->title) ?> · generated <?= e($generatedAt) ?></div>
 <table class="head">
@@ -35,13 +35,14 @@ $this->layout('pdf/layout', ['title' => $result->title, 'extraCss' => '@page { m
 
 <?php foreach ($result->allSheets() as $si => $sheet):
     $rows = array_slice($sheet->rows, 0, $maxRows);
+    $dense = count($sheet->columns) > 10; // wide lists: smaller type, IDs may wrap so the table fits the page
 ?>
     <?php if ($si > 0 || $result->sheets !== []): ?><div class="sheet-title"><?= e($sheet->title) ?> <span class="muted" style="font-weight:normal;">· <?= count($sheet->rows) ?> row<?= count($sheet->rows) === 1 ? '' : 's' ?></span></div><?php endif ?>
-    <table class="grid mt8">
+    <table class="grid mt8 <?= $dense ? 'dense' : '' ?>">
         <thead><tr><?php foreach ($sheet->columns as $c): ?><th class="<?= $c->numeric() ? 'r' : '' ?>"><?= e($c->label) ?></th><?php endforeach ?></tr></thead>
         <tbody>
         <?php foreach ($rows as $r): ?>
-            <tr><?php foreach ($sheet->columns as $c): ?><td class="<?= $c->numeric() ? 'r nowrap' : ($c->type === 'mono' ? 'mono nowrap' : (in_array($c->type, ['date', 'datetime'], true) ? 'nowrap' : '')) ?>"><?= e($c->format($r[$c->key] ?? null)) ?></td><?php endforeach ?></tr>
+            <tr><?php foreach ($sheet->columns as $c): ?><td class="<?= $c->numeric() ? 'r nowrap' : ($c->type === 'mono' ? 'mono' . ($dense ? '' : ' nowrap') : (in_array($c->type, ['date', 'datetime'], true) ? 'nowrap' : '')) ?>"><?= e($c->format($r[$c->key] ?? null)) ?></td><?php endforeach ?></tr>
         <?php endforeach ?>
         <?php if ($rows === []): ?><tr><td colspan="<?= count($sheet->columns) ?>" class="c muted">No rows for these filters.</td></tr><?php endif ?>
         </tbody>
