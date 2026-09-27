@@ -12,10 +12,18 @@ declare(strict_types=1);
 
 use App\Controllers\Staff\AuthController;
 use App\Controllers\Staff\BookingController;
+use App\Controllers\Staff\BookingDocumentController;
 use App\Controllers\Staff\CheckinController;
 use App\Controllers\Staff\DashboardController;
 use App\Controllers\Staff\ExplorerController;
 use App\Controllers\Staff\FacilityController;
+use App\Controllers\Staff\Finance\DepositRefundController;
+use App\Controllers\Staff\Finance\FinanceController;
+use App\Controllers\Staff\Finance\FinanceDocumentController;
+use App\Controllers\Staff\Finance\FinanceSettingsController;
+use App\Controllers\Staff\Finance\InvoiceController;
+use App\Controllers\Staff\Finance\PaymentVerificationController;
+use App\Controllers\Staff\Finance\RegisterController;
 use App\Controllers\Staff\KycController;
 use App\Controllers\Staff\LayoutApiController;
 use App\Controllers\Staff\LayoutController;
@@ -122,6 +130,31 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
         $r->post('/facilities/{id:\d+}/toggle', [FacilityController::class, 'toggle'])->name('facilities.toggle')->middleware('can:facilities.manage');
         $r->delete('/facilities/{id:\d+}', [FacilityController::class, 'destroy'])->name('facilities.destroy')->middleware('can:facilities.manage');
 
-        // Batch 6+: finance (invoices, receipts, credit notes), reports ...
+        // Booking / visitor PDFs (generated on demand): allotment letter (confirmed+), visitor ID card.
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/allotment-letter.pdf', [BookingDocumentController::class, 'allotment'])->name('bookings.allotment')->middleware('can:bookings.view');
+        $r->get('/visitors/{ref:[A-Za-z0-9-]+}/id-card.pdf', [BookingDocumentController::class, 'idCard'])->name('visitors.id_card')->middleware('can:visitors.view');
+
+        // Finance (batch 6, spec 6.4): dashboard, payment verification, invoices / receipts / credit notes / deposit
+        // refunds, registers, settings. Rules: app/Services/Finance. {type} = invoice|receipt|credit-note|deposit-refund.
+        $r->get('/finance', [FinanceController::class, 'index'])->name('finance.dashboard')->middleware('can:reports.finance');
+        $r->get('/finance/settings', [FinanceSettingsController::class, 'edit'])->name('finance.settings')->middleware('can:finance.settings');
+        $r->put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update')->middleware('can:finance.settings');
+        $r->get('/finance/payments', [PaymentVerificationController::class, 'index'])->name('payments.index')->middleware('can:payments.view');
+        $r->post('/finance/payments/verify', [PaymentVerificationController::class, 'bulk'])->name('payments.bulk_verify')->middleware('can:payments.verify');
+        $r->post('/finance/payments/{id:\d+}/verify', [PaymentVerificationController::class, 'verify'])->name('payments.verify')->middleware('can:payments.verify');
+        $r->post('/finance/payments/{id:\d+}/query', [PaymentVerificationController::class, 'query'])->name('payments.query')->middleware('can:payments.verify');
+        $r->post('/payments/{id:\d+}/reply', [PaymentVerificationController::class, 'reply'])->name('payments.reply')->middleware('can:payments.log');
+        $r->get('/finance/invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('can:invoices.view');
+        $r->post('/finance/invoices', [InvoiceController::class, 'store'])->name('invoices.store')->middleware('can:invoices.manage');
+        $r->get('/finance/invoices/{id:\d+}', [InvoiceController::class, 'show'])->name('invoices.show')->middleware('can:invoices.view');
+        $r->post('/finance/invoices/{id:\d+}/credit-notes', [InvoiceController::class, 'creditNote'])->name('credit_notes.store')->middleware('can:credit_notes.manage');
+        $r->get('/finance/deposits/{no:[A-Za-z0-9-]+}/refund', [DepositRefundController::class, 'create'])->name('deposits.create')->middleware('can:deposits.refund');
+        $r->post('/finance/deposits/{no:[A-Za-z0-9-]+}/refund', [DepositRefundController::class, 'store'])->name('deposits.store')->middleware('can:deposits.refund');
+        $r->get('/finance/documents/{type:invoice|receipt|credit-note|deposit-refund}/{id:\d+}/{slug:[A-Za-z0-9-]+}.pdf', [FinanceDocumentController::class, 'pdf'])->name('finance.documents.pdf')->middleware('can:invoices.view');
+        $r->post('/finance/documents/{type:invoice|receipt|credit-note|deposit-refund}/{id:\d+}/reprint', [FinanceDocumentController::class, 'reprint'])->name('finance.documents.reprint')->middleware('can:invoices.manage');
+        $r->get('/finance/registers', [RegisterController::class, 'index'])->name('registers.index')->middleware('can:reports.finance');
+        $r->get('/finance/registers/{type:[a-z-]+}.pdf', [RegisterController::class, 'pdf'])->name('registers.pdf')->middleware('can:reports.finance');
+
+        // Batch 7+: reports & XLSX ...
     });
 });

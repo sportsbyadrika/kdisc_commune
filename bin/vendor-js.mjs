@@ -50,6 +50,8 @@ const ICONS = [
   'cloud-off', 'square-mouse-pointer', 'layout-template', 'shapes',
   'bike', 'car', 'shower-head', 'microwave', 'refrigerator', 'headphones', 'tv', 'fan', 'cctv', 'dumbbell', 'baby', 'cup-soda',
   'utensils-crossed', 'heart-pulse', 'droplets', 'cigarette-off', 'lamp', 'phone-call', 'router', 'battery-charging', 'sofa',
+  // batch 6 — finance
+  'file-minus', 'piggy-bank', 'message-circle-question', 'check-check', 'banknote', 'file-down', 'scroll-text', 'stamp', 'list-checks',
 ];
 
 mkdirSync(vendorDir, { recursive: true });

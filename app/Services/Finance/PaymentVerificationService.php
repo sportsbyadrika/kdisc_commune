@@ -19,7 +19,7 @@ use App\Support\Clock;
  *
  *   verify()      logged → verified: verified_by/at, audit `payment.verify`, and the receipt RCPT/{FY}/{n} is issued
  *                 in the same transaction (ReceiptService). bulkVerify() does it per payment (one failure never
- *                 blocks the rest).
+ *                 blocks the rest) and skips payments with an open query.
  *   query()       sends a logged payment back to the front desk with a note (flag + notification + email); it stays
  *                 in the queue marked "queried" until the desk replies (resolve()) or Finance verifies it anyway.
  *   void          stays a Centre Manager action (PaymentService::void(), ability payments.void).
@@ -117,6 +117,10 @@ final class PaymentVerificationService
     {
         $out = ['verified' => [], 'failed' => []];
         foreach (array_values(array_unique(array_map('intval', $ids))) as $id) {
+            if ($this->db->scalar('SELECT 1 FROM payments WHERE id = ? AND queried_at IS NOT NULL AND query_resolved_at IS NULL', [$id])) {
+                $out['failed'][$id] = 'open query — verify it on its own once the front desk has answered.';
+                continue;
+            }
             try {
                 $out['verified'][] = $this->verify($id, $actor);
             } catch (FinanceException $e) {

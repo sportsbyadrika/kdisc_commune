@@ -22,6 +22,10 @@
  * @var array<string, string> $kinds
  * @var array<string, string> $modes
  * @var string $suggestedKind
+ * @var array<string, list<array<string, mixed>>> $documents  FinanceDocuments::forBooking()
+ * @var list<array<string, mixed>> $pendingInvoices  verified, not yet invoiced
+ * @var string|null $allotmentUrl
+ * @var bool $canReply  may answer Finance queries on payments
  * @var string $today
  */
 use App\Enums\BookingSource;
@@ -261,12 +265,17 @@ $errorsOpen = errors('amount') !== null || errors('reference_no') !== null || er
                 </div>
                 <?= $this->partial('partials/booking/dues', ['dues' => $dues, 'booking' => $booking, 'staff' => true]) ?>
                 <h3 class="mt-6 mb-2 text-xs font-bold tracking-[0.14em] text-muted uppercase">Payment history</h3>
-                <?= $this->partial('partials/booking/payments', ['payments' => $payments, 'staff' => true, 'canVoid' => $actions['void_payment']]) ?>
+                <?= $this->partial('partials/booking/payments', ['payments' => $payments, 'staff' => true, 'canVoid' => $actions['void_payment'], 'canReply' => $canReply]) ?>
                 <p class="mt-3 text-xs text-muted">Logged payments count towards dues straight away; Finance verifies them and issues receipts / GST invoices.</p>
             </section>
         <?php elseif ($payments !== []): ?>
             <section class="card card-body"><h2 class="mb-4 text-lg font-bold">Payments</h2><?= $this->partial('partials/booking/payments', ['payments' => $payments, 'staff' => true, 'canVoid' => false]) ?></section>
         <?php endif ?>
+
+        <section class="card card-body" id="documents">
+            <h2 class="mb-4 text-lg font-bold">Documents</h2>
+            <?= $this->partial('partials/booking/documents', ['documents' => $documents, 'allotmentUrl' => $allotmentUrl, 'pendingInvoices' => $pendingInvoices]) ?>
+        </section>
 
         <?php if ($q !== null): ?><section class="card card-body"><h2 class="mb-4 text-lg font-bold">Price (quote snapshot)</h2><?= $this->partial('partials/booking/price-summary', ['q' => $q]) ?></section><?php endif ?>
 

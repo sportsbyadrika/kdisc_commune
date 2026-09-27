@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Enums\StaffRole;
 use App\Services\Bookings\FrontDeskService;
+use App\Services\Finance\FinanceOverview;
 use App\Services\Space\CatalogService;
 
 /**
@@ -17,7 +18,12 @@ use App\Services\Space\CatalogService;
  */
 final class DashboardController extends Controller
 {
-    public function __construct(private readonly Database $db, private readonly CatalogService $catalog, private readonly FrontDeskService $frontDesk)
+    public function __construct(
+        private readonly Database $db,
+        private readonly CatalogService $catalog,
+        private readonly FrontDeskService $frontDesk,
+        private readonly FinanceOverview $finance,
+    )
     {
     }
 
@@ -46,6 +52,7 @@ final class DashboardController extends Controller
         return $this->view('staff/dashboard/index', [
             'desk' => $frontDesk ? $this->frontDesk->summary() : null,
             'occupancy' => $frontDesk ? $this->frontDesk->occupancyMaps() : [],
+            'finance' => $role === StaffRole::FinanceAdmin ? $this->finance->build() : null,
             'title' => 'Dashboard',
             'user' => $user,
             'role' => $role,

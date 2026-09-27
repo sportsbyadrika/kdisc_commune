@@ -183,7 +183,7 @@ final class CreditNoteService
      * cancelled booking → everything left.
      *
      * @param array<string, mixed> $invoice
-     * @return array{reason: string, taxable: float, explain: string}|null
+     * @return array{reason: string, taxable: float, explain: string, note: string}|null
      */
     public function suggest(array $invoice): ?array
     {
@@ -196,7 +196,7 @@ final class CreditNoteService
             return null;
         }
         if ($b['status'] === 'cancelled') {
-            return ['reason' => CreditNoteReason::Cancellation->value, 'taxable' => $left['taxable'], 'explain' => 'The booking was cancelled — credit everything that is left on this invoice.'];
+            return ['reason' => CreditNoteReason::Cancellation->value, 'taxable' => $left['taxable'], 'explain' => 'The booking was cancelled — credit everything that is left on this invoice.', 'note' => 'Booking ' . $b['booking_no'] . ' cancelled' . ($b['cancel_reason'] ? ': ' . $b['cancel_reason'] : '') . '.'];
         }
         if (empty($b['original_end_date']) || empty($invoice['period_start']) || empty($invoice['period_end'])) {
             return null;
@@ -215,6 +215,8 @@ final class CreditNoteService
             'taxable' => $taxable,
             'explain' => sprintf('Early exit: the booking now ends on %s — %d of the %d invoiced days (%s – %s) are unused, pro-rata taxable value %s.',
                 format_date((string) $b['end_date']), $unused, $days, format_date((string) $invoice['period_start']), format_date((string) $invoice['period_end']), money($taxable, 2)),
+            'note' => sprintf('Early exit — booking %s now ends on %s; %d of %d invoiced days unused (%s – %s) credited pro rata.',
+                $b['booking_no'], format_date((string) $b['end_date']), $unused, $days, format_date((new DateTimeImmutable((string) $b['end_date']))->modify('+1 day')->format('Y-m-d')), format_date((string) $invoice['period_end'])),
         ];
     }
 

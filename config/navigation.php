@@ -43,8 +43,11 @@ return [
         ['label' => 'Bulk upload', 'route' => 'staff.imports.index', 'icon' => 'file-spreadsheet', 'can' => 'bulk.import'],
         ['label' => 'Staff users', 'route' => 'staff.users.index', 'icon' => 'users-round', 'can' => 'staff.manage'],
         ['section' => 'Finance'],
-        ['label' => 'Payments', 'route' => 'staff.payments.index', 'icon' => 'wallet', 'can' => 'payments.view'],
-        ['label' => 'Invoices', 'route' => 'staff.invoices.index', 'icon' => 'receipt-indian-rupee', 'can' => 'invoices.manage'],
+        ['label' => 'Finance overview', 'route' => 'staff.finance.dashboard', 'icon' => 'chart-pie', 'can' => 'reports.finance'],
+        ['label' => 'Verify payments', 'route' => 'staff.payments.index', 'icon' => 'wallet', 'can' => 'payments.view'],
+        ['label' => 'Invoices & receipts', 'route' => 'staff.invoices.index', 'icon' => 'receipt-indian-rupee', 'can' => 'invoices.view'],
+        ['label' => 'Registers', 'route' => 'staff.registers.index', 'icon' => 'book-open-text', 'can' => 'reports.finance'],
+        ['label' => 'Finance settings', 'route' => 'staff.finance.settings', 'icon' => 'settings', 'can' => 'finance.settings'],
         ['label' => 'Reports', 'route' => 'staff.reports.index', 'icon' => 'chart-column', 'can' => 'reports.view'],
     ],
 ];

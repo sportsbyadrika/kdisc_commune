@@ -13,6 +13,7 @@ use App\Controllers\Portal\AuthController;
 use App\Controllers\Portal\BookingController;
 use App\Controllers\Portal\DashboardController;
 use App\Controllers\Portal\DocumentController;
+use App\Controllers\Portal\FinanceController;
 use App\Controllers\Portal\WizardController;
 use App\Core\Router;
 
@@ -51,5 +52,10 @@ $router->group(['as' => 'portal.'], function (Router $r): void {
         $r->get('/bookings/{no:[A-Za-z0-9-]+}', [BookingController::class, 'show'])->name('bookings.show');
         $r->post('/bookings/{no:[A-Za-z0-9-]+}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
         $r->get('/bookings/{no:[A-Za-z0-9-]+}/renew', [BookingController::class, 'renew'])->name('bookings.renew');
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/allotment-letter.pdf', [FinanceController::class, 'allotment'])->name('bookings.allotment');
+        // Invoices, receipts, credit notes, deposit refunds — {id} + number slug (numbers contain slashes).
+        $r->get('/invoices', [FinanceController::class, 'index'])->name('invoices');
+        $r->get('/invoices/{type:invoice|receipt|credit-note|deposit-refund}/{id:\d+}/{slug:[A-Za-z0-9-]+}.pdf', [FinanceController::class, 'pdf'])->name('invoices.pdf');
+        $r->get('/id-card.pdf', [FinanceController::class, 'idCard'])->name('id_card');
     });
 });

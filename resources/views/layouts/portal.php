@@ -12,7 +12,7 @@ $tabs = [
     ['portal.profile', 'Profile', 'id-card', ['portal.profile', 'portal.wizard*']],
     ['portal.documents', 'Documents', 'file-text', ['portal.documents*']],
     ['portal.bookings', 'Bookings', 'calendar-check', ['portal.bookings*']],
-    [null, 'Invoices', 'receipt-indian-rupee', []],
+    ['portal.invoices', 'Invoices', 'receipt-indian-rupee', ['portal.invoices*']],
 ];
 $who = (array) ($customer ?? []);
 ?>

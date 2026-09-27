@@ -15,6 +15,8 @@
  * @var array<string, mixed>|null $renewedFrom
  * @var bool $canRenew
  * @var string $today
+ * @var array<string, list<array<string, mixed>>> $documents FinanceDocuments::forBooking()
+ * @var string|null $allotmentUrl
  */
 use App\Enums\BookingStatus;
 
@@ -108,10 +110,16 @@ $m = static fn (float|int|string $v): string => money($v, fmod((float) $v, 1.0) 
                 <?= $this->partial('partials/booking/dues', ['dues' => $dues, 'booking' => $booking]) ?>
                 <h3 class="mt-6 mb-2 text-xs font-bold tracking-[0.14em] text-muted uppercase">Payment history</h3>
                 <?= $this->partial('partials/booking/payments', ['payments' => $payments]) ?>
-                <p class="mt-3 text-xs text-muted">Receipts and GST invoices will be downloadable here once Finance verifies each payment.</p>
             </section>
         <?php elseif ($payments !== []): ?>
             <section class="card card-body"><h2 class="mb-4 text-lg font-bold">Payments</h2><?= $this->partial('partials/booking/payments', ['payments' => $payments]) ?></section>
+        <?php endif ?>
+
+        <?php if ($allotmentUrl !== null || array_sum(array_map('count', $documents)) > 0 || $payments !== []): ?>
+            <section class="card card-body">
+                <div class="mb-4 flex items-center justify-between gap-3"><h2 class="text-lg font-bold">Documents</h2><a class="text-sm font-semibold text-brand-700 hover:underline" href="<?= e(url('portal.invoices')) ?>">All invoices &amp; receipts</a></div>
+                <?= $this->partial('partials/booking/documents', ['documents' => $documents, 'allotmentUrl' => $allotmentUrl, 'portal' => true]) ?>
+            </section>
         <?php endif ?>
 
         <?php if ($q !== null): ?>

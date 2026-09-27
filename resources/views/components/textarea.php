@@ -1,6 +1,7 @@
 <?php
 /**
  * @var string $name
+ * @var string|null $id    element id (default f-{name}; pass one when the field repeats on a page)
  * @var string|null $label
  * @var scalar|null $value
  * @var string|null $placeholder
@@ -10,7 +11,7 @@
  * @var string|null $class
  * @var array<string, scalar|null>|null $attrs
  */
-$id = 'f-' . preg_replace('/[^a-z0-9_-]/i', '-', $name);
+$id = !empty($id) ? (string) $id : 'f-' . preg_replace('/[^a-z0-9_-]/i', '-', $name);
 $error = errors($name);
 ?>
 <div class="<?= e($class ?? '') ?>">

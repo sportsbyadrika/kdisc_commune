@@ -12,6 +12,7 @@
  * @var list<array<string, mixed>> $recentLogins
  * @var array<string, mixed>|null $desk     front-desk board (receptionist / Centre Manager)
  * @var list<array<string, mixed>> $occupancy
+ * @var array<string, mixed>|null $finance   FinanceOverview (Finance Admin)
  */
 $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
@@ -26,6 +27,12 @@ $this->layout('layouts/staff', [
 <script defer src="<?= e(asset('assets/js/frontdesk.js')) ?>"></script>
 <?php $this->stop() ?>
 <?php endif ?>
+<?php if (!empty($finance)): ?>
+<?php $this->start('head') ?>
+<script defer src="<?= e(asset('assets/vendor/chart.umd.min.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/finance.js')) ?>"></script>
+<?php $this->stop() ?>
+<?php endif ?>
 <?php $this->start('actions') ?>
     <?= $this->component('badge', ['label' => date('l, j F Y'), 'tone' => 'neutral', 'icon' => 'calendar']) ?>
 <?php $this->stop() ?>
@@ -33,6 +40,7 @@ $this->layout('layouts/staff', [
 <?php if (!empty($occupancy)): ?><?= $this->partial('partials/space/sprite', ['extra' => []]) ?><?php endif ?>
 <?= $this->partial($role->dashboardView()) ?>
 
+<?php if (empty($finance)): ?>
 <div class="mt-8 grid gap-6 xl:grid-cols-3">
     <section class="card card-body xl:col-span-2">
         <div class="flex items-center justify-between">
@@ -76,3 +84,4 @@ $this->layout('layouts/staff', [
         <?php if ($recentLogins === []): ?><p class="mt-4 text-sm text-muted">No sign-ins recorded yet.</p><?php endif ?>
     </section>
 </div>
+<?php endif ?>

@@ -46,6 +46,10 @@ final class DashboardController extends PortalController
             )),
             'outstanding' => $this->ledger->customerOutstanding((int) $customer['id']),
             'today' => $this->clock->today(),
+            'documentCount' => (int) db()->scalar(
+                'SELECT (SELECT COUNT(*) FROM invoices WHERE customer_id = ?) + (SELECT COUNT(*) FROM receipts WHERE customer_id = ?) + (SELECT COUNT(*) FROM credit_notes WHERE customer_id = ?) + (SELECT COUNT(*) FROM deposit_refunds WHERE customer_id = ?)',
+                array_fill(0, 4, (int) $customer['id']),
+            ),
         ]);
     }
 

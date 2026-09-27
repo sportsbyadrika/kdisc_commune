@@ -6,6 +6,7 @@
  * Value priority: old input (after failed validation) > $value.
  *
  * @var string $name
+ * @var string|null $id    element id (default f-{name}; pass one when the field repeats on a page)
  * @var string|null $label
  * @var string|null $type  text|email|password|tel|date|number|...
  * @var scalar|null $value
@@ -17,7 +18,7 @@
  * @var string|null $class wrapper class
  * @var array<string, scalar|null>|null $attrs extra input attributes
  */
-$id = 'f-' . preg_replace('/[^a-z0-9_-]/i', '-', $name);
+$id = !empty($id) ? (string) $id : 'f-' . preg_replace('/[^a-z0-9_-]/i', '-', $name);
 $error = errors($name);
 $type ??= 'text';
 $current = $type === 'password' ? '' : old($name, $value ?? '');

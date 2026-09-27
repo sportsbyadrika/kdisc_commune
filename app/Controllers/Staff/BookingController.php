@@ -19,7 +19,10 @@ use App\Services\Bookings\CheckinService;
 use App\Services\Bookings\RenewalService;
 use App\Services\Bookings\SeatTransferService;
 use App\Services\Bookings\WorkflowException;
+use App\Services\Finance\FinanceDocuments;
+use App\Services\Finance\InvoiceService;
 use App\Services\Payments\PaymentLedger;
+use App\Services\Pdf\BookingDocuments;
 use App\Services\Space\AvailabilityService;
 use App\Services\Space\BookingPeriod;
 use App\Services\Space\FloorMapService;
@@ -75,7 +78,7 @@ final class BookingController extends Controller
         ]);
     }
 
-    public function show(string $no, RenewalService $renewals): Response
+    public function show(string $no, RenewalService $renewals, FinanceDocuments $documents, InvoiceService $invoices): Response
     {
         $booking = $this->find($no);
         $id = (int) $booking['id'];
@@ -119,6 +122,10 @@ final class BookingController extends Controller
             'renewal' => $renewals->renewalOf($id),
             'renewedFrom' => $booking['renewed_from_id'] !== null ? db()->first('SELECT booking_no, status FROM bookings WHERE id = ?', [(int) $booking['renewed_from_id']]) : null,
             'maps' => $maps,
+            'documents' => $documents->forBooking($id),
+            'pendingInvoices' => array_values(array_filter($invoices->candidates($booking + ['customer_state' => $customer['state_code'] ?? null]), static fn (array $c) => !$c['invoiced'])),
+            'allotmentUrl' => BookingDocuments::allotmentAvailable($booking) ? url('staff.bookings.allotment', ['no' => $booking['booking_no']]) : null,
+            'canReply' => $actor->can('payments.log'),
             'kinds' => PaymentKind::options(),
             'modes' => PaymentMode::deskOptions(),
             'suggestedKind' => ($booking['payment_rule'] === PaymentRule::SecurityDeposit->value && $dues['deposit']['paid'] < $dues['deposit']['due']) ? PaymentKind::Deposit->value : ($booking['payment_rule'] === PaymentRule::SecurityDeposit->value ? PaymentKind::Rent->value : PaymentKind::Advance->value),
