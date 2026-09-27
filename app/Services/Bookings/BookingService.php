@@ -66,7 +66,7 @@ final class BookingService
             // Row locks on the units and their chairs only (not the joined layout rows).
             $db->select("SELECT id FROM seats WHERE id IN ({$in}) OR parent_id IN ({$in}) ORDER BY id FOR UPDATE", [...$unitIds, ...$unitIds]);
             $locked = $db->select(
-                "SELECT s.id, s.parent_id, s.code, s.kind, z.seat_category_id, sc.code AS category, lv.floor_id, f.building_id, b.centre_id
+                "SELECT s.id, s.seat_key, s.parent_id, s.code, s.kind, z.seat_category_id, sc.code AS category, lv.floor_id, f.building_id, b.centre_id
                  FROM seats s
                  JOIN zones z ON z.id = s.zone_id
                  JOIN layout_versions lv ON lv.id = z.layout_version_id AND lv.status = 'published'
@@ -146,10 +146,12 @@ final class BookingService
                 'approved_at' => $status === BookingStatus::Approved ? $now : null,
                 'notes' => $opts['notes'] ?? null,
             ]);
+            $keyOf = array_column($units, 'seat_key', 'id');
             foreach ($quote->seats as $s) {
                 $db->insert('booking_seats', [
                     'booking_id' => $bookingId,
                     'seat_id' => $s['seat_id'],
+                    'seat_key' => (int) ($keyOf[$s['seat_id']] ?? $s['seat_id']), // stable across layout versions
                     'unit_price' => $s['unit_price'],
                     'gst_rate' => $s['gst_rate'],
                     'amount' => $s['amount'],

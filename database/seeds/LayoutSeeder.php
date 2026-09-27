@@ -48,6 +48,7 @@ final class LayoutSeeder extends Seeder
                         'colour' => $category['colour'] ?? '#94a3b8',
                         'sort_order' => $order,
                     ]);
+                    $this->db->execute('UPDATE zones SET zone_key = id WHERE id = ?', [$zoneId]);
                     foreach ($zone['seats'] as $seat) {
                         $parentId = $this->insertSeat($zoneId, $seat, null);
                         $seatCount++;
@@ -65,7 +66,7 @@ final class LayoutSeeder extends Seeder
     /** @param array<string, mixed> $seat */
     private function insertSeat(int $zoneId, array $seat, ?int $parentId): int
     {
-        return $this->db->insert('seats', [
+        $id = $this->db->insert('seats', [
             'zone_id' => $zoneId,
             'parent_id' => $parentId,
             'code' => $seat['code'],
@@ -76,5 +77,7 @@ final class LayoutSeeder extends Seeder
             'rotation' => 0,
             'status' => 'available',
         ]);
+        $this->db->execute('UPDATE seats SET seat_key = id WHERE id = ?', [$id]); // stable identity across layout versions
+        return $id;
     }
 }

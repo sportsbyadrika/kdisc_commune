@@ -42,18 +42,19 @@ final class FloorMapService
      * @param array<string, mixed> $floor
      * @return array<string, mixed>
      */
-    public function map(array $floor, BookingPeriod $period, ?SeatHolder $me = null, bool $withOccupants = false): array
+    public function map(array $floor, BookingPeriod $period, ?SeatHolder $me = null, bool $withOccupants = false, ?int $versionId = null): array
     {
         $floorId = (int) $floor['id'];
-        $seats = $this->availability->floorSeats($floorId);
-        $statuses = $this->availability->floorStatuses($floorId, $period, $me);
+        $versionId ??= $this->publishedVersionId($floorId);
+        $seats = $this->availability->floorSeats($floorId, $versionId);
+        $statuses = $this->availability->floorStatuses($floorId, $period, $me, $versionId);
         $rates = $this->prices->forSeats(array_map(static fn (array $s) => (int) $s['id'], array_filter($seats, static fn (array $s) => $s['parent_id'] === null)), $period->from);
 
         $zones = [];
         foreach ($this->db->select(
-            "SELECT z.*, sc.code AS category FROM zones z JOIN layout_versions lv ON lv.id = z.layout_version_id AND lv.status = 'published'
-             LEFT JOIN seat_categories sc ON sc.id = z.seat_category_id WHERE lv.floor_id = ? ORDER BY z.sort_order",
-            [$floorId],
+            "SELECT z.*, sc.code AS category FROM zones z
+             LEFT JOIN seat_categories sc ON sc.id = z.seat_category_id WHERE z.layout_version_id = ? AND z.code NOT LIKE '~%' ORDER BY z.sort_order",
+            [$versionId],
         ) as $z) {
             $zones[(int) $z['id']] = [
                 'id' => (int) $z['id'],
@@ -69,19 +70,15 @@ final class FloorMapService
             ];
         }
 
-        // Facilities placed on this floor: floor-, zone- and seat-scoped.
-        $seatIds = array_map(static fn (array $s) => (int) $s['id'], $seats);
-        $zoneIds = array_keys($zones);
+        // Facilities placed on this layout version: floor-, zone- and seat-scoped (scope_id = row id in the version).
         $facilities = [];
         $includedBy = ['floor' => [], 'zone' => [], 'seat' => []];
         $placements = $this->db->select(
-            "SELECT fp.id AS placement_id, fp.scope, fp.scope_id, fp.x_pct, fp.y_pct, fp.note, f.id, f.code, f.name, f.description, f.icon, f.emoji, f.kind, f.unit, f.price
+            'SELECT fp.id AS placement_id, fp.scope, fp.scope_id, fp.x_pct, fp.y_pct, fp.note, f.id, f.code, f.name, f.description, f.icon, f.emoji, f.kind, f.unit, f.price
              FROM facility_placements fp JOIN facilities f ON f.id = fp.facility_id AND f.is_active = 1
-             WHERE (fp.scope = 'floor' AND fp.scope_id = ?)
-                OR (fp.scope = 'zone' AND fp.scope_id IN (" . ($zoneIds !== [] ? implode(',', array_map('intval', $zoneIds)) : '0') . "))
-                OR (fp.scope = 'seat' AND fp.scope_id IN (" . ($seatIds !== [] ? implode(',', $seatIds) : '0') . '))
-             ORDER BY f.sort_order',
-            [$floorId],
+             WHERE fp.layout_version_id = ?
+             ORDER BY f.sort_order, fp.id',
+            [$versionId],
         );
         foreach ($placements as $p) {
             if ($p['x_pct'] !== null) {
@@ -116,7 +113,7 @@ final class FloorMapService
         }
         unset($zone);
 
-        $occupants = $withOccupants ? $this->availability->occupants($floorId, $period) : [];
+        $occupants = $withOccupants ? $this->availability->occupants($floorId, $period, $versionId) : [];
         $outSeats = [];
         $hourlyUnits = [];
         foreach ($seats as $s) {
@@ -205,6 +202,12 @@ final class FloorMapService
             'slots' => (object) $slots,
             'version' => self::version($statusOnly, $slots),
         ];
+    }
+
+    /** Published layout version of a floor (0 when the floor has none yet). */
+    public function publishedVersionId(int $floorId): int
+    {
+        return (int) $this->db->scalar("SELECT id FROM layout_versions WHERE floor_id = ? AND status = 'published' ORDER BY version_no DESC LIMIT 1", [$floorId]);
     }
 
     /**

@@ -44,6 +44,7 @@ final class FacilitySeeder extends Seeder
             return;
         }
 
+        $db = $this->db;
         $f = [];
         foreach ($this->db->select('SELECT id, code FROM facilities') as $row) {
             $f[(string) $row['code']] = (int) $row['id'];
@@ -88,8 +89,16 @@ final class FacilitySeeder extends Seeder
             ['LIFT', 'floor', $floor('first-floor'), 80.0, 87.0],
             ['FIRE_EXIT', 'floor', $floor('first-floor'), 93.0, 87.0],
         ];
+        $version = static function (string $scope, int $scopeId) use ($db): int {
+            return (int) match ($scope) {
+                'zone' => $db->scalar('SELECT layout_version_id FROM zones WHERE id = ?', [$scopeId]),
+                'seat' => $db->scalar('SELECT z.layout_version_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id = ?', [$scopeId]),
+                default => $db->scalar("SELECT id FROM layout_versions WHERE floor_id = ? AND status = 'published'", [$scopeId]),
+            };
+        };
         foreach ($placements as [$code, $scope, $scopeId, $x, $y]) {
             $this->db->insert('facility_placements', [
+                'layout_version_id' => $version($scope, $scopeId),
                 'facility_id' => $f[$code], 'scope' => $scope, 'scope_id' => $scopeId, 'x_pct' => $x, 'y_pct' => $y,
             ]);
         }

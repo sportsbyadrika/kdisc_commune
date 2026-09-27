@@ -98,14 +98,15 @@ final class ExplorerPresenter
      *
      * @param array<string, mixed> $floor
      * @param array{from: string, to: string, type: string} $filters
-     * @param array<string, mixed> $extra
+     * @param array<string, mixed> $extra overrides/additions (e.g. 'preview' => true for the Designer's draft preview)
+     * @param ?int $versionId layout version to render (default: the published one) — the Designer previews drafts
      * @return array<string, mixed>
      */
-    public function floorConfig(array $floor, array $filters, bool $staff, ?SeatHolder $holder, array $extra = []): array
+    public function floorConfig(array $floor, array $filters, bool $staff, ?SeatHolder $holder, array $extra = [], ?int $versionId = null): array
     {
         $api = $staff ? '/staff/api/space' : '/api/space';
-        $initial = $this->maps->map($floor, BookingPeriod::days($filters['from'], $filters['to']), $holder, $staff);
-        return [
+        $initial = $this->maps->map($floor, BookingPeriod::days($filters['from'], $filters['to']), $holder, $staff, $versionId);
+        return array_replace([
             'api' => url($api),
             'floor' => (string) $floor['slug'],
             'from' => $filters['from'],
@@ -126,6 +127,6 @@ final class ExplorerPresenter
             'registerUrl' => url('portal.register'),
             'checkoutUrl' => $staff ? null : url('spaces.checkout.start'),
             'initial' => $initial + ['floors' => $this->maps->floors(), 'selection' => $holder !== null ? $this->holds->selectionPayload($holder) : null],
-        ] + $extra;
+        ], $extra);
     }
 }

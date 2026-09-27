@@ -12,6 +12,10 @@ use App\Enums\BillingUnit;
  *   seat price = seat override ?? zone rate ?? category base rate   (effective on the booking start date)
  *
  * Returns rows like ['amount' => 4000.0, 'gst_rate' => 18.0, 'scope' => 'category', 'rate_id' => 3].
+ *
+ * Seat and zone rates are keyed by the STABLE identities seats.seat_key / zones.zone_key (rates.scope_id),
+ * so an override keeps applying when the Layout Designer publishes a new layout version.
+ * Rates are never edited once created: RateService adds a new effective-dated row and closes the previous one.
  */
 final class PriceResolver
 {
@@ -23,14 +27,14 @@ final class PriceResolver
     public function forSeat(int $seatId, BillingUnit $unit, ?string $onDate = null): ?array
     {
         $seat = $this->db->first(
-            'SELECT s.id, s.zone_id, z.seat_category_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id = ?',
+            'SELECT s.id, s.seat_key, z.zone_key, z.seat_category_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id = ?',
             [$seatId],
         );
         if ($seat === null) {
             return null;
         }
-        return $this->rate('seat', (int) $seat['id'], $unit, $onDate)
-            ?? $this->rate('zone', (int) $seat['zone_id'], $unit, $onDate)
+        return $this->rate('seat', (int) $seat['seat_key'], $unit, $onDate)
+            ?? $this->rate('zone', (int) $seat['zone_key'], $unit, $onDate)
             ?? ($seat['seat_category_id'] !== null ? $this->rate('category', (int) $seat['seat_category_id'], $unit, $onDate) : null);
     }
 
@@ -49,7 +53,7 @@ final class PriceResolver
         $seatIds = array_values($seatIds);
         $in = implode(',', array_fill(0, count($seatIds), '?'));
         $seats = $this->db->select(
-            "SELECT s.id, s.zone_id, z.seat_category_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id IN ({$in})",
+            "SELECT s.id, s.seat_key, z.zone_key, z.seat_category_id FROM seats s JOIN zones z ON z.id = s.zone_id WHERE s.id IN ({$in})",
             $seatIds,
         );
         $latest = [];
@@ -66,8 +70,8 @@ final class PriceResolver
         $out = [];
         foreach ($seats as $s) {
             foreach (BillingUnit::cases() as $unit) {
-                $rate = $latest['seat:' . $s['id'] . ':' . $unit->value]
-                    ?? $latest['zone:' . $s['zone_id'] . ':' . $unit->value]
+                $rate = $latest['seat:' . $s['seat_key'] . ':' . $unit->value]
+                    ?? $latest['zone:' . $s['zone_key'] . ':' . $unit->value]
                     ?? ($s['seat_category_id'] !== null ? ($latest['category:' . $s['seat_category_id'] . ':' . $unit->value] ?? null) : null);
                 if ($rate !== null) {
                     $out[(int) $s['id']][$unit->value] = $rate;

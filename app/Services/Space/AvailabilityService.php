@@ -26,8 +26,13 @@ use App\Support\Clock;
  * Hourly-only units (the conference room) are checked by time only when the period is hourly; for a
  * day-range query they are "available" unless blocked (the slot picker shows the booked hours).
  *
- * Only PUBLISHED layout versions are considered. Expired holds are ignored (and lazily purged by
- * SeatHoldService).
+ * Only PUBLISHED layout versions are considered (a draft can be previewed by passing its version id to
+ * floorSeats()/floorStatuses()). Expired holds are ignored (and lazily purged by SeatHoldService).
+ *
+ * Seat identity across layout versions: bookings are matched by seats.seat_key (= booking_seats.seat_key),
+ * never by the seat row id, so a booking made on an older layout version keeps occupying the same seat
+ * after the Designer publishes a new version (see LayoutPublisher). Holds reference live rows and are
+ * re-pointed on publish.
  */
 final class AvailabilityService
 {
@@ -52,17 +57,18 @@ final class AvailabilityService
      *
      * @return list<array<string, mixed>>
      */
-    public function floorSeats(int $floorId): array
+    public function floorSeats(int $floorId, ?int $versionId = null): array
     {
+        $version = $versionId !== null ? 'lv.id = ?' : "lv.status = 'published'";
         return $this->db->select(
             "SELECT s.*, z.code AS zone_code, z.name AS zone_name, z.seat_category_id, sc.code AS category
              FROM seats s
              JOIN zones z ON z.id = s.zone_id
-             JOIN layout_versions lv ON lv.id = z.layout_version_id AND lv.status = 'published'
+             JOIN layout_versions lv ON lv.id = z.layout_version_id AND {$version}
              LEFT JOIN seat_categories sc ON sc.id = z.seat_category_id
              WHERE lv.floor_id = ?
              ORDER BY z.sort_order, s.parent_id IS NOT NULL, s.id",
-            [$floorId],
+            $versionId !== null ? [$versionId, $floorId] : [$floorId],
         );
     }
 
@@ -71,9 +77,9 @@ final class AvailabilityService
      *
      * @return array<int, string> seat id => status
      */
-    public function floorStatuses(int $floorId, BookingPeriod $period, ?SeatHolder $me = null): array
+    public function floorStatuses(int $floorId, BookingPeriod $period, ?SeatHolder $me = null, ?int $versionId = null): array
     {
-        return $this->statusesFor($this->floorSeats($floorId), $period, $me);
+        return $this->statusesFor($this->floorSeats($floorId, $versionId), $period, $me);
     }
 
     /**
@@ -117,8 +123,10 @@ final class AvailabilityService
         $parentOf = [];
         $hourly = [];
         $status = [];
+        $idOfKey = [];
         foreach ($rows as $r) {
             $id = (int) $r['id'];
+            $idOfKey[(int) ($r['seat_key'] ?? $id)] = $id;
             $parentOf[$id] = $r['parent_id'] !== null ? (int) $r['parent_id'] : $id;
             if (SeatCategory::tryFrom((string) ($r['category'] ?? ''))?->hourlyOnly()) {
                 $hourly[$id] = true;
@@ -143,8 +151,12 @@ final class AvailabilityService
             }
         }
         if ($check !== []) {
-            foreach ($this->overlappingBookings($check, $period, $ignoreBookingId) as $seatId) {
-                $raise($unitOf($seatId), self::OCCUPIED);
+            $keyOf = array_flip($idOfKey);
+            $keys = array_values(array_map(static fn (int $id): int => $keyOf[$id] ?? $id, $check));
+            foreach ($this->overlappingBookingKeys($keys, $period, $ignoreBookingId) as $key) {
+                if (isset($idOfKey[$key])) {
+                    $raise($unitOf($idOfKey[$key]), self::OCCUPIED);
+                }
             }
             foreach ($this->overlappingHolds($check, $period) as $h) {
                 $mine = $me !== null && $h['holder_type'] === $me->type->value && (int) $h['holder_id'] === $me->id && $h['session_id'] === $me->sessionId;
@@ -171,7 +183,8 @@ final class AvailabilityService
     }
 
     /**
-     * Seat ids with an overlapping booking in an active status.
+     * Seat ids (of any layout version) with an overlapping booking in an active status — matched by seat_key,
+     * so bookings made on earlier layout versions count.
      *
      * @param list<int> $seatIds
      * @return list<int>
@@ -182,11 +195,34 @@ final class AvailabilityService
             return [];
         }
         $in = implode(',', array_fill(0, count($seatIds), '?'));
+        $idOfKey = [];
+        foreach ($this->db->select("SELECT id, seat_key FROM seats WHERE id IN ({$in})", $seatIds) as $r) {
+            $idOfKey[(int) $r['seat_key']] = (int) $r['id'];
+        }
+        $out = [];
+        foreach ($this->overlappingBookingKeys(array_keys($idOfKey), $period, $ignoreBookingId) as $key) {
+            $out[] = $idOfKey[$key];
+        }
+        return $out;
+    }
+
+    /**
+     * seat_keys with an overlapping booking in an active status.
+     *
+     * @param list<int> $seatKeys
+     * @return list<int>
+     */
+    public function overlappingBookingKeys(array $seatKeys, BookingPeriod $period, ?int $ignoreBookingId = null): array
+    {
+        if ($seatKeys === []) {
+            return [];
+        }
+        $in = implode(',', array_fill(0, count($seatKeys), '?'));
         $st = implode(',', array_fill(0, count(self::activeStatuses()), '?'));
-        $sql = "SELECT DISTINCT bs.seat_id FROM booking_seats bs JOIN bookings b ON b.id = bs.booking_id
-                WHERE bs.seat_id IN ({$in}) AND bs.released_at IS NULL AND b.status IN ({$st})
+        $sql = "SELECT DISTINCT bs.seat_key FROM booking_seats bs JOIN bookings b ON b.id = bs.booking_id
+                WHERE bs.seat_key IN ({$in}) AND bs.released_at IS NULL AND b.status IN ({$st})
                   AND bs.start_date <= ? AND bs.end_date >= ?";
-        $bind = [...$seatIds, ...self::activeStatuses(), $period->to, $period->from];
+        $bind = [...$seatKeys, ...self::activeStatuses(), $period->to, $period->from];
         if ($period->isHourly()) {
             $sql .= ' AND (bs.start_time IS NULL OR (bs.start_time < ? AND bs.end_time > ?))';
             array_push($bind, $period->endTime, $period->startTime);
@@ -258,7 +294,7 @@ final class AvailabilityService
         $out = [];
         foreach ($this->db->select(
             "SELECT bs.start_time, bs.end_time FROM booking_seats bs JOIN bookings b ON b.id = bs.booking_id
-             WHERE bs.seat_id = ? AND bs.released_at IS NULL AND b.status IN ({$st}) AND bs.start_date <= ? AND bs.end_date >= ?
+             WHERE bs.seat_key = (SELECT seat_key FROM seats WHERE id = ?) AND bs.released_at IS NULL AND b.status IN ({$st}) AND bs.start_date <= ? AND bs.end_date >= ?
              ORDER BY bs.start_time",
             [$unitId, ...self::activeStatuses(), $date, $date],
         ) as $r) {
@@ -283,20 +319,21 @@ final class AvailabilityService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function occupants(int $floorId, BookingPeriod $period): array
+    public function occupants(int $floorId, BookingPeriod $period, ?int $versionId = null): array
     {
         $st = implode(',', array_fill(0, count(self::activeStatuses()), '?'));
-        $sql = "SELECT bs.seat_id, b.id AS booking_id, b.booking_no, b.status, b.start_date, b.end_date, bs.start_time, bs.end_time,
+        $version = $versionId !== null ? 'lv.id = ?' : "lv.status = 'published'";
+        $sql = "SELECT s.id AS seat_id, b.id AS booking_id, b.booking_no, b.status, b.start_date, b.end_date, bs.start_time, bs.end_time,
                        c.name AS customer_name, c.unique_id
                 FROM booking_seats bs
                 JOIN bookings b ON b.id = bs.booking_id
                 JOIN customers c ON c.id = b.customer_id
-                JOIN seats s ON s.id = bs.seat_id
+                JOIN seats s ON s.seat_key = bs.seat_key
                 JOIN zones z ON z.id = s.zone_id
-                JOIN layout_versions lv ON lv.id = z.layout_version_id AND lv.status = 'published'
+                JOIN layout_versions lv ON lv.id = z.layout_version_id AND {$version}
                 WHERE lv.floor_id = ? AND bs.released_at IS NULL AND b.status IN ({$st})
                   AND bs.start_date <= ? AND bs.end_date >= ?";
-        $bind = [$floorId, ...self::activeStatuses(), $period->to, $period->from];
+        $bind = [...($versionId !== null ? [$versionId] : []), $floorId, ...self::activeStatuses(), $period->to, $period->from];
         if ($period->isHourly()) {
             $sql .= ' AND (bs.start_time IS NULL OR (bs.start_time < ? AND bs.end_time > ?))';
             array_push($bind, $period->endTime, $period->startTime);
