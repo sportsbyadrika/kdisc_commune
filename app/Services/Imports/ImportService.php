@@ -124,6 +124,10 @@ final class ImportService
         if (!in_array($mime, self::XLSX_MIMES, true) || (string) file_get_contents($tmp, false, null, 0, 2) !== 'PK') {
             throw $fail('That is not a valid .xlsx workbook.');
         }
+        $bomb = \App\Services\Security\UploadGuard::zip($tmp);
+        if ($bomb !== null) {
+            throw $fail($bomb);
+        }
         try {
             if (!(new XlsxReader())->canRead($tmp)) {
                 throw $fail('That is not a valid .xlsx workbook.');

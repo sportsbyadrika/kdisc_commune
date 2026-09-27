@@ -321,6 +321,6 @@ final class BookingController extends Controller
 
     private function safeBack(string $back): ?string
     {
-        return $back !== '' && str_starts_with($back, '/staff/') && !str_starts_with($back, '//') ? $back : null;
+        return \App\Support\SafeRedirect::path($back, ['/staff/']);
     }
 }

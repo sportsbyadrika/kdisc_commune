@@ -174,7 +174,7 @@ if (!function_exists('back')) {
     function back(string $fallback = '/'): RedirectResponse
     {
         $request = App::request();
-        $ref = $request?->referer();
+        $ref = $request?->safeReferer();
         return Response::redirect($ref ?? url($fallback));
     }
 }

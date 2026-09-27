@@ -143,7 +143,7 @@ final class RegistrationService
     {
         $id = (int) $tokenRow['subject_id'];
         $account = Account::find($id) ?? throw new \RuntimeException('Account not found.');
-        $cols = ['password_hash' => $this->hasher->hash($password)];
+        $cols = ['password_hash' => $this->hasher->hash($password), 'password_changed_at' => date('Y-m-d H:i:s')];
         if ($account['email_verified_at'] === null) {
             $cols['email_verified_at'] = date('Y-m-d H:i:s');
         }

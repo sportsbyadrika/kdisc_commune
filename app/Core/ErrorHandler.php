@@ -83,7 +83,7 @@ final class ErrorHandler
         if ($request !== null && $request->wantsJson()) {
             return Response::json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         }
-        $target = $e->redirectTo() ?? $request?->referer() ?? ($request?->basePath() . $request?->path());
+        $target = $e->redirectTo() ?? $request?->safeReferer() ?? ($request?->basePath() . $request?->path());
         return Response::redirect((string) $target)->withErrors($e->errors())->withInput($request?->post() ?? []);
     }
 

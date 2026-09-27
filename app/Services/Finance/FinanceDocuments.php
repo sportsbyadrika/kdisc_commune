@@ -121,12 +121,22 @@ final class FinanceDocuments
         return ['bytes' => $bytes, 'filename' => self::slug($type, $row) . '-DUPLICATE.pdf', 'duplicate' => true];
     }
 
-    /** Store the original PDF and email it to the visitor. Never throws (logged). */
+    /**
+     * Store the original PDF and email it to the visitor. Never throws (logged). Storing and emailing fail
+     * independently: a mail/link problem never loses the stored original, and vice versa. Works the same from HTTP
+     * requests, console commands (demo:seed, imports) and tests — links are absolute (APP_URL) and resolved from the
+     * route table, which the container loads on demand in every context.
+     */
     public function issued(string $type, int $id): void
     {
         try {
             $row = $this->find($type, $id) ?? throw new NotFoundException();
             $doc = $this->pdf($type, $row);
+        } catch (\Throwable $e) {
+            logger()->error('Could not store {type} #{id}: {error}', ['type' => $type, 'id' => $id, 'error' => $e->getMessage()]);
+            return;
+        }
+        try {
             if (!$this->settings->emailDocuments()) {
                 return;
             }
@@ -154,7 +164,7 @@ final class FinanceDocuments
                 'data' => json_encode(['type' => $type, 'id' => $id], JSON_UNESCAPED_UNICODE), 'channels' => 'database,email',
             ]);
         } catch (\Throwable $e) {
-            logger()->error('Could not store/email {type} #{id}: {error}', ['type' => $type, 'id' => $id, 'error' => $e->getMessage()]);
+            logger()->error('Could not email {type} #{id}: {error}', ['type' => $type, 'id' => $id, 'error' => $e->getMessage()]);
         }
     }
 

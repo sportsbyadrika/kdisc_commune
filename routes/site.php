@@ -24,7 +24,7 @@ $router->get('/spaces/explore/{floor:[a-z0-9-]+}', [ExplorerController::class, '
 $router->group(['middleware' => ['auth.visitor']], function (App\Core\Router $r): void {
     $r->post('/spaces/checkout', [CheckoutController::class, 'start'])->name('spaces.checkout.start');
     $r->get('/spaces/checkout', [CheckoutController::class, 'show'])->name('spaces.checkout');
-    $r->post('/spaces/checkout/confirm', [CheckoutController::class, 'submit'])->name('spaces.checkout.submit');
+    $r->post('/spaces/checkout/confirm', [CheckoutController::class, 'submit'])->name('spaces.checkout.submit')->middleware('throttle:checkout,20,10');
     $r->get('/spaces/checkout/done/{no:[A-Za-z0-9-]+}', [CheckoutController::class, 'done'])->name('spaces.checkout.done');
 });
 $router->get('/facilities', [PageController::class, 'facilities'])->name('facilities');
@@ -33,4 +33,4 @@ $router->get('/about', [PageController::class, 'about'])->name('about');
 $router->get('/privacy', [PageController::class, 'privacy'])->name('privacy');
 $router->get('/terms', [PageController::class, 'terms'])->name('terms');
 $router->get('/contact', [ContactController::class, 'show'])->name('contact');
-$router->post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+$router->post('/contact', [ContactController::class, 'submit'])->name('contact.submit')->middleware('throttle:contact,5,10');

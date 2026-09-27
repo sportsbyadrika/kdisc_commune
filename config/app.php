@@ -10,6 +10,9 @@ return [
     'timezone' => 'Asia/Kolkata',
     'locale' => 'en_IN',
     'log_level' => env('LOG_LEVEL', 'info'),
+    // Daily files (app-YYYY-MM-DD.log, 30 kept). Relative paths are resolved from the project root; the test suite
+    // writes to storage/logs/testing/ so test runs never mix with real application logs.
+    'log_path' => env('LOG_PATH', 'storage/logs/app.log'),
 
     // Encryption key for sensitive data (Aadhaar). Generate: php bin/console key:generate
     'key' => env('APP_KEY', ''),

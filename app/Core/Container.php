@@ -51,6 +51,12 @@ final class Container
         $this->instances[$id] = $value;
     }
 
+    /** Drop a resolved instance (e.g. per-request state such as auth guards). */
+    public function forget(string $id): void
+    {
+        unset($this->instances[$id]);
+    }
+
     public function has(string $id): bool
     {
         return isset($this->instances[$id]) || isset($this->bindings[$id]);

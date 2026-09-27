@@ -16,5 +16,6 @@ return [
         'guest' => Middleware\Guest::class,          // guest:staff | guest:visitor
         'role' => Middleware\Role::class,            // role:receptionist,centre_manager
         'can' => Middleware\Can::class,              // can:layout.design
+        'throttle' => Middleware\Throttle::class,    // throttle:name,max,minutes (App\Services\Security\RateLimiter)
     ],
 ];
