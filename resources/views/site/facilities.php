@@ -22,7 +22,7 @@ $map = ['included' => 'included', 'addons' => 'addon', 'landmarks' => 'landmark'
         <section id="<?= e($anchor) ?>">
             <h2 class="section-title !text-2xl sm:!text-3xl"><?= e($heading) ?></h2>
             <p class="lead mt-2"><?= e($text) ?></p>
-            <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <?php foreach ($items as $f): ?><?= $this->component('facility-tile', ['facility' => $f]) ?><?php endforeach ?>
             </div>
             <?php if ($items === []): ?><?= $this->component('empty', ['title' => 'Nothing here yet', 'icon' => 'sparkles']) ?><?php endif ?>

@@ -10,16 +10,29 @@
 
 declare(strict_types=1);
 
+use App\Controllers\Staff\AuditController;
 use App\Controllers\Staff\AuthController;
 use App\Controllers\Staff\BookingController;
+use App\Controllers\Staff\BookingDocumentController;
 use App\Controllers\Staff\CheckinController;
 use App\Controllers\Staff\DashboardController;
 use App\Controllers\Staff\ExplorerController;
 use App\Controllers\Staff\FacilityController;
+use App\Controllers\Staff\ImportController;
+use App\Controllers\Staff\Finance\DepositRefundController;
+use App\Controllers\Staff\Finance\FinanceController;
+use App\Controllers\Staff\Finance\FinanceDocumentController;
+use App\Controllers\Staff\Finance\FinanceSettingsController;
+use App\Controllers\Staff\Finance\InvoiceController;
+use App\Controllers\Staff\Finance\PaymentVerificationController;
+use App\Controllers\Staff\Finance\RegisterController;
 use App\Controllers\Staff\KycController;
 use App\Controllers\Staff\LayoutApiController;
 use App\Controllers\Staff\LayoutController;
+use App\Controllers\Staff\NotificationController;
 use App\Controllers\Staff\PaymentController;
+use App\Controllers\Staff\ReportController;
+use App\Controllers\Staff\UserController;
 use App\Controllers\Staff\VisitorController;
 use App\Controllers\Staff\VisitorDocumentController;
 use App\Core\Router;
@@ -29,8 +42,14 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
 
     $r->group(['middleware' => ['guest:staff']], function (Router $r): void {
         $r->get('/login', [AuthController::class, 'showLogin'])->name('login');
-        $r->post('/login', [AuthController::class, 'login'])->name('login.attempt');
+        $r->post('/login', [AuthController::class, 'login'])->name('login.attempt')->middleware('throttle:login,30,10');
+        $r->get('/password/forgot', [AuthController::class, 'showForgot'])->name('password.forgot');
+        $r->post('/password/forgot', [AuthController::class, 'sendReset'])->name('password.email')->middleware('throttle:pwlink,10,60');
     });
+
+    // Single-use invite / reset links from emails (StaffUserService::sendLink) — work whether or not someone is signed in.
+    $r->get('/password/reset/{token}', [AuthController::class, 'showReset'])->name('password.reset')->where('token', '[A-Za-z0-9_-]{43}');
+    $r->post('/password/reset/{token}', [AuthController::class, 'reset'])->name('password.update')->where('token', '[A-Za-z0-9_-]{43}')->middleware('throttle:pwset,20,10');
 
     $r->post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -42,7 +61,7 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
         $r->get('/visitors', [VisitorController::class, 'index'])->name('visitors.index')->middleware('can:visitors.view');
         $r->get('/visitors/new', [VisitorController::class, 'create'])->name('visitors.create')->middleware('can:visitors.register');
         $r->post('/visitors', [VisitorController::class, 'store'])->name('visitors.store')->middleware('can:visitors.register');
-        $r->post('/visitors/duplicates', [VisitorController::class, 'duplicates'])->name('visitors.duplicates')->middleware('can:visitors.register');
+        $r->post('/visitors/duplicates', [VisitorController::class, 'duplicates'])->name('visitors.duplicates')->middleware('can:visitors.register', 'throttle:search,120,1');
         $r->get('/visitors/{ref:[A-Za-z0-9-]+}', [VisitorController::class, 'show'])->name('visitors.show')->middleware('can:visitors.view');
         $r->get('/visitors/{ref:[A-Za-z0-9-]+}/edit', [VisitorController::class, 'edit'])->name('visitors.edit')->middleware('can:visitors.register');
         $r->put('/visitors/{ref:[A-Za-z0-9-]+}', [VisitorController::class, 'update'])->name('visitors.update')->middleware('can:visitors.register');
@@ -122,6 +141,65 @@ $router->group(['prefix' => '/staff', 'as' => 'staff.'], function (Router $r): v
         $r->post('/facilities/{id:\d+}/toggle', [FacilityController::class, 'toggle'])->name('facilities.toggle')->middleware('can:facilities.manage');
         $r->delete('/facilities/{id:\d+}', [FacilityController::class, 'destroy'])->name('facilities.destroy')->middleware('can:facilities.manage');
 
-        // Batch 6+: finance (invoices, receipts, credit notes), reports ...
+        // Booking / visitor PDFs (generated on demand): allotment letter (confirmed+), visitor ID card.
+        $r->get('/bookings/{no:[A-Za-z0-9-]+}/allotment-letter.pdf', [BookingDocumentController::class, 'allotment'])->name('bookings.allotment')->middleware('can:bookings.view', 'throttle:pdf,60,5');
+        $r->get('/visitors/{ref:[A-Za-z0-9-]+}/id-card.pdf', [BookingDocumentController::class, 'idCard'])->name('visitors.id_card')->middleware('can:visitors.view', 'throttle:pdf,60,5');
+
+        // Finance (batch 6, spec 6.4): dashboard, payment verification, invoices / receipts / credit notes / deposit
+        // refunds, registers, settings. Rules: app/Services/Finance. {type} = invoice|receipt|credit-note|deposit-refund.
+        $r->get('/finance', [FinanceController::class, 'index'])->name('finance.dashboard')->middleware('can:reports.finance');
+        $r->get('/finance/settings', [FinanceSettingsController::class, 'edit'])->name('finance.settings')->middleware('can:finance.settings');
+        $r->put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update')->middleware('can:finance.settings');
+        $r->get('/finance/payments', [PaymentVerificationController::class, 'index'])->name('payments.index')->middleware('can:payments.view');
+        $r->post('/finance/payments/verify', [PaymentVerificationController::class, 'bulk'])->name('payments.bulk_verify')->middleware('can:payments.verify');
+        $r->post('/finance/payments/{id:\d+}/verify', [PaymentVerificationController::class, 'verify'])->name('payments.verify')->middleware('can:payments.verify');
+        $r->post('/finance/payments/{id:\d+}/query', [PaymentVerificationController::class, 'query'])->name('payments.query')->middleware('can:payments.verify');
+        $r->post('/payments/{id:\d+}/reply', [PaymentVerificationController::class, 'reply'])->name('payments.reply')->middleware('can:payments.log');
+        $r->get('/finance/invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('can:invoices.view');
+        $r->post('/finance/invoices', [InvoiceController::class, 'store'])->name('invoices.store')->middleware('can:invoices.manage');
+        $r->get('/finance/invoices/{id:\d+}', [InvoiceController::class, 'show'])->name('invoices.show')->middleware('can:invoices.view');
+        $r->post('/finance/invoices/{id:\d+}/credit-notes', [InvoiceController::class, 'creditNote'])->name('credit_notes.store')->middleware('can:credit_notes.manage');
+        $r->get('/finance/deposits/{no:[A-Za-z0-9-]+}/refund', [DepositRefundController::class, 'create'])->name('deposits.create')->middleware('can:deposits.refund');
+        $r->post('/finance/deposits/{no:[A-Za-z0-9-]+}/refund', [DepositRefundController::class, 'store'])->name('deposits.store')->middleware('can:deposits.refund');
+        $r->get('/finance/documents/{type:invoice|receipt|credit-note|deposit-refund}/{id:\d+}/{slug:[A-Za-z0-9-]+}.pdf', [FinanceDocumentController::class, 'pdf'])->name('finance.documents.pdf')->middleware('can:invoices.view', 'throttle:pdf,60,5');
+        $r->post('/finance/documents/{type:invoice|receipt|credit-note|deposit-refund}/{id:\d+}/reprint', [FinanceDocumentController::class, 'reprint'])->name('finance.documents.reprint')->middleware('can:invoices.manage', 'throttle:pdf,60,5');
+        $r->get('/finance/registers', [RegisterController::class, 'index'])->name('registers.index')->middleware('can:reports.finance');
+        $r->get('/finance/registers/{type:[a-z-]+}.pdf', [RegisterController::class, 'pdf'])->name('registers.pdf')->middleware('can:reports.finance', 'throttle:export,30,5');
+
+        // Reports hub + every report page / XLSX / PDF (batch 7). Each report checks its own ability
+        // (Reports\Report::ability()); list exports (visitors, bookings-list, payments, invoices) mirror their pages.
+        $r->get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('can:reports.view');
+        $r->get('/reports/{key:[a-z0-9-]+}.xlsx', [ReportController::class, 'xlsx'])->name('reports.xlsx')->middleware('can:dashboard.view', 'throttle:export,30,5');
+        $r->get('/reports/{key:[a-z0-9-]+}.pdf', [ReportController::class, 'pdf'])->name('reports.pdf')->middleware('can:dashboard.view', 'throttle:export,30,5');
+        $r->get('/reports/{key:[a-z0-9-]+}', [ReportController::class, 'show'])->name('reports.show')->middleware('can:dashboard.view');
+
+        // XLSX bulk import (spec 10): templates, upload → validate → masked preview → confirm, error reports, history.
+        $r->get('/imports', [ImportController::class, 'index'])->name('imports.index')->middleware('can:imports.manage');
+        $r->get('/imports/templates/{type:[a-z]+}.xlsx', [ImportController::class, 'template'])->name('imports.template')->middleware('can:imports.manage', 'throttle:export,30,5');
+        $r->post('/imports', [ImportController::class, 'upload'])->name('imports.upload')->middleware('can:imports.manage', 'throttle:import,10,10');
+        $r->get('/imports/{id:\d+}', [ImportController::class, 'show'])->name('imports.show')->middleware('can:imports.manage');
+        $r->post('/imports/{id:\d+}/confirm', [ImportController::class, 'confirm'])->name('imports.confirm')->middleware('can:imports.manage', 'throttle:import,10,10');
+        $r->post('/imports/{id:\d+}/discard', [ImportController::class, 'discard'])->name('imports.discard')->middleware('can:imports.manage');
+        $r->get('/imports/{id:\d+}/errors.xlsx', [ImportController::class, 'errors'])->name('imports.errors')->middleware('can:imports.manage', 'throttle:export,30,5');
+
+        // Staff user management (Centre Manager: reception / finance / managers; State Admin: everyone).
+        $r->get('/users', [UserController::class, 'index'])->name('users.index')->middleware('can:staff.manage');
+        $r->get('/users/new', [UserController::class, 'create'])->name('users.create')->middleware('can:staff.manage');
+        $r->post('/users', [UserController::class, 'store'])->name('users.store')->middleware('can:staff.manage', 'throttle:staffadmin,30,10');
+        $r->get('/users/{id:\d+}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('can:staff.manage');
+        $r->put('/users/{id:\d+}', [UserController::class, 'update'])->name('users.update')->middleware('can:staff.manage');
+        $r->post('/users/{id:\d+}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate')->middleware('can:staff.manage');
+        $r->post('/users/{id:\d+}/reactivate', [UserController::class, 'reactivate'])->name('users.reactivate')->middleware('can:staff.manage');
+        $r->post('/users/{id:\d+}/password-link', [UserController::class, 'sendLink'])->name('users.password_link')->middleware('can:staff.manage', 'throttle:staffadmin,30,10');
+
+        // Audit log viewer (Centre Manager / State Admin).
+        $r->get('/audit', [AuditController::class, 'index'])->name('audit.index')->middleware('can:audit.view');
+        $r->get('/audit/{id:\d+}', [AuditController::class, 'show'])->name('audit.show')->middleware('can:audit.view');
+
+        // Staff notification inbox (header bell + page).
+        $r->get('/notifications', [NotificationController::class, 'index'])->name('notifications.index')->middleware('can:dashboard.view');
+        $r->post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read_all')->middleware('can:dashboard.view');
+        $r->post('/notifications/{id:\d+}/read', [NotificationController::class, 'read'])->name('notifications.read')->middleware('can:dashboard.view');
+        $r->get('/notifications/{id:\d+}/open', [NotificationController::class, 'open'])->name('notifications.open')->middleware('can:dashboard.view');
     });
 });

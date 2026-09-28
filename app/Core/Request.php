@@ -211,9 +211,37 @@ final class Request
         return $this->server[$key] ?? $default;
     }
 
+    /** @var list<string> reverse proxies whose X-Forwarded-* headers are believed (config security.trusted_proxies) */
+    private static array $trustedProxies = [];
+
+    /** @param list<string> $proxies IPs, or ['*'] for "the direct peer is always our proxy" */
+    public static function setTrustedProxies(array $proxies): void
+    {
+        self::$trustedProxies = array_values($proxies);
+    }
+
+    /** True when the direct peer is a trusted reverse proxy (its X-Forwarded-* headers may be used). */
+    public function fromTrustedProxy(): bool
+    {
+        $peer = (string) ($this->server['REMOTE_ADDR'] ?? '');
+        return self::$trustedProxies !== [] && (in_array('*', self::$trustedProxies, true) || in_array($peer, self::$trustedProxies, true));
+    }
+
+    /** Client IP: REMOTE_ADDR, or the right-most untrusted X-Forwarded-For hop behind a trusted proxy. */
     public function ip(): string
     {
-        return (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        $peer = (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        $forwarded = (string) ($this->server['HTTP_X_FORWARDED_FOR'] ?? '');
+        if ($forwarded === '' || !$this->fromTrustedProxy()) {
+            return $peer;
+        }
+        $hops = array_reverse(array_map('trim', explode(',', $forwarded)));
+        foreach ($hops as $hop) {
+            if (filter_var($hop, FILTER_VALIDATE_IP) !== false && !in_array($hop, self::$trustedProxies, true)) {
+                return $hop;
+            }
+        }
+        return $peer;
     }
 
     public function userAgent(): string
@@ -225,7 +253,7 @@ final class Request
     {
         $https = $this->server['HTTPS'] ?? '';
         return ($https !== '' && $https !== 'off')
-            || ($this->server['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'
+            || (($this->server['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https' && $this->fromTrustedProxy())
             || (int) ($this->server['SERVER_PORT'] ?? 80) === 443;
     }
 
@@ -243,6 +271,25 @@ final class Request
     {
         $ref = $this->server['HTTP_REFERER'] ?? null;
         return is_string($ref) && $ref !== '' ? $ref : null;
+    }
+
+    /**
+     * The Referer only when it points at this site (same host) — safe to redirect "back" to. A foreign or malformed
+     * Referer returns null so redirects can never be bounced to another site.
+     */
+    public function safeReferer(): ?string
+    {
+        $ref = $this->referer();
+        if ($ref === null || preg_match('/[\x00-\x1F\\\\]/', $ref) === 1) {
+            return null;
+        }
+        $parts = parse_url($ref);
+        $host = strtolower((string) ($this->server['HTTP_HOST'] ?? ''));
+        if ($parts === false || !isset($parts['host'], $parts['scheme']) || !in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
+            return null;
+        }
+        $refHost = strtolower($parts['host']) . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        return $host !== '' && $refHost === $host ? $ref : null;
     }
 
     public function fullPath(): string

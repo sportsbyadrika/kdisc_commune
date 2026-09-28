@@ -7,7 +7,7 @@
  */
 $this->layout('layouts/base', ['bodyClass' => 'min-h-full bg-surface']);
 ?>
-<div class="grid min-h-screen lg:grid-cols-2">
+<div class="grid grid-cols-1 min-h-screen lg:grid-cols-2">
     <aside class="relative hidden overflow-hidden bg-brand-950 lg:block">
         <img src="<?= e(media($panelImage ?? 'media/building.svg')) ?>" alt="" class="absolute inset-0 size-full object-cover opacity-60">
         <div class="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/85 to-brand-950/50"></div>

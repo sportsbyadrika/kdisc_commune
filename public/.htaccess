@@ -1,4 +1,4 @@
-# Apache: point the virtual host DocumentRoot at this public/ directory.
+# Apache: point the virtual host DocumentRoot at this public/ directory (see docs/DEPLOYMENT.md).
 Options -Indexes -MultiViews
 
 <IfModule mod_rewrite.c>
@@ -24,12 +24,34 @@ Options -Indexes -MultiViews
 </IfModule>
 
 <IfModule mod_headers.c>
-    <FilesMatch "\.(css|js|svg|webp|png|jpe?g|woff2?)$">
-        Header set Cache-Control "public, max-age=2592000"
+    # /assets/* URLs carry a content hash (?v=… from asset()), so they can be cached for a year.
+    <If "%{REQUEST_URI} =~ m#^/assets/#">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+    # Images referenced from the database (media/…) are not versioned: a week, then revalidate.
+    <If "%{REQUEST_URI} =~ m#^/media/#">
+        Header set Cache-Control "public, max-age=604800"
+    </If>
+    <FilesMatch "\.(css|js|svg|webp|png|jpe?g|gif|ico|woff2?)$">
+        Header set X-Content-Type-Options "nosniff"
     </FilesMatch>
+    # Uploaded layout photos are images only — never let a browser run anything from there.
+    <If "%{REQUEST_URI} =~ m#^/media/uploads/#">
+        Header set Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox"
+    </If>
 </IfModule>
 
-# Never serve dotfiles
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript application/json image/svg+xml
+</IfModule>
+
+# Never serve dotfiles, PHP files other than the front controller, or source maps / backups.
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
+<FilesMatch "\.(php|phtml|phar|sql|bak|log|ini|sh|md)$">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>

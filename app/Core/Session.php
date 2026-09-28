@@ -127,6 +127,7 @@ final class Session
             session_regenerate_id(true);
         }
         $this->forget('_csrf_token');
+        $_SESSION['_started_at'] = time();   // the absolute timeout counts from sign-in
     }
 
     /** Destroy all data and issue a fresh id (logout). */
@@ -194,14 +195,17 @@ final class Session
     private function enforceIdleTimeout(): void
     {
         $timeout = (int) ($this->options['idle_timeout'] ?? 0);
+        $absolute = (int) ($this->options['absolute_timeout'] ?? 0);
         $now = time();
         $last = (int) ($_SESSION['_last_activity'] ?? $now);
-        if ($timeout > 0 && ($now - $last) > $timeout) {
+        $started = (int) ($_SESSION['_started_at'] ?? $now);
+        if (($timeout > 0 && ($now - $last) > $timeout) || ($absolute > 0 && ($now - $started) > $absolute)) {
             $_SESSION = ['_flash' => ['old' => ['warning' => 'Your session expired due to inactivity. Please sign in again.'], 'new' => []]];
             if (session_status() === PHP_SESSION_ACTIVE) {
                 session_regenerate_id(true);
             }
         }
         $_SESSION['_last_activity'] = $now;
+        $_SESSION['_started_at'] ??= $now;
     }
 }

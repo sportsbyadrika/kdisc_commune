@@ -33,7 +33,7 @@ $steps = [['Choose seats', 'done'], ['Review & request', 'current'], ['Approval 
             <?php endforeach ?>
         </ol>
 
-        <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
             <div class="space-y-6">
                 <div>
                     <h1 class="text-3xl font-extrabold sm:text-4xl">Review your request</h1>
@@ -57,7 +57,7 @@ $steps = [['Choose seats', 'done'], ['Review & request', 'current'], ['Approval 
                         <h2 class="flex items-center gap-2 text-lg font-bold"><span class="grid size-9 place-items-center rounded-xl bg-brand-50 text-brand-700"><?= icon($category->icon(), 'size-5') ?></span><?= e($category->label()) ?></h2>
                         <?= $this->component('badge', ['label' => $quote->duration->label(), 'tone' => 'brand', 'icon' => 'calendar-range']) ?>
                     </div>
-                    <dl class="mt-5 grid gap-4 sm:grid-cols-3">
+                    <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div class="rounded-2xl bg-surface p-4"><dt class="text-xs font-bold tracking-wide text-muted uppercase"><?= $period->isHourly() ? 'Date' : 'From' ?></dt><dd class="mt-1 font-bold"><?= e(format_date($period->from, 'D, d M Y')) ?></dd></div>
                         <div class="rounded-2xl bg-surface p-4"><dt class="text-xs font-bold tracking-wide text-muted uppercase"><?= $period->isHourly() ? 'Time' : 'To' ?></dt><dd class="mt-1 font-bold"><?= $period->isHourly() ? e(App\Services\Space\BookingPeriod::hourLabel((string) $period->startTime) . ' – ' . App\Services\Space\BookingPeriod::hourLabel((string) $period->endTime)) : e(format_date($period->to, 'D, d M Y')) ?></dd></div>
                         <div class="rounded-2xl bg-surface p-4"><dt class="text-xs font-bold tracking-wide text-muted uppercase">Seats</dt><dd class="mt-1 font-bold"><?= $quote->seatCount() ?> <?= $quote->seatCount() === 1 ? 'seat' : 'seats' ?></dd></div>

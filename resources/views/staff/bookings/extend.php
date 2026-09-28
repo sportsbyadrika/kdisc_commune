@@ -21,11 +21,11 @@ $taken = array_filter($proposal['seats'], static fn (array $s) => !$s['available
 <?php if ($existing !== null): ?>
     <?= $this->component('alert', ['tone' => 'warning', 'class' => 'mb-5', 'message' => 'This booking already has a follow-on booking: ' . $existing['booking_no'] . ' (' . $existing['status'] . '). Creating another one is allowed but usually not intended.']) ?>
 <?php endif ?>
-<form method="get" action="<?= e(url('staff.bookings.extend', ['no' => $no])) ?>" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+<form method="get" action="<?= e(url('staff.bookings.extend', ['no' => $no])) ?>" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
     <div class="min-w-0 space-y-6">
         <section class="card card-body">
             <h2 class="text-lg font-bold">New period</h2>
-            <div class="mt-4 grid gap-4 sm:grid-cols-3">
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div><p class="label">Starts</p><p class="input bg-surface font-bold"><?= e(format_date($proposal['from'], 'D, d M Y')) ?></p></div>
                 <?= $this->component('input', ['name' => 'to', 'label' => 'Ends', 'type' => 'date', 'value' => $proposal['to'], 'required' => true, 'attrs' => ['min' => $minEnd]]) ?>
                 <div class="flex items-end"><button class="btn btn-outline w-full"><?= icon('refresh-cw', 'size-4') ?>Update quote</button></div>
@@ -41,8 +41,8 @@ $taken = array_filter($proposal['seats'], static fn (array $s) => !$s['available
                         <span class="font-display text-lg font-extrabold"><?= e($s['code']) ?></span>
                         <?= $this->component('badge', ['label' => $s['available'] ? 'Free' : ($s['status'] === 'removed' ? 'No longer in the layout' : ucfirst((string) $s['status']) . ' for these dates'), 'tone' => $s['available'] ? 'success' : 'warning']) ?>
                         <?php if (!$s['available']): ?>
-                            <label class="ml-auto flex items-center gap-2 text-sm"><span class="font-semibold">Replace with</span>
-                                <select name="replace[<?= (int) $s['seat_key'] ?>]" class="input !w-auto !py-2">
+                            <label class="ml-auto flex min-w-0 max-w-full items-center gap-2 text-sm"><span class="font-semibold">Replace with</span>
+                                <select name="replace[<?= (int) $s['seat_key'] ?>]" class="input !w-auto min-w-0 max-w-full !py-2">
                                     <option value="">Choose a free seat…</option>
                                     <?php foreach ($s['alternatives'] as $alt): ?>
                                         <option value="<?= (int) $alt['id'] ?>" <?= (int) $s['replacement'] === $alt['id'] ? 'selected' : '' ?>><?= e($alt['code'] . ' · ' . $alt['floor'] . ' · ' . $alt['zone']) ?></option>

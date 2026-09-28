@@ -17,3 +17,5 @@
 /storage/mail/*
 /public/media/uploads/*
 !/public/media/uploads/.gitkeep
+/storage/imports/*
+!/storage/imports/.gitkeep

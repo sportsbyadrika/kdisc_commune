@@ -35,7 +35,7 @@ $config = [
                 <p class="mt-3 max-w-xl text-lg text-white/70">Live availability for your dates. Hover a floor to see what’s free — tap it to open the seat map.</p>
             </div>
             <!-- Filter bar -->
-            <div class="glass-dark grid gap-3 rounded-3xl p-3 sm:grid-cols-[auto_auto_auto] sm:items-center sm:rounded-full sm:pl-5">
+            <div class="glass-dark grid grid-cols-1 gap-3 rounded-3xl p-3 sm:grid-cols-[auto_auto_auto] sm:items-center sm:rounded-full sm:pl-5">
                 <label class="flex items-center gap-2 text-sm"><span class="text-xs font-bold tracking-wide text-white/60 uppercase">From</span>
                     <input type="date" x-model="from" :min="today" @change="fromChanged()" class="border-0 bg-transparent p-1 font-semibold text-white [color-scheme:dark] focus:ring-0"></label>
                 <label class="flex items-center gap-2 text-sm sm:border-l sm:border-white/15 sm:pl-4"><span class="text-xs font-bold tracking-wide text-white/60 uppercase">To</span>
@@ -48,7 +48,7 @@ $config = [
             </div>
         </div>
 
-        <div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
+        <div class="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
             <!-- Building with floor hotspots -->
             <div class="relative overflow-hidden rounded-[2rem] shadow-2xl ring-1 ring-white/10" @mouseleave="hover = null">
                 <img src="<?= e(media($building['photo_path'] ?? null)) ?>" alt="<?= e((string) ($building['name'] ?? 'Commune building')) ?>" class="block w-full select-none" draggable="false">
@@ -122,7 +122,7 @@ $config = [
     <div class="container-page">
         <p class="eyebrow">Space types</p>
         <h2 class="section-title mt-2 mb-8">What you can book</h2>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <?php foreach ($categories as $c): ?>
                 <a href="<?= e(url('spaces.floor', ['floor' => 'ground-floor', 'from' => $filters['from'], 'to' => $filters['to'], 'type' => $c['code']])) ?>" class="card card-hover card-body group">
                     <span class="grid size-11 place-items-center rounded-2xl bg-brand-50 text-brand-700 transition group-hover:bg-brand-600 group-hover:text-white"><?= icon((string) $c['icon'], 'size-5') ?></span>

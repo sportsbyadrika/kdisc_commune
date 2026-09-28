@@ -1,5 +1,5 @@
-# Example nginx server block for the Commune app (PHP-FPM 8.4).
-# Only public/ is web-accessible; storage/ (KYC uploads, PDFs) is outside the root.
+# Example nginx server block for the Commune app (PHP-FPM 8.4). See docs/DEPLOYMENT.md.
+# Only public/ is web-accessible; storage/ (KYC uploads, PDFs, logs) and .env live outside the root.
 server {
     listen 80;
     server_name commune.example.org;
@@ -13,11 +13,19 @@ server {
 
     ssl_certificate     /etc/letsencrypt/live/commune.example.org/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/commune.example.org/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
 
     root /var/www/kdisc_commune/public;
     index index.php;
     charset utf-8;
-    client_max_body_size 12M;          # KYC document uploads
+    client_max_body_size 16M;          # KYC documents (5 MB), layout photos (15 MB), XLSX imports (5 MB)
+    server_tokens off;
+
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_types text/css application/javascript application/json image/svg+xml text/plain;
 
     location / {
         try_files $uri $uri/ /index.php?$query_string;
@@ -33,12 +41,29 @@ server {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_param HTTPS on;
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_read_timeout 120s;     # large PDF / XLSX exports
     }
 
-    location ~* \.(css|js|svg|webp|png|jpe?g|gif|ico|woff2?)$ {
-        expires 30d;
+    # Built CSS/JS/icons: URLs carry ?v=<content hash> (asset()), so cache for a year.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header X-Content-Type-Options "nosniff";
         access_log off;
+        try_files $uri =404;
+    }
+
+    # Building / floor photos (paths stored in the DB, not versioned): a week.
+    location /media/ {
+        expires 7d;
+        add_header X-Content-Type-Options "nosniff";
+        location /media/uploads/ {
+            add_header Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
+            add_header X-Content-Type-Options "nosniff";
+            try_files $uri =404;
+        }
         try_files $uri =404;
     }
 

@@ -21,14 +21,15 @@ foreach (KycStatus::cases() as $k) {
 }
 $chipItems = array_map(static fn (array $c) => $c + ['href' => url('staff.visitors.index', array_filter(['q' => $filters['q'], 'type' => $filters['type'], 'kyc' => $c['value']]))], $kycChips);
 ?>
+<?php $this->start('actions') ?>
+    <?= $this->partial('partials/report/export-buttons', ['key' => 'visitors', 'query' => $filters]) ?>
 <?php if ($canRegister): ?>
-    <?php $this->start('actions') ?>
         <a href="<?= e(url('staff.visitors.create', ['type' => 'individual'])) ?>" class="btn btn-outline"><?= icon('user-plus', 'size-4') ?> Individual</a>
         <a href="<?= e(url('staff.visitors.create', ['type' => 'institution'])) ?>" class="btn btn-brand"><?= icon('building-2', 'size-4') ?> Institution</a>
-    <?php $this->stop() ?>
 <?php endif ?>
+<?php $this->stop() ?>
 
-<form method="get" action="<?= e(url('staff.visitors.index')) ?>" class="card card-body mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_200px_auto]" role="search">
+<form method="get" action="<?= e(url('staff.visitors.index')) ?>" class="card card-body mb-5 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_200px_auto]" role="search">
     <input type="hidden" name="kyc" value="<?= e($filters['kyc']) ?>">
     <label class="relative">
         <span class="sr-only">Search</span>

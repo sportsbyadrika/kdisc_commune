@@ -10,6 +10,9 @@ return [
     'timezone' => 'Asia/Kolkata',
     'locale' => 'en_IN',
     'log_level' => env('LOG_LEVEL', 'info'),
+    // Daily files (app-YYYY-MM-DD.log, 30 kept). Relative paths are resolved from the project root; the test suite
+    // writes to storage/logs/testing/ so test runs never mix with real application logs.
+    'log_path' => env('LOG_PATH', 'storage/logs/app.log'),
 
     // Encryption key for sensitive data (Aadhaar). Generate: php bin/console key:generate
     'key' => env('APP_KEY', ''),
@@ -32,5 +35,12 @@ return [
         'email' => 'commune.ktr@kdisc.kerala.gov.in',
         'hours' => 'Mon–Sat · 8:00 am – 8:00 pm',
         'map_url' => 'https://maps.google.com/?q=Kottarakara,Kerala',
+        // Footer social links — shown only when set (https:// URLs).
+        'social' => [
+            'facebook' => env('SOCIAL_FACEBOOK', ''),
+            'instagram' => env('SOCIAL_INSTAGRAM', ''),
+            'linkedin' => env('SOCIAL_LINKEDIN', ''),
+            'youtube' => env('SOCIAL_YOUTUBE', ''),
+        ],
     ],
 ];

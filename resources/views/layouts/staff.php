@@ -23,7 +23,7 @@ $role = $user !== null ? App\Enums\StaffRole::tryFrom((string) $user['role']) : 
                         <h1 class="text-3xl font-extrabold"><?= e($title) ?></h1>
                         <?php if (!empty($subtitle)): ?><p class="mt-1 text-muted"><?= e($subtitle) ?></p><?php endif ?>
                     </div>
-                    <?php if ($this->hasSection('actions')): ?><div class="flex flex-wrap gap-2"><?= $this->section('actions') ?></div><?php endif ?>
+                    <?php if ($this->hasSection('actions')): ?><div class="flex flex-wrap gap-2 sm:shrink-0"><?= $this->section('actions') ?></div><?php endif ?>
                 </div>
             <?php endif ?>
             <?= $this->partial('partials/flash', ['class' => 'mb-6']) ?>

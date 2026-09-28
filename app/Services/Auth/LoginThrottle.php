@@ -45,6 +45,27 @@ final class LoginThrottle
         return max(0, $wait);
     }
 
+    /**
+     * Recent failures for this email + IP and for the IP alone (drives the sign-in captcha).
+     *
+     * @return array{email: int, ip: int}
+     */
+    public function failures(string $guard, string $email, string $ip): array
+    {
+        $since = date('Y-m-d H:i:s', time() - $this->config()['decay_minutes'] * 60);
+        $email = mb_strtolower(trim($email));
+        return [
+            'email' => $email === '' ? 0 : (int) $this->db->scalar(
+                'SELECT COUNT(*) FROM login_attempts WHERE guard = ? AND identifier = ? AND ip = ? AND succeeded = 0 AND attempted_at >= ?',
+                [$guard, $email, $ip, $since],
+            ),
+            'ip' => (int) $this->db->scalar(
+                'SELECT COUNT(*) FROM login_attempts WHERE guard = ? AND ip = ? AND succeeded = 0 AND attempted_at >= ?',
+                [$guard, $ip, $since],
+            ),
+        ];
+    }
+
     public function tooManyAttempts(string $guard, string $email, string $ip): bool
     {
         return $this->availableIn($guard, $email, $ip) > 0;

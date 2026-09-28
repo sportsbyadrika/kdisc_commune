@@ -22,7 +22,7 @@ $this->layout('layouts/portal', [
 ]);
 $docErrors = errors()['documents'] ?? [];
 ?>
-<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+<div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
     <div class="min-w-0 space-y-6">
         <?= $this->partial('partials/visitor/stepper') ?>
 
@@ -54,7 +54,7 @@ $docErrors = errors()['documents'] ?? [];
                     <p class="mt-1 text-sm text-muted">Numbers are checked as you type. Aadhaar is encrypted and only its last 4 digits are ever shown.</p>
                 </div>
                 <?= $this->partial('partials/visitor/identity-fields') ?>
-                <div class="flex items-center justify-between gap-3 border-t border-line pt-6">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
                     <a href="<?= e(url('portal.wizard', ['step' => 1])) ?>" class="btn btn-ghost"><?= icon('arrow-left', 'size-4') ?> Back</a>
                     <button type="submit" class="btn btn-primary btn-lg">Save &amp; continue <?= icon('arrow-right', 'size-4') ?></button>
                 </div>
@@ -75,7 +75,7 @@ $docErrors = errors()['documents'] ?? [];
                     <?= $this->component('alert', ['tone' => 'info', 'message' => 'Your KYC is verified, so documents are locked. Contact the front desk if one needs replacing.']) ?>
                 <?php endif ?>
                 <?= $this->partial('partials/visitor/documents', ['context' => 'portal', 'locked' => $locked]) ?>
-                <form method="post" action="<?= e(url('portal.wizard.save', ['step' => 3])) ?>" class="flex items-center justify-between gap-3 border-t border-line pt-6">
+                <form method="post" action="<?= e(url('portal.wizard.save', ['step' => 3])) ?>" class="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
                     <?= csrf_field() ?>
                     <a href="<?= e(url('portal.wizard', ['step' => 2])) ?>" class="btn btn-ghost"><?= icon('arrow-left', 'size-4') ?> Back</a>
                     <button type="submit" class="btn btn-primary btn-lg">Continue to review <?= icon('arrow-right', 'size-4') ?></button>

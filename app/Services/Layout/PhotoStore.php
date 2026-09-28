@@ -50,6 +50,10 @@ final class PhotoStore
         if (!in_array($mime, self::MIMES, true) || @getimagesize($tmp) === false) {
             throw $fail('Upload a JPG, PNG or WebP image.');
         }
+        $unsafe = \App\Services\Security\UploadGuard::image($tmp);
+        if ($unsafe !== null) {
+            throw $fail($unsafe);
+        }
 
         $manager = ImageManager::gd(autoOrientation: true, strip: true);
         try {

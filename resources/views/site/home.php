@@ -47,7 +47,7 @@ $steps = [
 
 <!-- Check availability bar -->
 <div class="container-page relative z-10 -mt-28 lg:-mt-20">
-    <form action="<?= e(url('spaces.explore')) ?>" method="get" x-data="availabilityBar()" class="card grid gap-4 p-4 shadow-[var(--shadow-card-hover)] sm:p-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end lg:gap-3 lg:rounded-full lg:p-3 lg:pl-8">
+    <form action="<?= e(url('spaces.explore')) ?>" method="get" x-data="availabilityBar()" class="card grid grid-cols-1 gap-4 p-4 shadow-[var(--shadow-card-hover)] sm:p-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end lg:gap-3 lg:rounded-full lg:p-3 lg:pl-8">
         <div>
             <label for="hb-type" class="text-xs font-bold tracking-wide text-muted uppercase">Space type</label>
             <select id="hb-type" name="type" class="mt-1 w-full border-0 bg-transparent p-0 text-base font-semibold text-ink focus:ring-0 lg:py-1">
@@ -102,7 +102,7 @@ $steps = [
 
 <!-- Explore the building -->
 <section class="section bg-brand-950 text-white">
-    <div class="container-page grid items-center gap-12 lg:grid-cols-[1fr_1.35fr]">
+    <div class="container-page grid grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_1.35fr]">
         <div>
             <p class="eyebrow !text-accent-400">Space Explorer</p>
             <h2 class="section-title mt-2 !text-white">Pick your exact seat — floor by floor</h2>
@@ -131,7 +131,7 @@ $steps = [
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="absolute inset-0 size-full" aria-hidden="true">
                 <?php foreach ($floors as $floor):
                     $points = implode(' ', array_map(static fn ($p) => $p[0] . ',' . $p[1], $floor['hotspot'])); ?>
-                    <a href="<?= e(url('spaces.floor', ['floor' => $floor['slug']])) ?>">
+                    <a href="<?= e(url('spaces.floor', ['floor' => $floor['slug']])) ?>" tabindex="-1"><?php /* decorative duplicate of the floor list: mouse only */ ?>
                         <polygon points="<?= e($points) ?>" class="cursor-pointer fill-accent-500/0 stroke-white/0 transition hover:fill-accent-500/25 hover:stroke-white" stroke-width=".4" vector-effect="non-scaling-stroke"
                                  @mouseenter="hover = '<?= e($floor['slug']) ?>'" @mouseleave="hover = null"/>
                     </a>
@@ -165,7 +165,7 @@ $steps = [
             <?php endforeach ?>
         </div>
         <h3 class="mt-14 mb-5 text-xl font-bold">Popular add-ons</h3>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <?php foreach ($addons as $f): ?>
                 <?= $this->component('facility-tile', ['facility' => $f, 'compact' => true]) ?>
             <?php endforeach ?>
@@ -180,7 +180,7 @@ $steps = [
             <p class="eyebrow">How it works</p>
             <h2 class="section-title mt-2">From sign-up to your desk in four steps</h2>
         </div>
-        <ol class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ol class="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <?php foreach ($steps as $i => [$ic, $heading, $text]): ?>
                 <li class="relative rounded-3xl border border-line p-6">
                     <span class="font-display text-6xl font-extrabold text-surface-2 absolute top-4 right-5 select-none" aria-hidden="true"><?= $i + 1 ?></span>

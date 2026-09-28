@@ -23,7 +23,7 @@ $this->layout('layouts/staff', [
 <?php $this->stop() ?>
 <?= $this->partial('partials/space/sprite', ['extra' => []]) ?>
 <form method="post" action="<?= e(url('staff.bookings.handover.store', ['no' => $no])) ?>" x-data="handoverForm('<?= e($quoteUrl) ?>', <?= (int) ($current[0]['id'] ?? 0) ?>)"
-      class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+      class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
     <?= csrf_field() ?>
     <div class="min-w-0 space-y-6">
         <?php foreach ($maps as $map): ?>

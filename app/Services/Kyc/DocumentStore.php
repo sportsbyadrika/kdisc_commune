@@ -13,6 +13,7 @@ use App\Enums\HolderType;
 use App\Models\CustomerDocument;
 use App\Services\AuditLog;
 use Intervention\Image\ImageManager;
+use App\Services\Security\UploadGuard;
 use Throwable;
 
 /**
@@ -162,6 +163,10 @@ final class DocumentStore
         }
         if ($mime === 'application/pdf' && (string) file_get_contents($tmp, false, null, 0, 5) !== '%PDF-') {
             throw $fail('The PDF appears to be damaged.');
+        }
+        $unsafe = $mime === 'application/pdf' ? UploadGuard::pdf($tmp) : UploadGuard::image($tmp);
+        if ($unsafe !== null) {
+            throw $fail($unsafe);
         }
 
         $dir = self::root() . '/' . trim($subdir, '/');

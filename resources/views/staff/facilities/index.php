@@ -51,7 +51,7 @@ $this->layout('layouts/staff', [
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
                                 <a href="<?= e(url('staff.facilities.edit', ['id' => (int) $f['id']])) ?>" class="btn btn-ghost btn-sm"><?= icon('pencil', 'size-4') ?>Edit</a>
-                                <form method="post" action="<?= e(url('staff.facilities.destroy', ['id' => (int) $f['id']])) ?>" class="inline" x-data @submit="if (!confirm('Delete <?= e((string) $f['name']) ?>? If it was ever booked or is on a published plan it is deactivated instead.')) $event.preventDefault()">
+                                <form method="post" action="<?= e(url('staff.facilities.destroy', ['id' => (int) $f['id']])) ?>" class="inline" data-confirm="Delete <?= e((string) $f['name']) ?>? If it was ever booked or is on a published plan it is deactivated instead.">
                                     <?= csrf_field() ?><?= method_field('DELETE') ?><button class="btn btn-ghost btn-sm text-red-700" aria-label="Delete <?= e((string) $f['name']) ?>"><?= icon('trash-2', 'size-4') ?></button>
                                 </form>
                             </td>

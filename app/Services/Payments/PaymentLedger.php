@@ -87,12 +87,83 @@ final class PaymentLedger
     }
 
     /**
+     * Payments of many bookings in one query per 500 ids (same rows / order as payments()), keyed by booking id.
+     *
+     * @param list<int> $bookingIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function paymentsFor(array $bookingIds): array
+    {
+        $out = [];
+        foreach (array_chunk(array_values(array_unique($bookingIds)), 500) as $ids) {
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            foreach ($this->db->select(
+                "SELECT p.*, l.name AS logged_by_name, v.name AS voided_by_name, f.name AS verified_by_name
+                 FROM payments p
+                 LEFT JOIN staff_users l ON l.id = p.logged_by
+                 LEFT JOIN staff_users v ON v.id = p.voided_by
+                 LEFT JOIN staff_users f ON f.id = p.verified_by
+                 WHERE p.booking_id IN ({$in}) ORDER BY p.paid_on DESC, p.id DESC",
+                $ids,
+            ) as $row) {
+                $out[(int) $row['booking_id']][] = $row;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Rent schedules of many bookings (generated lazily like schedule()), keyed by booking id.
+     *
+     * @param list<array<string, mixed>> $bookings
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function schedulesFor(array $bookings): array
+    {
+        $deposit = array_values(array_filter($bookings, static fn (array $b) => ($b['payment_rule'] ?? '') === PaymentRule::SecurityDeposit->value));
+        $out = [];
+        foreach (array_chunk($deposit, 500) as $chunk) {
+            $ids = array_map(static fn (array $b) => (int) $b['id'], $chunk);
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            foreach ($this->db->select("SELECT * FROM rent_schedules WHERE booking_id IN ({$in}) ORDER BY booking_id, period_no", $ids) as $row) {
+                $out[(int) $row['booking_id']][] = $row;
+            }
+            foreach ($chunk as $b) {
+                if (!isset($out[(int) $b['id']])) {
+                    $out[(int) $b['id']] = $this->schedule($b);
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
      * @param array<string, mixed> $booking
      * @return array<string, mixed> DuesCalculator::calculate()
      */
     public function dues(array $booking): array
     {
         return DuesCalculator::calculate($booking, $this->schedule($booking), $this->payments((int) $booking['id']), $this->clock->today());
+    }
+
+    /**
+     * dues() for many bookings with a handful of queries instead of two per booking (dashboards, dues lists,
+     * ageing, the visitor's booking list), keyed by booking id.
+     *
+     * @param list<array<string, mixed>> $bookings
+     * @return array<int, array<string, mixed>>
+     */
+    public function duesMany(array $bookings): array
+    {
+        $payments = $this->paymentsFor(array_map(static fn (array $b) => (int) $b['id'], $bookings));
+        $schedules = $this->schedulesFor($bookings);
+        $today = $this->clock->today();
+        $out = [];
+        foreach ($bookings as $b) {
+            $id = (int) $b['id'];
+            $out[$id] = DuesCalculator::calculate($b, $schedules[$id] ?? [], $payments[$id] ?? [], $today);
+        }
+        return $out;
     }
 
     /**
@@ -103,8 +174,10 @@ final class PaymentLedger
     public function customerOutstanding(int $customerId): array
     {
         $out = ['due_now' => 0.0, 'balance' => 0.0, 'bookings' => []];
-        foreach ($this->billableBookings('b.customer_id = ?', [$customerId]) as $b) {
-            $d = $this->dues($b);
+        $bookings = $this->billableBookings('b.customer_id = ?', [$customerId]);
+        $all = $this->duesMany($bookings);
+        foreach ($bookings as $b) {
+            $d = $all[(int) $b['id']];
             if ($d['balance'] <= 0 && $d['due_now'] <= 0) {
                 continue;
             }
@@ -125,8 +198,10 @@ final class PaymentLedger
     public function topOutstanding(int $limit = 5): array
     {
         $by = [];
-        foreach ($this->billableBookings('1 = 1', []) as $b) {
-            $d = $this->dues($b);
+        $bookings = $this->billableBookings('1 = 1', []);
+        $all = $this->duesMany($bookings);
+        foreach ($bookings as $b) {
+            $d = $all[(int) $b['id']];
             if ($d['due_now'] <= 0) {
                 continue;
             }

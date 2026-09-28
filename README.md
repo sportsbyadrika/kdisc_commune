@@ -5,8 +5,42 @@ K-DISC · Commune "Work Near Home" · **Kottarakara** centre.
 A PHP 8.4 / MySQL 8.4 / Tailwind CSS v4 web application with a public website + visitor portal and a staff console
 for running the workspace (registrations & KYC, visual seat booking, payments, GST invoices, dashboards).
 
-- Product spec: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)
+- Product spec, open questions and the implemented defaults to confirm: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)
+- **Going live**: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (server, web server, `.env`, cron, backups, upgrades, UAT checklist)
 - Architecture & conventions for contributors: [`CLAUDE.md`](CLAUDE.md)
+
+## What it does
+
+| For | Features |
+|---|---|
+| **Visitors** (public site + portal) | Browse spaces and prices. Register (email-verified, captcha). Complete a 4-step KYC profile with phone-camera document capture. Get a Unique Visitor ID and QR ID card. Pick seats on a **live building → floor → seat map** with 10-minute holds and GST-inclusive pricing. Request bookings. See dues, and download invoices, receipts and allotment letters. |
+| **Reception** | Assisted registration with duplicate detection. Book on the same map for a visitor. Log payments with proof. QR check-in/out desk. Handovers and extensions. Front-desk dashboard. |
+| **Centre Manager** | KYC approvals, booking approvals, **Layout & Pricing Designer** (photos, hotspots, zones, drag-placed seats, versioned publish, effective-dated rates), facilities, XLSX bulk import, **staff users**, audit log |
+| **Finance** | Payment verification queue. FY-numbered **GST invoices**, receipts, credit notes and deposit refunds (PDF, emailed). Registers. GSTR-1 summary. Finance dashboard. |
+| **State Admin** | Dashboards with occupancy heat-maps, 15+ reports (HTML / XLSX / PDF from one definition), audit log, staff users |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/01-home.png" alt="Public home page"><br><sub>Public site (Kallang-style design system)</sub></td>
+<td width="50%"><img src="docs/screenshots/02-space-explorer.png" alt="Space Explorer floor map with selected seats"><br><sub>Space Explorer: pick seats on the floor plan, live GST price, 10-minute hold</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/05-layout-designer.png" alt="Layout and pricing designer"><br><sub>Layout &amp; Pricing Designer (Centre Manager)</sub></td>
+<td><img src="docs/screenshots/04-profile-wizard-documents.png" alt="Profile wizard document step"><br><sub>Visitor KYC wizard: documents with phone/webcam capture</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/06-bookings-console.png" alt="Bookings console"><br><sub>Bookings console: requests, payments, arrivals, renewals</sub></td>
+<td><img src="docs/screenshots/07-finance-dashboard.png" alt="Finance dashboard"><br><sub>Finance dashboard</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/09-state-dashboard.png" alt="State Admin dashboard"><br><sub>State Admin dashboard with occupancy heat-map</sub></td>
+<td><img src="docs/screenshots/10-staff-users.png" alt="Staff user management"><br><sub>Staff user management</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/08-gst-invoice-pdf.png" alt="GST invoice PDF" width="320"><br><sub>GST tax invoice (dompdf)</sub></td>
+<td><img src="docs/screenshots/03-explorer-mobile.png" alt="Space Explorer on a phone" width="220"><br><sub>Mobile: pinch-zoom map with a bottom sheet</sub></td>
+</tr>
+</table>
 
 ## Requirements
 
@@ -177,11 +211,110 @@ first day of each period) shown on the booking and in the portal.
 ```cron
 */15 * * * * cd /var/www/commune && php bin/console bookings:tick  >> storage/logs/cron.log 2>&1
 */10 * * * * cd /var/www/commune && php bin/console holds:cleanup  >> storage/logs/cron.log 2>&1
+0    * * * * cd /var/www/commune && php bin/console imports:cleanup >> storage/logs/cron.log 2>&1
 ```
 
 `bookings:tick` activates bookings on their start date, completes them after the end date, expires unpaid approvals
 and sends renewal reminders 15 / 7 / 1 days before the end (`settings.renewal_reminder_days`). It is idempotent —
 reminders are de-duplicated in `notifications.dedupe_key` — so running it often is safe.
+
+## Finance: verification, GST invoices, receipts, credit notes & PDFs (batch 6)
+
+**Flow.** Front desk logs a payment (`logged`) → Finance verifies it at `/staff/finance/payments` (or bulk-verifies;
+a payment with an open **query** to the front desk is skipped until the desk replies from the booking page) → a
+**receipt** `RCPT/{FY}/{0001}` is issued in the same transaction (deposits get a *deposit receipt*) → verified money
+enters the **invoice queue** (`/staff/finance/invoices`) → Finance issues the **GST tax invoice**
+`KDISC/CMN/{FY}/{0001}`. Invoices and receipts are stored as PDF and emailed to the visitor with the PDF attached.
+
+| Rule | |
+|---|---|
+| ≤ 6 months / hourly (advance) | ONE invoice for the whole booking (seats + add-ons from the price snapshot), once verified payments cover the grand total |
+| > 6 months (security deposit) | ONE invoice per rent period (`rent_schedules`), once verified payments cover that period (deposit is filled first) |
+| Security deposit | never invoiced — receipt only; settled at the end with a **deposit refund voucher** `DRV/{FY}/{0001}` (adjustments listed) |
+| Tax | per line, rounded to paise: CGST 9 % + SGST 9 % when the customer's state code is 32 (Kerala), else IGST 18 %; SAC from settings (997212) |
+| Totals | invoice total = the amount billed (booking grand total / rent period amount); any paise difference is shown as *Round off* |
+| Numbers | per Indian financial year (Apr–Mar), strictly sequential, allocated under a `number_sequences` row lock in the same transaction as the document — no gaps, no duplicates |
+| Corrections | invoices are immutable; **credit notes** `CN/{FY}/{0001}` (cancellation, early exit, handover difference, discount, other) reverse taxable value + GST, full or partial, never more than the invoice. Early exits get a pro-rata suggestion |
+
+**Pages.** `/staff/finance` (dashboard: collections vs dues, GST collected, revenue by space type / add-on, queues,
+deposits held), `/staff/finance/payments`, `/staff/finance/invoices?tab=queue|invoices|receipts|credit-notes|deposits`,
+`/staff/finance/invoices/{id}` (credit notes), `/staff/finance/registers?type=invoices|receipts|credit-notes|deposits|outstanding`
+(+ `.pdf` export), `/staff/finance/settings` (supplier legal name, GSTIN, PAN, state, SAC, GST rate, prefixes, bank,
+signatory, logo / signature / seal images, terms). Visitors: `/my/invoices`, booking page *Documents*, allotment letter
+`/my/bookings/{BK-…}/allotment-letter.pdf`, ID card `/my/id-card.pdf`.
+
+**PDF storage.** Issued invoices, receipts, credit notes and refund vouchers are rendered once and kept under
+`storage/pdf/{invoices|receipts|credit-notes|deposit-refunds}/{FY}/{number-slug}.pdf`; downloads stream the stored
+original. *Reprint* re-renders with a **DUPLICATE COPY** watermark (counted + audited). Allotment letters and ID cards
+are generated on demand. Back up `storage/pdf/` with the database.
+
+**Fonts.** PDFs use **DejaVu Sans** (bundled with dompdf; includes the ₹ sign) — nothing to install. Font metrics are
+cached in `storage/cache/dompdf/`. Malayalam: no Malayalam font ships with the app. To add one, copy
+`NotoSansMalayalam-Regular.ttf` (Google Noto, OFL) into `resources/fonts/`, add to `resources/views/pdf/print.css`
+`@font-face { font-family: 'Noto Sans Malayalam'; src: url('resources/fonts/NotoSansMalayalam-Regular.ttf'); }` and
+use `font-family: 'Noto Sans Malayalam', 'DejaVu Sans'` on Malayalam text. Note that dompdf does not perform complex
+script shaping, so conjunct-heavy Malayalam may render imperfectly — keep Malayalam to short labels or pre-render it as an image.
+
+## Dashboards, reports, exports & bulk upload (batch 7)
+
+**Dashboards.** `/staff/dashboard?range=month|last-month|3m|6m|fy|last-fy`
+- *State Admin* (read-only): revenue MTD / FYTD (net taxable invoiced), collections, dues outstanding, active bookings,
+  occupancy today, 12-month revenue vs collections and occupancy trends, payment status, seats by space type, a
+  **heat-map of every floor** (each seat / cabin / room shaded by its share of seat-days occupied in the period) and
+  a per-space-type breakdown.
+- *Centre Manager*: the front-desk board plus *Centre insights* — heat-map, renewals pipeline (next 30 days), KYC
+  queue size, request → confirmation conversion (last 90 days) and dues ageing.
+
+**Reports** — `/staff/reports` lists what the role may open. Every report has filters, a sortable paginated table
+with totals, and **Export XLSX / Export PDF** with the same figures and filters:
+
+| Report | What |
+|---|---|
+| Occupancy | seat-days occupied / available by floor × space type, space type, floor, seat or day (+ daily chart) |
+| Bookings summary | bookings, seats, value and confirmation rate by status / source / space type / month |
+| Renewals due | bookings ending in the next 7–90 days and whether they are renewed |
+| Revenue | invoiced taxable value net of credit notes by month / space type / add-on |
+| Collections | payments by mode / purpose / month, verified vs to verify |
+| Dues ageing | money due now in 0–30 / 31–60 / 61–90 / 90+ day buckets, per booking or visitor |
+| GST summary (GSTR-1) | month or FY: Summary, B2B, B2CL, B2CS (net of its credit notes), credit/debit notes, HSN/SAC — one worksheet each |
+| KYC funnel | registered → submitted → verified → booked, online vs reception, time to verify |
+| Visitor demographics | individual categories, institution types, channel, home state / nationality |
+| Finance registers | invoice / receipt / credit note / deposit / outstanding (Finance) |
+
+List pages (visitors, bookings, payments, invoices & receipts) have an **Export** menu that exports what the page
+shows (same filters). XLSX files have a brand-coloured frozen header row, autofilter, ₹ `#,##0.00`, real dates,
+column widths and a SUBTOTAL totals row; exports are audited (`report.export`).
+
+**Bulk upload** — `/staff/imports` (Centre Manager). Types: *Individuals, Institutions, Bookings, Payments,
+Facilities, Rates*. Download the template (required columns marked `*`, dropdowns, an example row and an
+*Instructions* sheet), fill it, upload it (.xlsx, 5 MB / 1,000 rows by default — `import_max_mb`, `import_max_rows`).
+Every row is validated with the same rules as the forms (Aadhaar Verhoeff, PAN, GSTIN checksum + PAN + state, TAN,
+mobile, email, duplicates in the database *and* in the file, seat availability + price for bookings, balances for
+payments) and shown in a **preview** (Aadhaar masked). Confirm *row by row* or *all or nothing*, optionally sending
+portal invites; download the **error report** (the failed rows + an Error column, red cells) to fix and re-upload.
+The uploaded file stays in `storage/imports/tmp/` (private) only until it is confirmed, discarded or expires
+(`import_expiry_minutes`, default 120).
+
+**Also:** audit log viewer `/staff/audit` (Centre Manager, State Admin — filters + old/new diff) and the staff
+notification inbox (header bell, `/staff/notifications`).
+
+**Demo / UAT data:** after `php bin/console migrate:fresh --seed` run `php bin/console demo:seed` — ~30 visitors and
+~40 bookings over three months with payments, receipts, invoices, a credit note and a renewal, created through the
+real services. It refuses to run when `APP_ENV=production`.
+
+## Hardening, staff users & go-live tooling (batch 8)
+
+| Area | What |
+|---|---|
+| Staff users | `/staff/users` (Centre Manager: reception / finance / managers; State Admin: everyone): invite by email (72-hour set-password link), change role, deactivate / reactivate, email a reset link, last sign-in. You cannot deactivate yourself, change your own role, or remove the last active Centre Manager / State Admin. |
+| Staff password | "Forgot password?" on `/staff/login` → single-use link `/staff/password/reset/{token}`; a new password signs out other sessions |
+| Sign-in captcha | After 3 failed attempts (email + IP, or 9 from one IP) both sign-in forms ask the math question; 5 failures lock for 15 min |
+| Rate limits | `throttle:name,max,minutes` middleware (DB-backed `RateLimiter`) on sign-in, registration, password links, contact, the Space Explorer API, PDFs, exports and imports → 429 |
+| Security | Route authorisation + CSRF enforced by tests over the whole route table, IDOR tests for every visitor-owned resource, open-redirect guard (`SafeRedirect`), Alpine-expression injection closed (`data-confirm`), trusted proxies, absolute session lifetime, Aadhaar / secret redaction in logs and audit, upload guards (decompression bombs, active PDFs, XLSX zip bombs), headers (CSP, HSTS, Permissions-Policy camera only where used, COOP/CORP) |
+| Console | `php bin/console user:create --name=… --email=… --role=centre_manager [--invite]`, `php bin/console app:check` (environment report; exit 1 on failure) |
+| Performance | Indexes from EXPLAIN (migration `2026_10_02_000002`), batched dues / invoice-queue queries, one settings load per request, content-hashed asset URLs cached for a year |
+
+Run `php bin/console app:check` after every install or upgrade — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Everyday commands
 
@@ -192,16 +325,24 @@ composer analyse                  # PHPStan (level 6)
 php bin/console migrate:status    # which migrations have run
 php bin/console routes            # list routes
 php bin/console bookings:tick     # run the booking scheduler now (idempotent)
+php bin/console demo:seed         # UAT demo data through the real services (not in production)
+php bin/console imports:cleanup   # delete expired bulk-upload temp files
+php bin/console app:check         # environment / go-live report (PHP, extensions, dirs, APP_KEY, DB, migrations, mail, cron)
+php bin/console user:create --name="A Manager" --email=a@example.org --role=centre_manager   # first staff login
 npm run watch:css                 # rebuild CSS while editing views
 php bin/make-placeholder-plans.php  # regenerate placeholder floor-plan SVGs from the seed layout
 ```
 
-## Deployment notes
+## Deployment
 
-- Point the web server's document root at **`public/`** only. Apache: `public/.htaccess` is included
-  (mod_rewrite). nginx: see [`nginx.conf.example`](nginx.conf.example). URLs never contain `.php`.
-- Set `APP_ENV=production`, `APP_DEBUG=false`, a real `APP_KEY`, and serve over HTTPS (session cookies become
-  `Secure` automatically).
-- `storage/` must be writable by PHP (logs, sessions, uploads, PDFs). It is outside the web root on purpose.
-- Replace the placeholder images in `public/media/` (or update the paths stored in the `buildings`, `floors` and
-  `seat_categories` tables) once real photos are available.
+The full runbook is [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). In short:
+
+- The web root is **`public/`** only. `public/.htaccess` handles Apache; [`nginx.conf.example`](nginx.conf.example)
+  handles nginx. URLs never contain `.php`.
+- Set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://…`, a real `MAIL_DSN` and `APP_KEY`. **Back up
+  `APP_KEY` offline**: Aadhaar numbers are encrypted with it.
+- Run `composer install --no-dev -o && php bin/console migrate`, then create the first manager with
+  `php bin/console user:create`. The demo staff logins are never seeded when `APP_ENV=production`.
+- Add the cron lines (`bookings:tick`, `holds:cleanup`, `imports:cleanup`) and nightly backups of the DB,
+  `storage/uploads` and `storage/pdf`.
+- `php bin/console app:check` must report 0 failures.

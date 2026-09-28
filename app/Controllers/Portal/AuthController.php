@@ -16,6 +16,7 @@ use App\Models\Account;
 use App\Models\Customer;
 use App\Services\AuditLog;
 use App\Services\Auth\Captcha;
+use App\Services\Auth\LoginCaptcha;
 use App\Services\Auth\LoginThrottle;
 use App\Services\Auth\PasswordHasher;
 use App\Services\Auth\PasswordTokenService;
@@ -34,6 +35,7 @@ final class AuthController extends Controller
         private readonly PasswordHasher $hasher,
         private readonly LoginThrottle $throttle,
         private readonly Captcha $captcha,
+        private readonly LoginCaptcha $loginCaptcha,
         private readonly AuditLog $audit,
     ) {
     }
@@ -204,14 +206,14 @@ final class AuthController extends Controller
         if ($next !== '' && self::safeNext($next, $request->basePath())) {
             $session->put('_intended', $next);
         }
-        return $this->view('portal/auth/login', ['title' => 'Sign in']);
+        return $this->view('portal/auth/login', ['title' => 'Sign in', 'captchaQuestion' => $this->loginCaptcha->question('visitor')]);
     }
 
     /** Post-login redirect targets: the portal and the Space Explorer only (no open redirects). */
     private static function safeNext(string $path, string $base): bool
     {
-        return preg_match('#^/[A-Za-z0-9/_\-?=&.%]*$#', $path) === 1 && !str_starts_with($path, '//')
-            && (str_starts_with($path, $base . '/my') || str_starts_with($path, $base . '/spaces'));
+        return preg_match('#^/[A-Za-z0-9/_\-?=&.%]*$#', $path) === 1
+            && \App\Support\SafeRedirect::path($path, ['/my', '/spaces'], $base) !== null;
     }
 
     public function login(Request $request, Session $session): Response
@@ -224,6 +226,10 @@ final class AuthController extends Controller
         if ($wait > 0) {
             return back()->withErrors(['email' => sprintf('Too many sign-in attempts. Please try again in %d minute(s).', (int) ceil($wait / 60))])->withInput();
         }
+        if ($this->loginCaptcha->required('visitor', $email, $ip) && !$this->loginCaptcha->passes('visitor', $request->input('captcha'))) {
+            $this->throttle->hit('visitor', $email, $ip);
+            return back()->withErrors(['captcha' => 'Please answer the question to continue.'])->withInput();
+        }
         $account = Account::findByEmail($email);
         $password = (string) $request->input('password');
         if ($account === null || $account['password_hash'] === null) {
@@ -231,6 +237,7 @@ final class AuthController extends Controller
         }
         if ($account === null || !$this->hasher->verify($password, $account['password_hash'] !== null ? (string) $account['password_hash'] : null)) {
             $this->throttle->hit('visitor', $email, $ip);
+            $this->loginCaptcha->failed('visitor', $email, $ip);
             return back()->withErrors(['email' => 'These credentials do not match our records. New here, or never set a password? Use “Forgot password”.'])->withInput();
         }
         if ($account['status'] !== AccountStatus::Active->value) {
@@ -240,6 +247,7 @@ final class AuthController extends Controller
             Account::update((int) $account['id'], ['password_hash' => $this->hasher->hash($password)]);
         }
         $this->throttle->clear('visitor', $email, $ip);
+        $this->loginCaptcha->clear('visitor');
         App::guard('visitor')->login($account);
         Account::recordLogin((int) $account['id'], $ip);
         $this->audit->record('account.login', 'account', (int) $account['id'], actorType: 'account', actorId: (int) $account['id']);

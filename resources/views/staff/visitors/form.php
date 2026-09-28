@@ -38,7 +38,7 @@ $sections = $create ? ['Basic details', 'Identity & KYC', 'Documents', 'Finish']
 
 <form method="post" action="<?= e($action) ?>" enctype="multipart/form-data" novalidate autocomplete="off"
       x-data="duplicateCheck('<?= e(url('staff.visitors.duplicates')) ?>', <?= (int) ($customer['id'] ?? 0) ?>, '<?= $foreign ? 'foreign' : 'indian' ?>')" @change="lookup($event)"
-      class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
     <?= csrf_field() ?>
     <?php if (!$create): ?><?= method_field('PUT') ?><?php endif ?>
     <input type="hidden" name="type" value="<?= e($type->value) ?>">

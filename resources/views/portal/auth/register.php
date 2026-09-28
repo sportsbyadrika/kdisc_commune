@@ -58,11 +58,7 @@ $type = (string) old('type', $defaultType->value);
             <input id="f-website" type="text" name="<?= e(Captcha::HONEYPOT) ?>" tabindex="-1" autocomplete="off">
         </div>
 
-        <div class="rounded-2xl border border-line bg-surface p-4">
-            <label for="f-captcha" class="label flex items-center gap-2"><?= icon('shield-check', 'size-4 text-brand-600') ?> Quick check: <?= e($captchaQuestion) ?></label>
-            <input id="f-captcha" name="captcha" inputmode="numeric" autocomplete="off" required class="<?= e(class_names('input w-32', ['input-error' => errors('captcha') !== null])) ?>" placeholder="Answer">
-            <?php if (errors('captcha')): ?><p class="error-text"><?= icon('circle-alert', 'size-3.5') ?><?= e(errors('captcha')) ?></p><?php endif ?>
-        </div>
+        <?= $this->partial('partials/auth/captcha', ['question' => $captchaQuestion]) ?>
 
         <div>
             <label for="f-consent" class="flex cursor-pointer items-start gap-3 text-sm">

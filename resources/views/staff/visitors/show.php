@@ -59,7 +59,7 @@ $actionLabels = [
     <?= $this->component('alert', ['tone' => 'danger', 'class' => 'mb-6', 'title' => 'KYC rejected', 'message' => (string) $customer['kyc_remarks']]) ?>
 <?php endif ?>
 
-<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
     <div class="min-w-0 space-y-6">
         <?= $this->partial('partials/visitor/summary', ['editBase' => null]) ?>
         <section>
@@ -75,6 +75,9 @@ $actionLabels = [
 
     <aside class="space-y-6">
         <?= $this->partial('partials/visitor/id-card', ['compact' => true]) ?>
+        <?php if (!empty($customer['unique_id'])): ?>
+            <a href="<?= e(url('staff.visitors.id_card', ['ref' => $customer['unique_id']])) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm mt-3 w-full"><?= icon('printer', 'size-4') ?>Print ID card (PDF)</a>
+        <?php endif ?>
 
         <section class="card card-body">
             <h2 class="text-base font-bold">KYC</h2>

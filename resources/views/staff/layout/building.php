@@ -42,7 +42,7 @@ $config = [
         <span class="text-sm font-semibold" :class="state === 'dirty' ? 'text-amber-600' : 'text-emerald-600'" x-text="state === 'dirty' ? 'Unsaved changes' : (state === 'saving' ? 'Saving…' : 'Saved ✓')"></span>
         <button type="button" class="btn btn-brand btn-sm" @click="saveAll()" :disabled="state !== 'dirty'" data-test="hotspots-save"><?= icon('save', 'size-4') ?>Save hotspots</button>
     </header>
-    <div class="grid gap-0 xl:grid-cols-[minmax(0,1fr)_380px]">
+    <div class="grid grid-cols-1 gap-0 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div class="bg-brand-950 p-4 sm:p-6">
             <div class="relative mx-auto max-w-4xl select-none" x-ref="photo" @click="addPoint($event)" @contextmenu.prevent>
                 <img src="<?= e(media($building['photo_path'] ?? null)) ?>" alt="Building photo" class="block w-full rounded-xl" draggable="false">
@@ -101,7 +101,7 @@ $config = [
     </header>
     <div class="divide-y divide-line">
         <?php foreach ($floorRows as $f): ?>
-            <div class="grid items-center gap-4 p-5 lg:grid-cols-[180px_minmax(0,1fr)_auto]" data-test="floor-<?= e((string) $f['slug']) ?>">
+            <div class="grid grid-cols-1 items-center gap-4 p-5 lg:grid-cols-[180px_minmax(0,1fr)_auto]" data-test="floor-<?= e((string) $f['slug']) ?>">
                 <a href="<?= e(url('staff.layout.floor', ['floor' => (string) $f['slug']])) ?>" class="block overflow-hidden rounded-xl ring-1 ring-line"><img src="<?= e(media((string) $f['photo_path'])) ?>" alt="<?= e((string) $f['name']) ?> plan" class="aspect-[16/10] w-full bg-surface object-cover"></a>
                 <div class="min-w-0">
                     <p class="flex flex-wrap items-center gap-2"><b class="text-lg"><?= e((string) $f['name']) ?></b> <span class="badge badge-neutral">Level <?= (int) $f['level'] ?></span> <span class="badge badge-brand font-mono">Codes <?= e((string) $f['code']) ?>-…</span>
@@ -116,7 +116,7 @@ $config = [
                 </div>
                 <div class="flex flex-wrap gap-2 lg:justify-end">
                     <a href="<?= e(url('staff.layout.floor', ['floor' => (string) $f['slug']])) ?>" class="btn btn-brand btn-sm"><?= icon('pen-tool', 'size-4') ?>Design</a>
-                    <form method="post" action="<?= e(url('staff.layout.floors.destroy', ['floor' => (int) $f['id']])) ?>" x-data @submit="if (!confirm('Remove <?= e((string) $f['name']) ?> and all its layout versions? Floors with booking history cannot be removed.')) $event.preventDefault()">
+                    <form method="post" action="<?= e(url('staff.layout.floors.destroy', ['floor' => (int) $f['id']])) ?>" data-confirm="Remove <?= e((string) $f['name']) ?> and all its layout versions? Floors with booking history cannot be removed.">
                         <?= csrf_field() ?><?= method_field('DELETE') ?>
                         <button class="btn btn-ghost btn-sm text-red-700"><?= icon('trash-2', 'size-4') ?>Remove</button>
                     </form>
@@ -124,7 +124,7 @@ $config = [
             </div>
         <?php endforeach ?>
     </div>
-    <form method="post" action="<?= e(url('staff.layout.floors.store')) ?>" class="grid gap-3 border-t border-line bg-surface/60 p-5 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_auto] sm:items-end">
+    <form method="post" action="<?= e(url('staff.layout.floors.store')) ?>" class="grid grid-cols-1 gap-3 border-t border-line bg-surface/60 p-5 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_auto] sm:items-end">
         <?= csrf_field() ?>
         <label class="dz-field"><span>New floor name</span><input name="name" required maxlength="100" class="dz-input" value="<?= e((string) old('name')) ?>" placeholder="e.g. Second Floor"></label>
         <label class="dz-field"><span>Code prefix</span><input name="code" required maxlength="5" class="dz-input font-mono uppercase" value="<?= e((string) old('code')) ?>" placeholder="S"></label>

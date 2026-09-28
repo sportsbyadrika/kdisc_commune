@@ -35,7 +35,7 @@ $this->layout('layouts/staff', [
             $status = App\Enums\LayoutStatus::from((string) $v['status']);
             $summary = $v['summary'] !== null ? (array) json_decode((string) $v['summary'], true) : [];
         ?>
-            <li class="grid gap-4 p-5 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto] sm:items-center">
+            <li class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto] sm:items-center">
                 <div class="flex items-center gap-3 sm:block">
                     <span class="grid size-12 place-items-center rounded-2xl font-display text-lg font-extrabold <?= $status === App\Enums\LayoutStatus::Published ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : ($status === App\Enums\LayoutStatus::Draft ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' : 'bg-surface-2 text-ink/60') ?>">v<?= (int) $v['version_no'] ?></span>
                 </div>

@@ -14,7 +14,9 @@ use App\Services\Bookings\BookingDirectory;
 use App\Services\Bookings\BookingWorkflow;
 use App\Services\Bookings\RenewalService;
 use App\Services\Bookings\WorkflowException;
+use App\Services\Finance\FinanceDocuments;
 use App\Services\Payments\PaymentLedger;
+use App\Services\Pdf\BookingDocuments;
 use App\Support\Clock;
 
 /**
@@ -36,12 +38,7 @@ final class BookingController extends PortalController
     {
         $customer = $this->customer();
         $rows = $this->bookings->forCustomer((int) $customer['id']);
-        $dues = [];
-        foreach ($rows as $b) {
-            if (BookingStatus::from((string) $b['status'])->billable()) {
-                $dues[(int) $b['id']] = $this->ledger->dues($b);
-            }
-        }
+        $dues = $this->ledger->duesMany(array_values(array_filter($rows, static fn (array $b) => BookingStatus::from((string) $b['status'])->billable())));
         return $this->view('portal/bookings/index', [
             'title' => 'My bookings',
             'customer' => Customer::safe($customer),
@@ -51,7 +48,7 @@ final class BookingController extends PortalController
         ]);
     }
 
-    public function show(string $no): Response
+    public function show(string $no, FinanceDocuments $documents): Response
     {
         $customer = $this->customer();
         $booking = $this->bookings->findByNo($no, (int) $customer['id']) ?? throw new NotFoundException();
@@ -68,6 +65,8 @@ final class BookingController extends PortalController
             'renewal' => $this->renewals->renewalOf((int) $booking['id']),
             'renewedFrom' => $booking['renewed_from_id'] !== null ? db()->first('SELECT booking_no FROM bookings WHERE id = ? AND customer_id = ?', [(int) $booking['renewed_from_id'], (int) $customer['id']]) : null,
             'canRenew' => in_array($status, [BookingStatus::Confirmed, BookingStatus::Active, BookingStatus::Completed], true) && $booking['start_time'] === null,
+            'documents' => $documents->forBooking((int) $booking['id']),
+            'allotmentUrl' => BookingDocuments::allotmentAvailable($booking) ? url('portal.bookings.allotment', ['no' => $booking['booking_no']]) : null,
             'today' => $this->clock->today(),
         ]);
     }

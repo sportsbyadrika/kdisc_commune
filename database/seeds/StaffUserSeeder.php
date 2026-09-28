@@ -18,6 +18,12 @@ final class StaffUserSeeder extends Seeder
 
     public function run(): void
     {
+        if (\App\Core\App::config('app.env') === 'production') {
+            // Never create well-known demo logins on a live server: create the first manager with
+            // `php bin/console user:create` (see docs/DEPLOYMENT.md).
+            $this->info('StaffUserSeeder skipped (APP_ENV=production) — use bin/console user:create.');
+            return;
+        }
         $centreId = (int) $this->db->scalar("SELECT id FROM centres WHERE code = 'KTR'");
         $hash = (new PasswordHasher())->hash(self::PASSWORD);
         $users = [

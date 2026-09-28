@@ -14,7 +14,7 @@ use App\Support\IndianStates;
 $individual = $type === CustomerType::Individual;
 $c = $customer;
 ?>
-<div class="grid gap-5 sm:grid-cols-2">
+<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
     <fieldset class="sm:col-span-2">
         <legend class="label"><?= $individual ? 'I am a' : 'Type of institution' ?> <span class="text-accent-500" aria-hidden="true">*</span></legend>
         <?php $current = (string) old('sub_category', $c['sub_category'] ?? ''); ?>

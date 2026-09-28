@@ -36,6 +36,10 @@ final class AuditLog
             [$actorType, $actorId] = $staff !== null ? ['staff', $staff] : ['system', null];
         }
         $request = App::request();
+        // never store full Aadhaar numbers / secrets in the audit trail, whatever the caller passed
+        $old = $old !== null ? \App\Support\Redactor::array($old) : null;
+        $new = $new !== null ? \App\Support\Redactor::array($new) : null;
+        $reason = $reason !== null ? \App\Support\Redactor::string($reason) : null;
         $this->db->insert('audit_logs', [
             'actor_type' => $actorType,
             'actor_id' => $actorId,

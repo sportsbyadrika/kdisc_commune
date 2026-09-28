@@ -42,12 +42,13 @@ final class App
         date_default_timezone_set((string) $config->get('app.timezone', 'Asia/Kolkata'));
         mb_internal_encoding('UTF-8');
         \App\Services\Kyc\KycRules::register();
+        Request::setTrustedProxies((array) $config->get('security.trusted_proxies', []));
 
         $container->instance(self::class, $app);
         $container->instance(Container::class, $container);
         $container->instance(Config::class, $config);
         $container->singleton(LoggerInterface::class, fn () => Logger::create(
-            $basePath . '/storage/logs/app.log',
+            self::absolutePath($basePath, (string) $config->get('app.log_path', 'storage/logs/app.log')),
             (string) $config->get('app.log_level', 'debug'),
         ));
         $container->singleton(Database::class, fn () => Database::getInstance());
@@ -58,6 +59,8 @@ final class App
             $c->get(LoggerInterface::class),
         ));
         $container->singleton(\App\Services\Kyc\AadhaarVault::class, fn () => new \App\Services\Kyc\AadhaarVault());
+        // settings are read on almost every page (setting('gst_rate')…): load the table once per request
+        $container->singleton(\App\Services\SettingsService::class, fn (Container $c) => new \App\Services\SettingsService($c->get(Database::class)));
         // One clock per request so time-based rules (seat holds) agree; tests freeze it.
         $container->singleton(\App\Support\Clock::class, fn () => new \App\Support\Clock());
         $container->singleton(Router::class, function (Container $c) use ($basePath, $config): Router {
@@ -78,6 +81,11 @@ final class App
         ));
 
         return $app;
+    }
+
+    private static function absolutePath(string $basePath, string $path): string
+    {
+        return str_starts_with($path, '/') ? $path : $basePath . '/' . $path;
     }
 
     public static function instance(): self
@@ -138,6 +146,9 @@ final class App
     {
         $this->request = $request;
         $this->container->instance(Request::class, $request);
+        // Guards cache the signed-in user for one request (matters when one process handles several — tests).
+        $this->container->forget('guard.staff');
+        $this->container->forget('guard.visitor');
 
         try {
             $this->startSession($request);
@@ -187,6 +198,19 @@ final class App
         $view->share('current_path', $this->request?->path() ?? '/');
     }
 
+    /** Pages allowed to use the camera (config security.camera_paths, * = prefix wildcard). */
+    private function usesCamera(Request $request): bool
+    {
+        foreach ((array) $this->config->get('security.camera_paths', []) as $pattern) {
+            $pattern = (string) $pattern;
+            $path = $request->path();
+            if ($path === $pattern || (str_ends_with($pattern, '*') && str_starts_with($path, rtrim($pattern, '*')))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function withSecurityHeaders(Response $response, Request $request): Response
     {
         foreach ((array) $this->config->get('security.headers', []) as $name => $value) {
@@ -195,7 +219,11 @@ final class App
             }
         }
         if ($request->isSecure() && (bool) $this->config->get('security.hsts', true)) {
-            $response->header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            $response->header('Strict-Transport-Security', 'max-age=' . (int) $this->config->get('security.hsts_max_age', 31536000) . '; includeSubDomains');
+        }
+        if ($this->usesCamera($request)) {
+            $policy = (string) ($response->getHeader('Permissions-Policy') ?? '');
+            $response->header('Permissions-Policy', (string) preg_replace('/camera=\(\)/', 'camera=(self)', $policy));
         }
         if ($request->attribute('session_context') !== null && $response->getHeader('Cache-Control') === null) {
             // Pages may contain CSRF tokens / personal data: never cache in shared proxies.

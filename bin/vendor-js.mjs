@@ -32,7 +32,7 @@ const ICONS = [
   'lock', 'log-in', 'log-out', 'mail', 'map', 'map-pin', 'menu', 'monitor', 'package', 'parking-meter',
   'pen-tool', 'phone', 'plug', 'plus', 'printer', 'projector', 'receipt', 'receipt-indian-rupee', 'search',
   'settings', 'shield-check', 'snowflake', 'sparkles', 'square-user', 'triangle-alert', 'upload', 'user',
-  'user-check', 'user-plus', 'square-plus', 'user-round', 'users', 'users-round', 'wallet', 'wifi', 'x', 'zap', 'chart-column',
+  'user-check', 'user-plus', 'user-x', 'square-plus', 'user-round', 'users', 'users-round', 'wallet', 'wifi', 'x', 'zap', 'chart-column',
   'chart-pie', 'badge-indian-rupee', 'indian-rupee', 'scan-line', 'sofa', 'presentation', 'utensils',
   'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'globe', 'heart-handshake', 'rocket', 'star',
   'moon', 'sun', 'toilet', 'circle-parking', 'square-parking', 'mailbox', 'lamp-desk', 'door-closed', 'panel-left', 'list', 'filter', 'ellipsis', 'external-link', 'accessibility', 'fire-extinguisher',
@@ -50,6 +50,11 @@ const ICONS = [
   'cloud-off', 'square-mouse-pointer', 'layout-template', 'shapes',
   'bike', 'car', 'shower-head', 'microwave', 'refrigerator', 'headphones', 'tv', 'fan', 'cctv', 'dumbbell', 'baby', 'cup-soda',
   'utensils-crossed', 'heart-pulse', 'droplets', 'cigarette-off', 'lamp', 'phone-call', 'router', 'battery-charging', 'sofa',
+  // batch 6 — finance
+  'file-minus', 'piggy-bank', 'message-circle-question', 'check-check', 'banknote', 'file-down', 'scroll-text', 'stamp', 'list-checks',
+  // batch 7 — dashboards, reports, imports, audit, inbox
+  'arrow-up', 'chevrons-up-down', 'bell-ring', 'table-2', 'percent', 'flame', 'sheet', 'chart-line', 'chart-bar', 'list-filter',
+  'file-warning', 'file-json', 'user-cog', 'activity', 'gauge', 'git-compare', 'mail-open',
 ];
 
 mkdirSync(vendorDir, { recursive: true });

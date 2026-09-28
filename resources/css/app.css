@@ -40,7 +40,7 @@
   --color-surface: #f7f7f9;
   --color-surface-2: #eef0f4;
   --color-ink: #111827;
-  --color-muted: #6b7280;
+  --color-muted: #5f6673;   /* ≥ 4.5:1 on white, surface and surface-2 (WCAG AA) */
   --color-line: #e5e7eb;
 
   /* Seat-map status colours (Space Explorer) */
@@ -49,6 +49,17 @@
   --color-seat-hold: #f59e0b;
   --color-seat-taken: #ef4444;
   --color-seat-blocked: #cbd5e1;
+
+  /* Charts & heat-maps (dataviz): categorical series 1-2 (validated pair on white), and a sequential single-hue
+     blue ramp for occupancy classes 1-5 (validated as an ordinal ramp on white; class 0 = unused seat) */
+  --color-chart-1: #1d4ed8;
+  --color-chart-2: #eb6834;
+  --color-heat-0: #ffffff;
+  --color-heat-1: #86b6ef;
+  --color-heat-2: #5598e7;
+  --color-heat-3: #2a78d6;
+  --color-heat-4: #1c5cab;
+  --color-heat-5: #0d366b;
 
   /* Typography */
   --font-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -110,11 +121,17 @@
   ::selection { @apply bg-brand-100 text-brand-900; }
 }
 
+/* Screen-reader-only text keeps its static position; inside a horizontally scrolling table its containing block is
+   often outside the scroller, so it widened the whole page on phones. Pin it to the left edge instead. */
+@layer utilities {
+  .sr-only:not(:focus):not(:focus-within) { left: 0; }
+}
+
 @layer components {
   /* ---- Layout ---- */
   .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
   .section { @apply py-16 sm:py-20 lg:py-24; }
-  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.18em] text-accent-500; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.18em] text-accent-600; }
   .section-title { @apply font-display text-3xl font-extrabold tracking-tight sm:text-4xl; }
   .lead { @apply text-lg text-muted; }
 
@@ -356,6 +373,49 @@
   .hs-poly.is-on { fill: rgb(225 29 116 / .4); stroke: #fff; stroke-width: 3; }
   .hs-handle { @apply absolute z-10 size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-accent-500 shadow-md; }
   .hs-handle.is-first { @apply size-4 bg-white ring-2 ring-accent-500; }
+
+  /* ---- Occupancy heat-map (resources/js/dashboards.js `heatMap`, drawn with space-render.js) ---- */
+  .hm .sx-seat { cursor: default; }
+  .hm .sx-seat .pop { transition: none; }
+  .hm .sx-seat .body { fill: var(--color-heat-0); stroke: rgb(13 54 107 / .28); stroke-width: 2; }
+  .hm .sx-seat[data-heat="0"] .body { stroke: var(--color-heat-2); stroke-dasharray: 5 4; stroke-width: 2.5; }
+  .hm .sx-seat[data-heat="1"] .body { fill: var(--color-heat-1); }
+  .hm .sx-seat[data-heat="2"] .body { fill: var(--color-heat-2); }
+  .hm .sx-seat[data-heat="3"] .body { fill: var(--color-heat-3); }
+  .hm .sx-seat[data-heat="4"] .body { fill: var(--color-heat-4); }
+  .hm .sx-seat[data-heat="5"] .body { fill: var(--color-heat-5); }
+  .hm .sx-seat[data-heat="x"] .body { fill: var(--color-seat-blocked); }
+  .hm .sx-seat[data-heat="x"] .stripes { opacity: 1; }
+  .hm .sx-seat[data-heat="0"] .glyph, .hm .sx-seat[data-heat="1"] .glyph { color: var(--color-heat-5); }
+  .hm .sx-seat[data-heat="0"] .num, .hm .sx-seat[data-heat="1"] .num { fill: var(--color-heat-5); }
+  .hm .sx-seat[data-heat="x"] .glyph { color: #64748b; }
+  .hm .sx-seat[data-heat="x"] .num { fill: #64748b; }
+  .hm .sx-seat:hover .ring, .hm .sx-seat.is-hover .ring { stroke: var(--color-accent-500); stroke-width: 5; }
+  .hm .sx-unit { cursor: default; }
+  .hm .sx-unit .outline { stroke-dasharray: none; stroke-width: 4; fill-opacity: .45; }
+  .hm .sx-unit[data-heat="1"] .outline { fill: var(--color-heat-1); stroke: var(--color-heat-1); }
+  .hm .sx-unit[data-heat="1"] .tag rect { fill: var(--color-heat-3); }
+  .hm .sx-unit[data-heat="2"] .outline { fill: var(--color-heat-2); stroke: var(--color-heat-2); }
+  .hm .sx-unit[data-heat="2"] .tag rect { fill: var(--color-heat-3); }
+  .hm .sx-unit[data-heat="3"] .outline { fill: var(--color-heat-3); stroke: var(--color-heat-3); }
+  .hm .sx-unit[data-heat="3"] .tag rect { fill: var(--color-heat-3); }
+  .hm .sx-unit[data-heat="4"] .outline { fill: var(--color-heat-4); stroke: var(--color-heat-4); }
+  .hm .sx-unit[data-heat="4"] .tag rect { fill: var(--color-heat-4); }
+  .hm .sx-unit[data-heat="5"] .outline { fill: var(--color-heat-5); stroke: var(--color-heat-5); }
+  .hm .sx-unit[data-heat="5"] .tag rect { fill: var(--color-heat-5); }
+  .hm .sx-unit[data-heat="0"] .outline { fill: var(--color-heat-0); stroke: var(--color-heat-2); stroke-dasharray: 10 7; }
+  .hm .sx-unit[data-heat="x"] .outline { fill: var(--color-seat-blocked); stroke: #94a3b8; }
+  .hm .sx-unit:hover .outline, .hm .sx-unit.is-hover .outline { stroke: var(--color-accent-500); fill-opacity: .6; }
+  .hm .sx-unit[data-heat="x"] .tag rect { fill: #94a3b8; }
+  .hm .sx-unit[data-heat="0"] .tag rect { fill: var(--color-heat-3); }
+  .hm-swatch { @apply inline-block size-3.5 shrink-0 rounded-[4px] ring-1 ring-black/10; }
+  .hm-tip { @apply pointer-events-none absolute z-10 w-max max-w-60 rounded-xl bg-brand-950/95 px-3 py-2 text-xs leading-snug text-white shadow-lg; }
+  .meter { @apply flex h-2.5 overflow-hidden rounded-full bg-surface-2; }
+  .meter > span { @apply block h-full; }
+  .meter > span + span { @apply border-l-2 border-white; }
+  .sort-link { @apply inline-flex items-center gap-1 whitespace-nowrap hover:text-ink; }
+  .import-err { @apply bg-red-50/70; }
+  .import-err td.is-bad { @apply bg-red-100/80 text-red-900; }
 
   /* ---- Misc ---- */
   .prose-page p { @apply mb-4 leading-7 text-ink/80; }

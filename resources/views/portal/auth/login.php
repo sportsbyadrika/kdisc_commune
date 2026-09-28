@@ -1,5 +1,8 @@
 <?php
-/** @var App\Core\Template $this */
+/**
+ * @var App\Core\Template $this
+ * @var string|null $captchaQuestion set after repeated failed attempts (LoginCaptcha)
+ */
 $this->layout('layouts/auth', [
     'panelEyebrow' => 'Visitor portal',
     'panelTitle' => 'Welcome back.',
@@ -18,6 +21,9 @@ $this->layout('layouts/auth', [
             <?= $this->component('input', ['name' => 'password', 'label' => 'Password', 'type' => 'password', 'required' => true, 'autocomplete' => 'current-password', 'icon' => 'lock']) ?>
             <p class="mt-2 text-right text-sm"><a href="<?= e(url('portal.password.forgot')) ?>" class="font-semibold text-brand-600 hover:underline">Forgot password?</a></p>
         </div>
+        <?php if (!empty($captchaQuestion)): ?>
+            <?= $this->partial('partials/auth/captcha', ['question' => $captchaQuestion, 'note' => 'Several sign-in attempts failed — please answer to continue.']) ?>
+        <?php endif ?>
         <?= $this->component('button', ['label' => 'Sign in', 'type' => 'submit', 'variant' => 'primary', 'size' => 'lg', 'class' => 'w-full', 'iconRight' => 'arrow-right']) ?>
     </form>
 

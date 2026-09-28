@@ -35,8 +35,9 @@ $hint = [
 ][$tab];
 ?>
 <?php $this->start('actions') ?>
-<a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-outline"><?= icon('scan-line', 'size-4') ?><span class="hidden sm:inline">Check-in desk</span></a>
-<a href="<?= e(url('staff.explorer')) ?>" class="btn btn-brand"><?= icon('map', 'size-4') ?>Book on the map</a>
+<?= $this->partial('partials/report/export-buttons', ['key' => 'bookings-list', 'query' => ['tab' => $tab] + $filters]) ?>
+<?php if (staff_can('checkins.manage')): ?><a href="<?= e(url('staff.checkins.index')) ?>" class="btn btn-outline"><?= icon('scan-line', 'size-4') ?><span class="hidden sm:inline">Check-in desk</span></a><?php endif ?>
+<?php if (staff_can('space.explore')): ?><a href="<?= e(url('staff.explorer')) ?>" class="btn btn-brand"><?= icon('map', 'size-4') ?>Book on the map</a><?php endif ?>
 <?php $this->stop() ?>
 
 <nav class="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" aria-label="Booking tabs">
@@ -63,7 +64,7 @@ $hint = [
             <button class="btn btn-brand flex-1 sm:flex-none">Search</button>
         </div>
     </div>
-    <div x-show="more" x-cloak class="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div x-show="more" x-cloak class="mt-3 grid grid-cols-1 gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-5">
         <?= $this->component('select', ['name' => 'category', 'label' => 'Space type', 'value' => $filters['category'], 'placeholder' => 'All types', 'options' => array_column($categories, 'name', 'code')]) ?>
         <?= $this->component('select', ['name' => 'floor', 'label' => 'Floor', 'value' => $filters['floor'], 'placeholder' => 'All floors', 'options' => array_column($floors, 'name', 'slug')]) ?>
         <?= $this->component('select', ['name' => 'source', 'label' => 'Source', 'value' => $filters['source'], 'placeholder' => 'Online & reception', 'options' => BookingSource::options()]) ?>

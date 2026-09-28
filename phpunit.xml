@@ -22,5 +22,6 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_DEBUG" value="true"/>
+        <env name="LOG_PATH" value="storage/logs/testing/app.log"/>
     </php>
 </phpunit>

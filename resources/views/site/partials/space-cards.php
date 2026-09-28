@@ -15,7 +15,7 @@ $unitLabel = ['day' => '/day', 'month' => '/month', 'hour' => '/hour'];
 ?>
 <div x-data="filterable('all')">
     <?= $this->component('chips', ['items' => $chips, 'model' => 'filter', 'label' => 'Filter space types', 'class' => 'mb-8']) ?>
-    <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <?php foreach ($spaceTypes as $t):
             $enum = $t['enum'];
             $slug = strtolower((string) $t['short_name']);

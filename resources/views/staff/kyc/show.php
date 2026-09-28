@@ -48,7 +48,7 @@ $missingData = array_merge($missing[1] ?? [], $missing[2] ?? []);
     </div>
 </div>
 
-<div class="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
     <!-- Document viewer -->
     <section class="card overflow-hidden xl:sticky xl:top-24 xl:self-start" x-data="{ i: 0, docs: <?= e(json_encode($docs)) ?>, get d() { return this.docs[this.i] } }">
         <?php if ($docs === []): ?>

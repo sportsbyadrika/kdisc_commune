@@ -12,6 +12,9 @@
  * @var list<array<string, mixed>> $recentLogins
  * @var array<string, mixed>|null $desk     front-desk board (receptionist / Centre Manager)
  * @var list<array<string, mixed>> $occupancy
+ * @var array<string, mixed>|null $finance   FinanceOverview (Finance Admin)
+ * @var array<string, mixed>|null $dash      DashboardService::stateAdmin() (State Admin)
+ * @var array<string, mixed>|null $insights  DashboardService::centreManager() (Centre Manager)
  */
 $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
@@ -20,20 +23,31 @@ $this->layout('layouts/staff', [
     'subtitle' => $role->label() . ' · ' . $role->description(),
 ]);
 ?>
-<?php if (!empty($occupancy)): ?>
+<?php if (!empty($occupancy) || !empty($dash)): ?>
 <?php $this->start('head') ?>
 <script defer src="<?= e(asset('assets/js/space-render.js')) ?>"></script>
-<script defer src="<?= e(asset('assets/js/frontdesk.js')) ?>"></script>
+<?php if (!empty($occupancy)): ?><script defer src="<?= e(asset('assets/js/frontdesk.js')) ?>"></script><?php endif ?>
+<?php if (!empty($dash) || !empty($insights)): ?>
+<script defer src="<?= e(asset('assets/vendor/chart.umd.min.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/dashboards.js')) ?>"></script>
+<?php endif ?>
+<?php $this->stop() ?>
+<?php endif ?>
+<?php if (!empty($finance)): ?>
+<?php $this->start('head') ?>
+<script defer src="<?= e(asset('assets/vendor/chart.umd.min.js')) ?>"></script>
+<script defer src="<?= e(asset('assets/js/finance.js')) ?>"></script>
 <?php $this->stop() ?>
 <?php endif ?>
 <?php $this->start('actions') ?>
     <?= $this->component('badge', ['label' => date('l, j F Y'), 'tone' => 'neutral', 'icon' => 'calendar']) ?>
 <?php $this->stop() ?>
 
-<?php if (!empty($occupancy)): ?><?= $this->partial('partials/space/sprite', ['extra' => []]) ?><?php endif ?>
+<?php if (!empty($occupancy) || !empty($dash)): ?><?= $this->partial('partials/space/sprite', ['extra' => []]) ?><?php endif ?>
 <?= $this->partial($role->dashboardView()) ?>
 
-<div class="mt-8 grid gap-6 xl:grid-cols-3">
+<?php if (empty($finance) && empty($dash)): ?>
+<div class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <section class="card card-body xl:col-span-2">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-bold">Inventory by space type</h2>
@@ -53,7 +67,7 @@ $this->layout('layouts/staff', [
                 </div>
             <?php endforeach ?>
         </div>
-        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+        <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <?php foreach ($floors as $floor): ?>
                 <div class="flex items-center justify-between rounded-2xl bg-surface px-4 py-3">
                     <span class="inline-flex items-center gap-2 text-sm font-semibold"><?= icon('layers', 'size-4 text-brand-600') ?><?= e($floor['name']) ?></span>
@@ -76,3 +90,4 @@ $this->layout('layouts/staff', [
         <?php if ($recentLogins === []): ?><p class="mt-4 text-sm text-muted">No sign-ins recorded yet.</p><?php endif ?>
     </section>
 </div>
+<?php endif ?>

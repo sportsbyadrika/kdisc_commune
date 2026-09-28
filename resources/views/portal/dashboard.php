@@ -14,6 +14,7 @@
  * @var list<array<string, mixed>> $current  approved / confirmed / active bookings
  * @var array{due_now: float, balance: float, bookings: list<array<string, mixed>>} $outstanding
  * @var string $today
+ * @var int $documentCount invoices + receipts + credit notes + refund vouchers
  */
 use App\Enums\KycStatus;
 
@@ -23,7 +24,7 @@ $submitted = (int) $customer['profile_step'] >= 4 && $customer['unique_id'] !== 
 $tiles = [
     ['calendar-check', 'My bookings', ($bookingCount ?? 0) > 0 ? 'Track your requests and active seats.' : 'Request seats, cabins and the conference room from the Space Explorer.', ($bookingCount ?? 0) > 0 ? $bookingCount . ' booking' . ($bookingCount === 1 ? '' : 's') : 'Book now', url('portal.bookings')],
     ['wallet', 'Dues & payments', $outstanding['due_now'] > 0 ? 'Pay at the front desk — see each booking for the breakdown and history.' : ($outstanding['balance'] > 0 ? 'Nothing due right now; later rent periods are listed per booking.' : 'Nothing outstanding. Payment history is on each booking.'), $outstanding['due_now'] > 0 ? money($outstanding['due_now'], fmod($outstanding['due_now'], 1.0) ? 2 : 0) . ' due' : 'All clear', url('portal.bookings')],
-    ['receipt-indian-rupee', 'Invoices & receipts', 'Download GST invoices and receipts as PDF.', 'Coming soon', null],
+    ['receipt-indian-rupee', 'Invoices & receipts', 'Download GST invoices, receipts and allotment letters as PDF.', $documentCount > 0 ? $documentCount . ' document' . ($documentCount === 1 ? '' : 's') : 'None yet', url('portal.invoices')],
 ];
 ?>
 <?php if (!$submitted): ?>
@@ -42,8 +43,16 @@ $tiles = [
     <?= $this->end() ?>
 <?php endif ?>
 
-<div class="grid gap-6 lg:grid-cols-5 lg:items-start">
-    <div class="lg:col-span-3"><?= $this->partial('partials/visitor/id-card') ?></div>
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:items-start">
+    <div class="lg:col-span-3">
+        <?= $this->partial('partials/visitor/id-card') ?>
+        <?php if (!empty($customer['unique_id'])): ?>
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+                <p class="text-xs text-muted">Show the QR at the front desk to check in — or print your card.</p>
+                <a href="<?= e(url('portal.id_card')) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><?= icon('file-down', 'size-4') ?>Download ID card (PDF)</a>
+            </div>
+        <?php endif ?>
+    </div>
     <div class="space-y-6 lg:col-span-2 lg:row-span-2">
         <section class="card card-body">
             <div class="flex items-center justify-between">
@@ -66,7 +75,7 @@ $tiles = [
         </section>
     </div>
     <div class="space-y-6 lg:col-span-3">
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <?php foreach ($tiles as [$ico, $label, $text, $badge, $href]): ?>
                 <<?= $href !== null ? 'a href="' . e($href) . '"' : 'div' ?> class="card card-body flex flex-col <?= $href !== null ? 'card-hover' : '' ?>">
                     <div class="flex items-center justify-between">

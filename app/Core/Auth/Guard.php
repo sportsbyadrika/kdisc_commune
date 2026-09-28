@@ -69,7 +69,7 @@ final class Guard
         $table = $this->db->quoteIdentifier($this->config['table']);
         $row = $this->db->first("SELECT * FROM {$table} WHERE id = ?", [$id]);
         $active = $this->config['active_column'] ?? null;
-        if ($row === null || ($active !== null && isset($row[$active]) && !$this->isActive($row[$active]))) {
+        if ($row === null || ($active !== null && isset($row[$active]) && !$this->isActive($row[$active])) || $this->staleAfterPasswordChange($row)) {
             $this->session->forget($this->sessionKey());
             return $this->user = null;
         }
@@ -92,6 +92,22 @@ final class Guard
         $this->session->forget($this->sessionKey());
         $this->session->invalidate();
         $this->user = null;
+    }
+
+    /**
+     * Sessions that signed in before the password was last changed (reset link, staff admin reset) are dropped, so a
+     * password change signs out every other browser.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function staleAfterPasswordChange(array $row): bool
+    {
+        $changed = $row['password_changed_at'] ?? null;
+        $loggedInAt = $this->session->get('_auth_' . $this->name . '_at');
+        if (!is_string($changed) || $changed === '' || !is_int($loggedInAt)) {
+            return false;
+        }
+        return $loggedInAt < (int) strtotime($changed);
     }
 
     private function isActive(mixed $value): bool

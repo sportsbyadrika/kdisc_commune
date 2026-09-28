@@ -28,11 +28,34 @@ window.Commune = {
     return body;
   },
 
+  /** Escape text for the rare places that build HTML strings (prefer textContent). */
+  escape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  },
+
   formatINR(amount, decimals = 0) {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(amount);
   },
 };
 
+
+/**
+ * <form data-confirm="Delete this?"> — asks before submitting. The message is read as plain text from the
+ * attribute (never evaluated), so user-entered names in it are safe.
+ */
+document.addEventListener('submit', (e) => {
+  const form = e.target instanceof HTMLFormElement ? e.target : null;
+  const message = form?.dataset.confirm;
+  if (message && !window.confirm(message)) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+/** Staff sidebar: keep the current page's menu item in view when the menu scrolls (short screens). */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('aside nav [aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
+});
 
 /**
  * KYC identifier checks — a mirror of App\Services\Kyc\IdValidator for instant feedback.
@@ -154,6 +177,11 @@ document.addEventListener('alpine:init', () => {
     get label() { return ['', 'Weak', 'Fair', 'Good', 'Strong'][this.score]; },
     get valid() { return this.checks.every((c) => c.ok); },
     get matches() { return this.confirm === '' || this.confirm === this.pw; },
+    get canSubmit() { return this.valid && this.matches && this.confirm !== ''; },
+    barClass(i) {
+      if (this.score < i) return '';
+      return ['', '!bg-red-500', '!bg-amber-500', '!bg-sky-500', '!bg-emerald-500'][this.score];
+    },
   }));
 
   /**

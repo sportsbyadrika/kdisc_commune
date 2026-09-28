@@ -131,13 +131,20 @@ if (!function_exists('absolute_url')) {
 }
 
 if (!function_exists('asset')) {
-    /** Public asset URL with cache-busting version: asset('assets/css/app.css') */
+    /**
+     * Public asset URL with a content-hash version: asset('assets/css/app.css') → /assets/css/app.css?v=3f9a1c07d2.
+     * The hash changes only when the file content changes, so the web server can cache /assets/* for a year
+     * ("immutable", see public/.htaccess and nginx.conf.example) and a deploy still busts it.
+     */
     function asset(string $path): string
     {
+        static $versions = [];
         $path = ltrim($path, '/');
-        $file = public_path($path);
-        $version = is_file($file) ? '?v=' . substr(md5((string) filemtime($file)), 0, 8) : '';
-        return (App::request()?->basePath() ?? '') . '/' . $path . $version;
+        if (!array_key_exists($path, $versions)) {
+            $file = public_path($path);
+            $versions[$path] = is_file($file) ? substr((string) hash_file('xxh3', $file), 0, 10) : null;
+        }
+        return (App::request()?->basePath() ?? '') . '/' . $path . ($versions[$path] !== null ? '?v=' . $versions[$path] : '');
     }
 }
 
@@ -174,7 +181,7 @@ if (!function_exists('back')) {
     function back(string $fallback = '/'): RedirectResponse
     {
         $request = App::request();
-        $ref = $request?->referer();
+        $ref = $request?->safeReferer();
         return Response::redirect($ref ?? url($fallback));
     }
 }
@@ -260,6 +267,20 @@ if (!function_exists('staff')) {
     function staff(): ?array
     {
         return App::guard('staff')->user();
+    }
+}
+
+if (!function_exists('staff_can')) {
+    /** Does the signed-in staff user have ANY of these abilities (StaffRole::abilities())? Hide links with it. */
+    function staff_can(string ...$abilities): bool
+    {
+        $role = \App\Enums\StaffRole::tryFrom((string) (staff()['role'] ?? ''));
+        foreach ($abilities as $ability) {
+            if ($role?->can($ability)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

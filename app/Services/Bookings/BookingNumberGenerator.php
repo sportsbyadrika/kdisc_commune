@@ -20,7 +20,7 @@ final class BookingNumberGenerator
     {
         $year ??= (int) date('Y');
         $seq = $this->db->transaction(function (Database $db) use ($year): int {
-            $db->execute("INSERT IGNORE INTO number_sequences (name, period, last_value) VALUES ('booking', ?, 0)", [(string) $year]);
+            $db->execute("INSERT INTO number_sequences (name, period, last_value) VALUES ('booking', ?, 0) ON DUPLICATE KEY UPDATE last_value = last_value", [(string) $year]); // X lock, no S→X upgrade deadlock
             $last = (int) $db->scalar("SELECT last_value FROM number_sequences WHERE name = 'booking' AND period = ? FOR UPDATE", [(string) $year]);
             $db->execute("UPDATE number_sequences SET last_value = ? WHERE name = 'booking' AND period = ?", [$last + 1, (string) $year]);
             return $last + 1;

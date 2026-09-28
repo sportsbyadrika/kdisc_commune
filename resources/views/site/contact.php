@@ -14,12 +14,12 @@ $org = (array) config('app.org');
     'breadcrumb' => [['Home', url('home')], ['Contact']],
 ]) ?>
 <section class="section">
-    <div class="container-page grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+    <div class="container-page grid grid-cols-1 gap-10 lg:grid-cols-[1.4fr_1fr]">
         <div class="card card-body sm:!p-8">
             <h2 class="text-2xl font-bold">Send a message</h2>
             <p class="mt-1 text-sm text-muted">We reply within one working day.</p>
             <?= $this->partial('partials/flash', ['class' => 'mt-6', 'hideErrorSummary' => true]) ?>
-            <form method="post" action="<?= e(url('contact.submit')) ?>" class="mt-6 grid gap-5 sm:grid-cols-2" novalidate>
+            <form method="post" action="<?= e(url('contact.submit')) ?>" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2" novalidate>
                 <?= csrf_field() ?>
                 <?= $this->component('input', ['name' => 'name', 'label' => 'Your name', 'required' => true, 'autocomplete' => 'name', 'icon' => 'user']) ?>
                 <?= $this->component('input', ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'autocomplete' => 'email', 'icon' => 'mail']) ?>

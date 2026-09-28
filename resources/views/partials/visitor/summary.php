@@ -58,9 +58,9 @@ $sections = [
                     $wide = !empty($row[2]);
                     $mono = !empty($row[3]);
                 ?>
-                    <div class="<?= e(class_names('px-5 py-3 text-sm', $wide ? 'block' : 'grid gap-1 sm:grid-cols-3 sm:gap-4')) ?>">
+                    <div class="<?= e(class_names('px-5 py-3 text-sm', $wide ? 'block' : 'grid grid-cols-1 gap-1 sm:grid-cols-3 sm:gap-4')) ?>">
                         <dt class="font-medium text-muted"><?= e($label) ?></dt>
-                        <dd class="<?= e(class_names($wide ? 'mt-1 whitespace-pre-line text-ink/85' : 'sm:col-span-2 text-ink', ['font-mono tracking-wide' => $mono && $value !== null])) ?>"><?= e($dash($value)) ?></dd>
+                        <dd class="<?= e(class_names($wide ? 'mt-1 whitespace-pre-line text-ink/85' : 'sm:col-span-2 text-ink break-words', ['font-mono tracking-wide' => $mono && $value !== null])) ?>"><?= e($dash($value)) ?></dd>
                     </div>
                 <?php endforeach ?>
             </dl>
