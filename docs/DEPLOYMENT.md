@@ -442,3 +442,71 @@ production. The demo staff password is `Password@123`.
 - **Antivirus scanning** of uploads is not built. The server could add ClamAV (`clamdscan`) on `storage/uploads`.
 - **Online payment gateway**, **e-invoicing (IRN)** and **SMS/WhatsApp** notifications are out of scope. See the
   project overview.
+
+---
+
+## 13. cPanel hosting (commune.kdiscmis.org.in)
+
+The production site is on shared cPanel hosting and is deployed through **cPanel → Git™ Version Control**.
+`.cpanel.yml` (repository root) runs `deploy/cpanel/deploy.sh`, which does the whole job.
+
+| Path on the server | What it is |
+|---|---|
+| `/home/shooting/repositories/kdisc_commune` | cPanel's clone of this repository. Never served. |
+| `/home/shooting/apps/commune` | The running app: code, `vendor/`, `storage/` (KYC documents, issued PDFs), `.env`. **Outside `public_html`**, so none of it can be downloaded. |
+| `/home/shooting/public_html/commune.kdiscmis.org.in` | The subdomain's document root. It only holds a two-line `index.php` that runs the app's front controller, the app's `.htaccess`, `assets/`, `media/` and a link `media/uploads → apps/commune/public/media/uploads` (layout photos). |
+
+What every deploy does: sync the code (rsync; `.env`, `storage/` and uploaded photos are never touched), create any
+missing `storage/` folders, `composer install --no-dev`, republish the web root (keeping cPanel's own MultiPHP block
+in `.htaccess`), run pending migrations, then print `php bin/console app:check`. On the very first deploy it also
+creates `.env` from `.env.production` with a fresh `APP_KEY`, and seeds the reference data once (marker file
+`storage/.seeded`). Production never gets the demo staff logins.
+
+### One-time setup
+
+1. **PHP 8.4**: cPanel → *MultiPHP Manager* → set `commune.kdiscmis.org.in` to **ea-php84** (or newer). The extensions in
+   §1 must be enabled for it (WHM → EasyApache 4, or cPanel → *Select PHP Version* on CloudLinux). The deploy script
+   finds `/opt/cpanel/ea-php84/root/usr/bin/php` itself and stops with a clear message if an extension is missing.
+2. **Subdomain**: cPanel → *Domains* → `commune.kdiscmis.org.in` with document root
+   `public_html/commune.kdiscmis.org.in`. Turn on **AutoSSL** (HTTPS is required: `SESSION_SECURE_COOKIE=true`).
+3. **Database**: cPanel → *MySQL® Databases* → create `shooting_commune` and user `shooting_commune` with a strong
+   password, then add the user to the database with **ALL PRIVILEGES**.
+4. **Mailbox**: cPanel → *Email Accounts* → create the sender (e.g. `no-reply@kdiscmis.org.in`). Its SMTP host and
+   port are under *Connect Devices*.
+5. **Repository**: cPanel → *Git™ Version Control* → *Create* → clone URL of this repository, path
+   `/home/shooting/repositories/kdisc_commune`. A private GitHub repository needs an SSH deploy key: generate one in
+   cPanel → *SSH Access*, add the public key to GitHub (repository → Settings → Deploy keys, read-only) and clone with
+   the `git@github.com:…` URL.
+6. **First deploy**: *Manage* → *Pull or Deploy* → *Update from Remote*, then *Deploy HEAD Commit*. It publishes the
+   site, creates `/home/shooting/apps/commune/.env` and skips migrations because the database password is still
+   `CHANGE_ME`.
+7. **Back up `APP_KEY`** from that `.env` now, offline (§4).
+8. **Edit `/home/shooting/apps/commune/.env`** (File Manager → *Show Hidden Files*, or SSH): set `DB_PASSWORD`,
+   `MAIL_DSN` (the `@` in the mailbox name is written `%40`) and, if needed, the other values. The file is mode
+   `600`; keep it that way.
+9. **Deploy again**. This runs the migrations and seeds the centre, floors, seats, prices, facilities and settings.
+10. **First Centre Manager**: cPanel → *Terminal* (or SSH):
+    ```bash
+    /opt/cpanel/ea-php84/root/usr/bin/php /home/shooting/apps/commune/bin/console user:create \
+      --name="Full Name" --email=manager@example.org --role=centre_manager
+    ```
+11. **Cron**: cPanel → *Cron Jobs*, add the three lines that the deploy log prints at the end (`bookings:tick` every
+    15 min, `holds:cleanup` every 10 min, `imports:cleanup` hourly), using the same PHP path.
+12. Run the deploy (or `bin/console app:check`) once more: it should show 0 failures. Then follow §9 from
+    "Then sign in…" (staff users, finance settings, photos and layout, facilities).
+
+### Every release
+
+Push to the branch the cPanel clone tracks, then *Pull or Deploy* → *Update from Remote* → *Deploy HEAD Commit*.
+cPanel only deploys when the clone has no local changes, so never edit files in `/home/shooting/repositories/…`.
+Back up the database before a release that adds migrations (cPanel → *Backup* or `mysqldump`).
+
+### Notes
+
+- To deploy somewhere else, change the three paths in `.cpanel.yml`. The script refuses unsafe paths (an app
+  directory inside `public_html`, or a web root inside the app).
+- Composer: the script uses cPanel's `/opt/cpanel/composer/bin/composer` with PHP 8.4. If there is none, it downloads
+  `composer.phar` into the app directory and checks its SHA-256 first.
+- Backups (§7) on cPanel: include `/home/shooting/apps/commune/storage/uploads`, `storage/pdf` and
+  `public/media/uploads` along with the database. cPanel's full-account backup covers all of them.
+- `DB_HOST=localhost` uses the MySQL socket. If it fails, uncomment `DB_SOCKET` with the server's socket path.

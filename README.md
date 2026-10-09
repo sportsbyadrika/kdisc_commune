@@ -6,7 +6,7 @@ A PHP 8.4 / MySQL 8.4 / Tailwind CSS v4 web application with a public website + 
 for running the workspace (registrations & KYC, visual seat booking, payments, GST invoices, dashboards).
 
 - Product spec, open questions and the implemented defaults to confirm: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)
-- **Going live**: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (server, web server, `.env`, cron, backups, upgrades, UAT checklist)
+- **Going live**: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (server, web server, `.env`, cron, backups, upgrades, UAT checklist; §13 = cPanel deploy via `.cpanel.yml`)
 - Architecture & conventions for contributors: [`CLAUDE.md`](CLAUDE.md)
 
 ## What it does
