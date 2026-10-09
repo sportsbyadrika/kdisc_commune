@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit3085f49b88599283ac0737677d3035bc
+class ComposerStaticInitec4ca8622d2b28954489d26c7b31ad37
 {
     public static $files = array (
         'e69f7f6ee287b969198c3c9d6777bd38' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/bootstrap.php',
@@ -1910,7 +1910,6 @@ class ComposerStaticInit3085f49b88599283ac0737677d3035bc
         'ZipStream\\LocalFileHeader' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/LocalFileHeader.php',
         'ZipStream\\OperationMode' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/OperationMode.php',
         'ZipStream\\PackField' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/PackField.php',
-        'ZipStream\\Stream\\CallbackStreamWrapper' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/Stream/CallbackStreamWrapper.php',
         'ZipStream\\Time' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/Time.php',
         'ZipStream\\Version' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/Version.php',
         'ZipStream\\Zip64\\DataDescriptor' => __DIR__ . '/..' . '/maennchen/zipstream-php/src/Zip64/DataDescriptor.php',
@@ -1989,9 +1988,9 @@ class ComposerStaticInit3085f49b88599283ac0737677d3035bc
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit3085f49b88599283ac0737677d3035bc::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit3085f49b88599283ac0737677d3035bc::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit3085f49b88599283ac0737677d3035bc::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitec4ca8622d2b28954489d26c7b31ad37::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitec4ca8622d2b28954489d26c7b31ad37::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitec4ca8622d2b28954489d26c7b31ad37::$classMap;
 
         }, null, ClassLoader::class);
     }

@@ -11,7 +11,7 @@ upgrade, run **`php bin/console app:check`**. It must report **0 failures**.
 | Component | Version / setting |
 |---|---|
 | OS | Any current Linux (Ubuntu 24.04 LTS / Debian 12 tested) |
-| PHP | **8.4 or newer**, with PHP-FPM |
+| PHP | **8.2 or newer** (8.4 recommended), with PHP-FPM |
 | PHP extensions | `pdo_mysql`, `sodium`, `mbstring`, `intl`, `gd` (with JPEG, PNG and WebP), `zip`, `fileinfo`, `dom`, `xml`, `xmlreader`, `xmlwriter`, `simplexml`, `zlib`, `iconv`, `ctype`, `openssl`, `json`, `opcache` |
 | Database | **MySQL 8.4 LTS**. MariaDB 10.11+ works for development. Use `utf8mb4` / `utf8mb4_unicode_ci`. |
 | Web server | nginx 1.24+ or Apache 2.4 with `mod_rewrite`, `mod_headers`, `mod_deflate` |
@@ -464,7 +464,8 @@ creates `.env` from `.env.production` with a fresh `APP_KEY`, and seeds the refe
 
 ### One-time setup
 
-1. **PHP 8.4**: cPanel → *MultiPHP Manager* → set `commune.kdiscmis.org.in` to **ea-php84** (or newer). The extensions in
+1. **PHP 8.2 or newer** (8.4 recommended): cPanel → *MultiPHP Manager* (or *Select PHP Version* on CloudLinux) → set
+   `commune.kdiscmis.org.in` to **ea-php84** if offered, otherwise ea-php82/83. The extensions in
    §1 must be enabled for it (WHM → EasyApache 4, or cPanel → *Select PHP Version* on CloudLinux). The deploy script
    finds `/opt/cpanel/ea-php84/root/usr/bin/php` itself and stops with a clear message if an extension is missing.
 2. **Subdomain**: cPanel → *Domains* → `commune.kdiscmis.org.in` with document root

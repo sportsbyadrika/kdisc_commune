@@ -12,7 +12,7 @@
 #
 # Steps: sync code + bundled PHP libraries (deploy/vendor → vendor/) → storage dirs → .env (first deploy only)
 #        → publish web root   (plain file copies, no PHP or Composer needed)
-#        → find PHP 8.4 → (composer only if there is no bundle) → migrate (+ first seed) → app:check.
+#        → find PHP 8.2+ (newest first) → (composer only if there is no bundle) → migrate (+ first seed) → app:check.
 # Safe to re-run; never touches .env, storage/ or uploaded photos after the first deploy.
 # Everything is also appended to ~/commune-deploy.log (cPanel's own log: ~/.cpanel/logs/vc_*_git_deploy.log).
 #
@@ -166,19 +166,22 @@ if [ -e "$WEB_ROOT/media/uploads" ] && [ ! -L "$WEB_ROOT/media/uploads" ]; then
 fi
 ln -sfn "$APP_PATH/public/media/uploads" "$WEB_ROOT/media/uploads"
 
-# ── 5. PHP 8.4+ (cPanel EasyApache paths first; /usr/local/bin/php may be an older default) ───────────────────
+# ── 5. PHP 8.2+ (newest first; cPanel EasyApache / CloudLinux paths before /usr/local/bin/php, often older) ─
 find_php() {
     local c
-    for c in "${PHP_BIN:-}" /opt/cpanel/ea-php85/root/usr/bin/php /opt/cpanel/ea-php84/root/usr/bin/php \
-             /opt/alt/php85/usr/bin/php /opt/alt/php84/usr/bin/php /usr/local/bin/ea-php85 /usr/local/bin/ea-php84 \
+    for c in "${PHP_BIN:-}" \
+             /opt/cpanel/ea-php85/root/usr/bin/php /opt/cpanel/ea-php84/root/usr/bin/php \
+             /opt/alt/php85/usr/bin/php /opt/alt/php84/usr/bin/php \
+             /opt/cpanel/ea-php83/root/usr/bin/php /opt/cpanel/ea-php82/root/usr/bin/php \
+             /opt/alt/php83/usr/bin/php /opt/alt/php82/usr/bin/php \
              /usr/local/bin/php /usr/bin/php "$(command -v php 2>/dev/null || true)"; do
         [ -n "$c" ] && [ -x "$c" ] || continue
-        if "$c" -r 'exit(PHP_VERSION_ID >= 80400 ? 0 : 1);' >/dev/null 2>&1; then echo "$c"; return 0; fi
+        if "$c" -r 'exit(PHP_VERSION_ID >= 80200 ? 0 : 1);' >/dev/null 2>&1; then echo "$c"; return 0; fi
     done
     return 1
 }
-PHP="$(find_php)" || die "Files are published, but PHP 8.4 or newer was not found for the remaining steps (composer, migrations).
-    Install ea-php84 (WHM → EasyApache 4) or alt-php84 (CloudLinux), or add PHP_BIN=/path/to/php to .cpanel.yml."
+PHP="$(find_php)" || die "Files are published, but PHP 8.2 or newer was not found for the remaining steps (composer, migrations).
+    Install ea-php82+ (WHM → EasyApache 4) or alt-php82+ (CloudLinux), or add PHP_BIN=/path/to/php to .cpanel.yml."
 log "PHP: $PHP ($("$PHP" -r 'echo PHP_VERSION;'))"
 
 missing="$("$PHP" -r '$m=[]; foreach (["pdo_mysql","sodium","mbstring","intl","gd","zip","fileinfo","dom","xml","xmlreader","xmlwriter","simplexml","zlib","iconv","ctype","openssl"] as $e) { if (!extension_loaded($e)) $m[]=$e; } echo implode(" ", $m);')"
@@ -206,7 +209,7 @@ else
         COMPOSER="$APP_PATH/composer.phar"
     fi
     log "Composer install ($COMPOSER)"
-    # Run Composer with the same PHP 8.4 binary (its own shebang may point at an older PHP).
+    # Run Composer with the same PHP 8.2+ binary (its own shebang may point at an older PHP).
     if head -c 200 "$COMPOSER" | grep -Eq '^#!.*php|<\?php|__HALT_COMPILER' || [[ "$COMPOSER" == *.phar ]]; then
         (cd "$APP_PATH" && "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist)
     else  # a shell wrapper (some cPanel builds) — run it directly
