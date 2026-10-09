@@ -477,9 +477,11 @@ creates `.env` from `.env.production` with a fresh `APP_KEY`, and seeds the refe
    `/home/shooting/repositories/kdisc_commune`. A private GitHub repository needs an SSH deploy key: generate one in
    cPanel → *SSH Access*, add the public key to GitHub (repository → Settings → Deploy keys, read-only) and clone with
    the `git@github.com:…` URL.
-6. **First deploy**: *Manage* → *Pull or Deploy* → *Update from Remote*, then *Deploy HEAD Commit*. It publishes the
-   site, creates `/home/shooting/apps/commune/.env` and skips migrations because the database password is still
-   `CHANGE_ME`.
+6. **First deploy**: *Manage* → *Pull or Deploy* → *Update from Remote*, then **Deploy HEAD Commit**. Cloning and
+   *Update from Remote* only update the clone; nothing is copied until *Deploy HEAD Commit* runs `.cpanel.yml`
+   (the button is greyed out while the clone has uncommitted changes). The deploy publishes the site, creates
+   `/home/shooting/apps/commune/.env` and skips migrations because the database password is still `CHANGE_ME`.
+   The full output is in `/home/shooting/commune-deploy.log` and in cPanel's `~/.cpanel/logs/vc_*_git_deploy.log`.
 7. **Back up `APP_KEY`** from that `.env` now, offline (§4).
 8. **Edit `/home/shooting/apps/commune/.env`** (File Manager → *Show Hidden Files*, or SSH): set `DB_PASSWORD`,
    `MAIL_DSN` (the `@` in the mailbox name is written `%40`) and, if needed, the other values. The file is mode
@@ -503,6 +505,12 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
 
 ### Notes
 
+- **Nothing was deployed?** Check `/home/shooting/commune-deploy.log` (File Manager, home directory). No log at all
+  means the tasks never ran: *Deploy HEAD Commit* was not clicked, the clone has local changes, or the clone is on a
+  branch without `.cpanel.yml`. Files are copied before any PHP step, so a PHP version or extension problem still
+  updates the files and ends the log with an `XX` line saying what is missing.
+- The public folder only ever holds `index.php`, `.htaccess`, `favicon.svg`, `assets/` and `media/`. The source
+  code goes to `/home/shooting/apps/commune` — that is intended.
 - To deploy somewhere else, change the three paths in `.cpanel.yml`. The script refuses unsafe paths (an app
   directory inside `public_html`, or a web root inside the app).
 - Composer: the script uses cPanel's `/opt/cpanel/composer/bin/composer` with PHP 8.4. If there is none, it downloads

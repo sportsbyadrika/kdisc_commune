@@ -1,10 +1,17 @@
 ---
-# cPanel → Git™ Version Control → Manage → "Pull or Deploy" → "Deploy HEAD Commit" runs these tasks.
-# Everything happens in deploy/cpanel/deploy.sh (see the header there and docs/DEPLOYMENT.md §12).
+# cPanel → Git™ Version Control → Manage → "Pull or Deploy":
+#   1. "Update from Remote"  — pulls the latest commits into the clone (this alone does NOT deploy)
+#   2. "Deploy HEAD Commit"  — runs the tasks below
+# Everything happens in deploy/cpanel/deploy.sh (see the header there and docs/DEPLOYMENT.md §13).
+# Output: cPanel's log ~/.cpanel/logs/vc_*_git_deploy.log, and /home/shooting/commune-deploy.log.
 #
 #   repository : /home/shooting/repositories/kdisc_commune
 #   app        : /home/shooting/apps/commune                         (code, vendor/, storage/, .env — not web-served)
 #   web root   : /home/shooting/public_html/commune.kdiscmis.org.in  (index.php wrapper, .htaccess, assets/, media/)
 deployment:
   tasks:
-    - REPO_PATH=/home/shooting/repositories/kdisc_commune APP_PATH=/home/shooting/apps/commune WEB_ROOT=/home/shooting/public_html/commune.kdiscmis.org.in /bin/bash /home/shooting/repositories/kdisc_commune/deploy/cpanel/deploy.sh
+    - export REPO_PATH=/home/shooting/repositories/kdisc_commune
+    - export APP_PATH=/home/shooting/apps/commune
+    - export WEB_ROOT=/home/shooting/public_html/commune.kdiscmis.org.in
+    - export HOME=/home/shooting
+    - /bin/bash /home/shooting/repositories/kdisc_commune/deploy/cpanel/deploy.sh
