@@ -154,15 +154,6 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'monolog/monolog' => array(
-            'pretty_version' => '3.12.0',
-            'version' => '3.12.0.0',
-            'reference' => '72c534fc0ab181ef52d92a68382318631e301608',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../monolog/monolog',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'phpoffice/phpspreadsheet' => array(
             'pretty_version' => '5.10.0',
             'version' => '5.10.0.0',
@@ -213,12 +204,6 @@
             'install_path' => __DIR__ . '/../psr/log',
             'aliases' => array(),
             'dev_requirement' => false,
-        ),
-        'psr/log-implementation' => array(
-            'dev_requirement' => false,
-            'provided' => array(
-                0 => '3.0.0',
-            ),
         ),
         'psr/simple-cache' => array(
             'pretty_version' => '3.0.0',

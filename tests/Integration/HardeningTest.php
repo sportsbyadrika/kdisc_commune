@@ -21,12 +21,12 @@ use App\Services\Reports\ReportRegistry;
 use App\Services\Security\RateLimiter;
 use App\Services\System\EnvironmentCheck;
 use App\Support\Clock;
-use Monolog\Handler\TestHandler;
-use Monolog\Logger as Monolog;
+use App\Core\Logger;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Tests\Support\HttpKernel;
+use Tests\Support\LogRecorder;
 
 /**
  * Batch 8: rate limiter + throttle middleware, route-dependent URLs from the CLI (the old "Route [portal.invoices]
@@ -37,16 +37,16 @@ final class HardeningTest extends TestCase
 {
     use HttpKernel;
 
-    private static TestHandler $log;
+    private static LogRecorder $log;
 
     public static function setUpBeforeClass(): void
     {
         self::$booted = self::bootTestApp();
         if (self::$booted) {
-            self::$log = new TestHandler();
-            /** @var Monolog $logger */
+            self::$log = new LogRecorder();
+            /** @var Logger $logger */
             $logger = App::container()->get(LoggerInterface::class);
-            $logger->pushHandler(self::$log);
+            $logger->listen(self::$log);
         }
     }
 
@@ -127,7 +127,9 @@ final class HardeningTest extends TestCase
         // Same context as bin/console demo:seed / cron: a freshly booted app, no HTTP request, routes resolved lazily
         // by the container the first time a link is needed.
         self::bootTestApp(false);
-        App::container()->get(LoggerInterface::class)->pushHandler(self::$log);
+        /** @var Logger $logger */
+        $logger = App::container()->get(LoggerInterface::class);
+        $logger->listen(self::$log);
         self::assertNull(App::request());
         self::assertSame(rtrim((string) App::config('app.url'), '/') . '/my/invoices', absolute_url('portal.invoices'));
 
@@ -137,7 +139,7 @@ final class HardeningTest extends TestCase
         $counts = App::container()->get(DemoSeeder::class)->run();
         $clock->freeze(null);
         self::assertGreaterThan(10, $counts['invoices']);
-        $errors = array_filter(self::$log->getRecords(), static fn ($r) => $r->level->value >= \Monolog\Level::Warning->value);
+        $errors = array_filter(self::$log->getRecords(), static fn ($r) => $r->level >= Logger::LEVELS['warning']);
         self::assertSame([], array_map(static fn ($r) => $r->message, array_values($errors)), 'no warnings/errors while issuing documents from the CLI');
 
         // issue-time storage + email, exactly what the finance controllers call after issuing (the batch 6 script that
@@ -151,7 +153,7 @@ final class HardeningTest extends TestCase
                 self::assertNotNull(db()->scalar('SELECT pdf_path FROM ' . FinanceDocuments::TYPES[$type][0] . ' WHERE id = ?', [(int) $id]), "{$type} #{$id} PDF stored");
             }
         }
-        $errors = array_filter(self::$log->getRecords(), static fn ($r) => $r->level->value >= \Monolog\Level::Warning->value);
+        $errors = array_filter(self::$log->getRecords(), static fn ($r) => $r->level >= Logger::LEVELS['warning']);
         self::assertSame([], array_map(static fn ($r) => $r->message, array_values($errors)));
         self::assertSame(2, (int) db()->scalar("SELECT COUNT(*) FROM notifications WHERE type = 'invoice.issued'"));
     }
