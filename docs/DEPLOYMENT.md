@@ -487,7 +487,13 @@ creates `.env` from `.env.production` with a fresh `APP_KEY`, and seeds the refe
 8. **Edit `/home/shooting/apps/commune/.env`** (File Manager → *Show Hidden Files*, or SSH): set `DB_PASSWORD`,
    `MAIL_DSN` (the `@` in the mailbox name is written `%40`) and, if needed, the other values. The file is mode
    `600`; keep it that way.
-9. **Deploy again**. This runs the migrations and seeds the centre, floors, seats, prices, facilities and settings.
+9. **Create the tables and data** — either way gives the same result:
+   - **Automatic:** deploy again. This runs the migrations and seeds the centre, floors, seats, prices, facilities and
+     settings.
+   - **phpMyAdmin (no SSH needed):** cPanel → *phpMyAdmin* → click the empty database `shooting_commune` → *Import* →
+     choose `deploy/sql/install.sql` (download it from GitHub or from `/home/shooting/repositories/kdisc_commune/deploy/sql/`)
+     → *Go*. It creates all tables plus the reference data and records the migrations, so later deploys only apply
+     newer ones. Only import into an **empty** database. No staff logins are included (step 10).
 10. **First Centre Manager**: cPanel → *Terminal* (or SSH):
     ```bash
     /opt/cpanel/ea-php84/root/usr/bin/php /home/shooting/apps/commune/bin/console user:create \
