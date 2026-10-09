@@ -27,6 +27,10 @@ mysql -e "CREATE DATABASE commune CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 Seeded staff logins (password `Password@123`): `reception@commune.test`, `manager@commune.test`,
 `finance@commune.test`, `stateadmin@commune.test`.
 
+Dependencies: production libraries are also committed as `deploy/vendor/` for cPanel (no Composer on shared
+hosting, see docs/DEPLOYMENT.md §13). After any `composer require/update`, run `bin/build-vendor-bundle.sh` and commit
+`deploy/vendor` — `tests/Unit/VendorBundleTest` fails until the bundle matches `composer.lock`. Never edit it by hand.
+
 Checks to run before committing:
 
 ```bash

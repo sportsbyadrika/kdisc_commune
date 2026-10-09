@@ -10,8 +10,9 @@
 #   WEB_ROOT   /home/shooting/public_html/commune.kdiscmis.org.in     the subdomain's document root: only a tiny
 #                                                                     index.php, .htaccess, assets/ and media/
 #
-# Steps: sync code → storage dirs → .env (first deploy only) → publish web root   (plain file copies, no PHP needed)
-#        → find PHP 8.4 → composer → migrate (+ first seed) → app:check.
+# Steps: sync code + bundled PHP libraries (deploy/vendor → vendor/) → storage dirs → .env (first deploy only)
+#        → publish web root   (plain file copies, no PHP or Composer needed)
+#        → find PHP 8.4 → (composer only if there is no bundle) → migrate (+ first seed) → app:check.
 # Safe to re-run; never touches .env, storage/ or uploaded photos after the first deploy.
 # Everything is also appended to ~/commune-deploy.log (cPanel's own log: ~/.cpanel/logs/vc_*_git_deploy.log).
 #
@@ -61,7 +62,7 @@ case "$APP_PATH/" in "$HOME/public_html/"*) die "APP_PATH must be outside public
 # ── 1. Sync code into APP_PATH ─────────────────────────────────────────────────────────────────────────────
 log "Syncing code: $REPO_PATH → $APP_PATH"
 mkdir -p "$APP_PATH"
-EXCLUDES=(/.git/ /.github/ /.env /vendor/ /node_modules/ /storage/ /public/media/uploads/ /tests/ /.phpunit.cache/ /.phpunit.result.cache)
+EXCLUDES=(/.git/ /.github/ /.env /vendor/ /deploy/vendor/ /node_modules/ /storage/ /public/media/uploads/ /tests/ /.phpunit.cache/ /.phpunit.result.cache)
 if command -v rsync >/dev/null 2>&1; then
     args=(-a --delete)
     for e in "${EXCLUDES[@]}"; do args+=(--exclude "$e"); done
@@ -73,6 +74,22 @@ else
     (cd "$REPO_PATH" && tar -cf - "${args[@]}" .) | (cd "$APP_PATH" && tar -xf -)
 fi
 chmod 750 "$APP_PATH/bin/console"
+
+# PHP libraries: the committed bundle deploy/vendor (built by bin/build-vendor-bundle.sh) is copied as-is, so the
+# server never has to run Composer — shared hosting often cannot (no Composer, no outbound access, old CLI PHP).
+VENDOR_BUNDLED=0
+if [ -f "$REPO_PATH/deploy/vendor/autoload.php" ]; then
+    log "Installing PHP libraries from the bundle (deploy/vendor → vendor/)"
+    mkdir -p "$APP_PATH/vendor"
+    if command -v rsync >/dev/null 2>&1; then
+        rsync -a --delete "$REPO_PATH/deploy/vendor/" "$APP_PATH/vendor/"
+    else
+        rm -rf "$APP_PATH/vendor.new" && mkdir -p "$APP_PATH/vendor.new"
+        (cd "$REPO_PATH/deploy/vendor" && tar -cf - .) | (cd "$APP_PATH/vendor.new" && tar -xf -)
+        rm -rf "$APP_PATH/vendor" && mv "$APP_PATH/vendor.new" "$APP_PATH/vendor"
+    fi
+    VENDOR_BUNDLED=1
+fi
 
 # ── 2. Writable directories (never synced, never deleted) ──────────────────────────────────────────────────
 log "Preparing storage/"
@@ -167,27 +184,35 @@ log "PHP: $PHP ($("$PHP" -r 'echo PHP_VERSION;'))"
 missing="$("$PHP" -r '$m=[]; foreach (["pdo_mysql","sodium","mbstring","intl","gd","zip","fileinfo","dom","xml","xmlreader","xmlwriter","simplexml","zlib","iconv","ctype","openssl"] as $e) { if (!extension_loaded($e)) $m[]=$e; } echo implode(" ", $m);')"
 [ -z "$missing" ] || die "Files are published, but PHP extensions are missing for $PHP: $missing (WHM → EasyApache 4 → PHP Extensions, e.g. ea-php84-php-intl)"
 
-# ── 6. Composer (production dependencies only) ─────────────────────────────────────────────────────────────
-find_composer() {
-    local c
-    for c in "${COMPOSER_BIN:-}" /opt/cpanel/composer/bin/composer /usr/local/bin/composer \
-             "$(command -v composer 2>/dev/null || true)" "$APP_PATH/composer.phar"; do
-        [ -n "$c" ] && [ -f "$c" ] && { echo "$c"; return 0; }
-    done
-    return 1
-}
-if ! COMPOSER="$(find_composer)"; then
-    log "Composer not found — downloading composer.phar (checksum verified)"
-    "$PHP" -r '
-        $phar = file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar");
-        $sum  = trim((string) file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar.sha256"));
-        if ($phar === false || $sum === "" || !hash_equals(strtolower(substr($sum, 0, 64)), hash("sha256", $phar))) { fwrite(STDERR, "composer download/checksum failed\n"); exit(1); }
-        file_put_contents($argv[1], $phar);' "$APP_PATH/composer.phar"
-    COMPOSER="$APP_PATH/composer.phar"
+# ── 6. Composer — only when there is no bundle ─────────────────────────────────────────────────────────────
+if [ "$VENDOR_BUNDLED" = "1" ]; then
+    log "PHP libraries: bundled ($(head -n1 "$APP_PATH/vendor/BUNDLE.txt" 2>/dev/null || echo 'deploy/vendor')) — Composer not needed"
+else
+    find_composer() {
+        local c
+        for c in "${COMPOSER_BIN:-}" /opt/cpanel/composer/bin/composer /usr/local/bin/composer \
+                 "$(command -v composer 2>/dev/null || true)" "$APP_PATH/composer.phar"; do
+            [ -n "$c" ] && [ -f "$c" ] && { echo "$c"; return 0; }
+        done
+        return 1
+    }
+    if ! COMPOSER="$(find_composer)"; then
+        log "Composer not found — downloading composer.phar (checksum verified)"
+        "$PHP" -r '
+            $phar = file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar");
+            $sum  = trim((string) file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar.sha256"));
+            if ($phar === false || $sum === "" || !hash_equals(strtolower(substr($sum, 0, 64)), hash("sha256", $phar))) { fwrite(STDERR, "composer download/checksum failed\n"); exit(1); }
+            file_put_contents($argv[1], $phar);' "$APP_PATH/composer.phar"
+        COMPOSER="$APP_PATH/composer.phar"
+    fi
+    log "Composer install ($COMPOSER)"
+    # Run Composer with the same PHP 8.4 binary (its own shebang may point at an older PHP).
+    if head -c 200 "$COMPOSER" | grep -Eq '^#!.*php|<\?php|__HALT_COMPILER' || [[ "$COMPOSER" == *.phar ]]; then
+        (cd "$APP_PATH" && "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist)
+    else  # a shell wrapper (some cPanel builds) — run it directly
+        (cd "$APP_PATH" && "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist)
+    fi
 fi
-log "Composer install ($COMPOSER)"
-# Run Composer with the same PHP 8.4 binary (its own shebang may point at an older PHP).
-(cd "$APP_PATH" && "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist)
 
 # ── 7. Database: pending migrations, plus the reference data on the very first install ──────────────────────
 if grep -Eq '^DB_PASSWORD=(CHANGE_ME)?[[:space:]]*$' "$ENV_FILE"; then
