@@ -10,13 +10,23 @@
 #   WEB_ROOT   /home/shooting/public_html/commune.kdiscmis.org.in     the subdomain's document root: only a tiny
 #                                                                     index.php, .htaccess, assets/ and media/
 #
-# Steps: sync code → storage dirs → .env (first deploy only) → composer → publish web root → migrate (+ first seed)
-#        → app:check.  Safe to re-run; never touches .env, storage/ or uploaded photos after the first deploy.
+# Steps: sync code → storage dirs → .env (first deploy only) → publish web root   (plain file copies, no PHP needed)
+#        → find PHP 8.4 → composer → migrate (+ first seed) → app:check.
+# Safe to re-run; never touches .env, storage/ or uploaded photos after the first deploy.
+# Everything is also appended to ~/commune-deploy.log (cPanel's own log: ~/.cpanel/logs/vc_*_git_deploy.log).
 #
-# Overrides (environment): REPO_PATH, APP_PATH, WEB_ROOT, PHP_BIN, COMPOSER_BIN, SKIP_MIGRATE=1
+# Overrides (environment): REPO_PATH, APP_PATH, WEB_ROOT, PHP_BIN, COMPOSER_BIN, SKIP_MIGRATE=1, DEPLOY_LOG
 
 set -Eeuo pipefail
 umask 022
+
+# cPanel runs deployment tasks with a minimal environment: HOME and PATH may be missing.
+HOME="${HOME:-$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)}"
+HOME="${HOME:-/home/$(id -un)}"
+export HOME PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}:/usr/local/bin:/usr/bin:/bin"
+DEPLOY_LOG="${DEPLOY_LOG:-$HOME/commune-deploy.log}"
+exec > >(tee -a "$DEPLOY_LOG") 2>&1
+printf '\n######## %s  deploy started by %s ########\n' "$(date '+%F %T')" "$(id -un)"
 
 REPO_PATH="${REPO_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 APP_PATH="${APP_PATH:-$HOME/apps/commune}"
@@ -36,22 +46,6 @@ done
 [ -f "$REPO_PATH/composer.json" ] && [ -f "$REPO_PATH/public/index.php" ] || die "REPO_PATH does not look like the Commune repository: $REPO_PATH"
 case "$WEB_ROOT/" in "$APP_PATH/"*) die "WEB_ROOT must not be inside APP_PATH";; esac
 case "$APP_PATH/" in "$HOME/public_html/"*) die "APP_PATH must be outside public_html (it holds .env, KYC documents and PDFs)";; esac
-
-# ── PHP 8.4+ (cPanel EasyApache paths first; /usr/local/bin/php may be an older default) ───────────────────
-find_php() {
-    local c
-    for c in "${PHP_BIN:-}" /opt/cpanel/ea-php85/root/usr/bin/php /opt/cpanel/ea-php84/root/usr/bin/php \
-             /usr/local/bin/php /usr/bin/php "$(command -v php 2>/dev/null || true)"; do
-        [ -n "$c" ] && [ -x "$c" ] || continue
-        if "$c" -r 'exit(PHP_VERSION_ID >= 80400 ? 0 : 1);' >/dev/null 2>&1; then echo "$c"; return 0; fi
-    done
-    return 1
-}
-PHP="$(find_php)" || die "PHP 8.4 or newer not found. Install ea-php84 (WHM → EasyApache 4) or set PHP_BIN."
-log "PHP: $PHP ($("$PHP" -r 'echo PHP_VERSION;'))"
-
-missing="$("$PHP" -r '$m=[]; foreach (["pdo_mysql","sodium","mbstring","intl","gd","zip","fileinfo","dom","xml","xmlreader","xmlwriter","simplexml","zlib","iconv","ctype","openssl"] as $e) { if (!extension_loaded($e)) $m[]=$e; } echo implode(" ", $m);')"
-[ -z "$missing" ] || die "PHP extensions missing for $PHP: $missing (WHM → EasyApache 4 → PHP Extensions, e.g. ea-php84-php-intl)"
 
 # ── 1. Sync code into APP_PATH ─────────────────────────────────────────────────────────────────────────────
 log "Syncing code: $REPO_PATH → $APP_PATH"
@@ -85,8 +79,7 @@ if [ ! -f "$ENV_FILE" ]; then
     log "Creating $ENV_FILE from .env.production"
     cp "$REPO_PATH/.env.production" "$ENV_FILE"
     chmod 600 "$ENV_FILE"
-    key="$("$PHP" "$APP_PATH/bin/console" key:generate 2>/dev/null | grep -o 'base64:[A-Za-z0-9+/=]*' || true)"
-    [ -n "$key" ] || key="base64:$("$PHP" -r 'echo base64_encode(random_bytes(32));')"
+    key="base64:$(head -c 32 /dev/urandom | base64 | tr -d '\n')"
     sed -i "s|^APP_KEY=.*$|APP_KEY=${key}|" "$ENV_FILE"
     FIRST_ENV=1
     warn "A new APP_KEY was generated in $ENV_FILE — BACK IT UP OFFLINE now (it encrypts Aadhaar numbers)."
@@ -94,29 +87,7 @@ fi
 chmod 600 "$ENV_FILE"
 grep -q '^APP_KEY=base64:' "$ENV_FILE" || die "APP_KEY is empty in $ENV_FILE. Run: $PHP $APP_PATH/bin/console key:generate and paste the line."
 
-# ── 4. Composer (production dependencies only) ─────────────────────────────────────────────────────────────
-find_composer() {
-    local c
-    for c in "${COMPOSER_BIN:-}" /opt/cpanel/composer/bin/composer /usr/local/bin/composer \
-             "$(command -v composer 2>/dev/null || true)" "$APP_PATH/composer.phar"; do
-        [ -n "$c" ] && [ -f "$c" ] && { echo "$c"; return 0; }
-    done
-    return 1
-}
-if ! COMPOSER="$(find_composer)"; then
-    log "Composer not found — downloading composer.phar (checksum verified)"
-    "$PHP" -r '
-        $phar = file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar");
-        $sum  = trim((string) file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar.sha256"));
-        if ($phar === false || $sum === "" || !hash_equals(strtolower(substr($sum, 0, 64)), hash("sha256", $phar))) { fwrite(STDERR, "composer download/checksum failed\n"); exit(1); }
-        file_put_contents($argv[1], $phar);' "$APP_PATH/composer.phar"
-    COMPOSER="$APP_PATH/composer.phar"
-fi
-log "Composer install ($COMPOSER)"
-# Run Composer with the same PHP 8.4 binary (its own shebang may point at an older PHP).
-(cd "$APP_PATH" && "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist)
-
-# ── 5. Publish the web root ────────────────────────────────────────────────────────────────────────────────
+# ── 4. Publish the web root ────────────────────────────────────────────────────────────────────────────────
 log "Publishing web root: $WEB_ROOT"
 mkdir -p "$WEB_ROOT"
 
@@ -167,7 +138,47 @@ if [ -e "$WEB_ROOT/media/uploads" ] && [ ! -L "$WEB_ROOT/media/uploads" ]; then
 fi
 ln -sfn "$APP_PATH/public/media/uploads" "$WEB_ROOT/media/uploads"
 
-# ── 6. Database: pending migrations, plus the reference data on the very first install ──────────────────────
+# ── 5. PHP 8.4+ (cPanel EasyApache paths first; /usr/local/bin/php may be an older default) ───────────────────
+find_php() {
+    local c
+    for c in "${PHP_BIN:-}" /opt/cpanel/ea-php85/root/usr/bin/php /opt/cpanel/ea-php84/root/usr/bin/php \
+             /opt/alt/php85/usr/bin/php /opt/alt/php84/usr/bin/php /usr/local/bin/ea-php85 /usr/local/bin/ea-php84 \
+             /usr/local/bin/php /usr/bin/php "$(command -v php 2>/dev/null || true)"; do
+        [ -n "$c" ] && [ -x "$c" ] || continue
+        if "$c" -r 'exit(PHP_VERSION_ID >= 80400 ? 0 : 1);' >/dev/null 2>&1; then echo "$c"; return 0; fi
+    done
+    return 1
+}
+PHP="$(find_php)" || die "Files are published, but PHP 8.4 or newer was not found for the remaining steps (composer, migrations).
+    Install ea-php84 (WHM → EasyApache 4) or alt-php84 (CloudLinux), or add PHP_BIN=/path/to/php to .cpanel.yml."
+log "PHP: $PHP ($("$PHP" -r 'echo PHP_VERSION;'))"
+
+missing="$("$PHP" -r '$m=[]; foreach (["pdo_mysql","sodium","mbstring","intl","gd","zip","fileinfo","dom","xml","xmlreader","xmlwriter","simplexml","zlib","iconv","ctype","openssl"] as $e) { if (!extension_loaded($e)) $m[]=$e; } echo implode(" ", $m);')"
+[ -z "$missing" ] || die "Files are published, but PHP extensions are missing for $PHP: $missing (WHM → EasyApache 4 → PHP Extensions, e.g. ea-php84-php-intl)"
+
+# ── 6. Composer (production dependencies only) ─────────────────────────────────────────────────────────────
+find_composer() {
+    local c
+    for c in "${COMPOSER_BIN:-}" /opt/cpanel/composer/bin/composer /usr/local/bin/composer \
+             "$(command -v composer 2>/dev/null || true)" "$APP_PATH/composer.phar"; do
+        [ -n "$c" ] && [ -f "$c" ] && { echo "$c"; return 0; }
+    done
+    return 1
+}
+if ! COMPOSER="$(find_composer)"; then
+    log "Composer not found — downloading composer.phar (checksum verified)"
+    "$PHP" -r '
+        $phar = file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar");
+        $sum  = trim((string) file_get_contents("https://getcomposer.org/download/latest-stable/composer.phar.sha256"));
+        if ($phar === false || $sum === "" || !hash_equals(strtolower(substr($sum, 0, 64)), hash("sha256", $phar))) { fwrite(STDERR, "composer download/checksum failed\n"); exit(1); }
+        file_put_contents($argv[1], $phar);' "$APP_PATH/composer.phar"
+    COMPOSER="$APP_PATH/composer.phar"
+fi
+log "Composer install ($COMPOSER)"
+# Run Composer with the same PHP 8.4 binary (its own shebang may point at an older PHP).
+(cd "$APP_PATH" && "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist)
+
+# ── 7. Database: pending migrations, plus the reference data on the very first install ──────────────────────
 if grep -Eq '^DB_PASSWORD=(CHANGE_ME)?[[:space:]]*$' "$ENV_FILE"; then
     warn "Database credentials are not set yet in $ENV_FILE.
     1. cPanel → MySQL® Databases: create database + user (ALL PRIVILEGES).
@@ -188,7 +199,7 @@ else
     fi
 fi
 
-# ── 7. Health report (informational) ───────────────────────────────────────────────────────────────────────
+# ── 8. Health report (informational) ───────────────────────────────────────────────────────────────────────
 log "app:check"
 "$PHP" "$APP_PATH/bin/console" app:check || warn "app:check reported problems — see above (cron and mail warnings are expected until they are set up)."
 
