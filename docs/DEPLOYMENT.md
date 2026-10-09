@@ -291,7 +291,7 @@ find "$DEST" -name '*-????-??-01_*' -mtime +365 -delete
 
 ## 8. Log rotation
 
-- The app writes daily files `storage/logs/app-YYYY-MM-DD.log` and keeps 30. Monolog rotates them; no logrotate
+- The app writes daily files `storage/logs/app-YYYY-MM-DD.log` and keeps 30. The app's own logger (`App\Core\Logger`) rotates them; no logrotate
   is needed.
 - Logs never contain full Aadhaar numbers, passwords or tokens. A redaction processor masks them even when a
   developer logs them by mistake.
@@ -506,6 +506,13 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
 
 ### Notes
 
+- **"Declaration of Monolog\Logger::emergency(...) must be compatible with PsrExt\Log\LoggerInterface"**: the host
+  loads the `psr` PHP extension (common on CloudLinux *Select PHP Version*), which defines the old psr/log 1.x
+  interfaces and overrides `vendor/psr`. Fixed in the code: the app no longer uses Monolog, and its own logger fits
+  every psr/log version. Unticking `psr` under *Select PHP Version → Extensions* is harmless but not needed.
+- **HTTP 500 with no details** (`APP_DEBUG=false` hides them): read `/home/shooting/apps/commune/storage/logs/app-<date>.log`
+  and the PHP `error_log` file in `public_html/commune.kdiscmis.org.in/`. After switching PHP versions, check that the
+  extensions in §1 are still ticked for the new version.
 - **Nothing was deployed?** Check `/home/shooting/commune-deploy.log` (File Manager, home directory). No log at all
   means the tasks never ran: *Deploy HEAD Commit* was not clicked, the clone has local changes, or the clone is on a
   branch without `.cpanel.yml`. Files are copied before any PHP step, so a PHP version or extension problem still

@@ -218,7 +218,10 @@ to `DatabaseSeeder::run()`. Run one: `php bin/console db:seed --class=ThingSeede
 - Only published `layout_versions` count for inventory/availability.
 - Uploads (KYC) go through `DocumentStore` into `storage/uploads/kyc/{customer_id}/` (config `app.uploads_path`) and
   are streamed by an authorised controller with `Response::file()` + `DocumentStore::FILE_CSP`.
-- Logging: `logger()->info('Booking {no} approved', ['no' => $no])` → `storage/logs/app-YYYY-MM-DD.log`.
+- Logging: `App\Core\Logger` (own PSR-3 logger, no Monolog — shared hosts load the `psr` PHP extension whose psr/log 1.x
+  interfaces override vendor/psr; keep logger signatures untyped `$message` + `: void`, and do not add libraries that
+  implement PSR interfaces with typed signatures). Tests capture records with `Logger::listen()` (`Tests\Support\LogRecorder`).
+  `logger()->info('Booking {no} approved', ['no' => $no])` → `storage/logs/app-YYYY-MM-DD.log`.
 
 ## Visitors, accounts & KYC (batch 2)
 
