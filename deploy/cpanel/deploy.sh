@@ -12,7 +12,7 @@
 #
 # Steps: sync code + bundled PHP libraries (deploy/vendor → vendor/) → storage dirs → .env (first deploy only)
 #        → publish web root   (plain file copies, no PHP or Composer needed)
-#        → find PHP 8.2+ (newest first) → (composer only if there is no bundle) → migrate (+ first seed) → app:check.
+#        → find a PHP 8.2+ with all extensions → (composer only if there is no bundle) → migrate (+ first seed) → app:check.
 # Safe to re-run; never touches .env, storage/ or uploaded photos after the first deploy.
 # Everything is also appended to ~/commune-deploy.log (cPanel's own log: ~/.cpanel/logs/vc_*_git_deploy.log).
 #
@@ -166,26 +166,47 @@ if [ -e "$WEB_ROOT/media/uploads" ] && [ ! -L "$WEB_ROOT/media/uploads" ]; then
 fi
 ln -sfn "$APP_PATH/public/media/uploads" "$WEB_ROOT/media/uploads"
 
-# ── 5. PHP 8.2+ (newest first; cPanel EasyApache / CloudLinux paths before /usr/local/bin/php, often older) ─
+# ── 5. PHP 8.2+ for the command-line steps (migrations, seed, app:check) ─────────────────────────────────────
+# The first candidate that is PHP 8.2+ AND has every required extension wins. Order matters on CloudLinux:
+# the plain `php` (/usr/local/bin/php) is the version picked in cPanel → "Select PHP Version" WITH the extensions
+# ticked there, whereas /opt/alt/phpXX/usr/bin/php called directly loads almost no extensions.
+REQUIRED_EXT='["pdo_mysql","sodium","mbstring","intl","gd","zip","fileinfo","dom","xml","xmlreader","xmlwriter","simplexml","zlib","iconv","ctype","openssl"]'
+PHP_REPORT=""
+php_missing() { # prints the missing extensions ("" = all present); fails if not runnable / older than 8.2
+    "$1" -r 'if (PHP_VERSION_ID < 80200) { exit(3); } $m = []; foreach (json_decode($argv[1], true) as $e) { if (!extension_loaded($e)) { $m[] = $e; } } echo implode(" ", $m);' "$REQUIRED_EXT" 2>/dev/null
+}
 find_php() {
-    local c
-    for c in "${PHP_BIN:-}" \
+    local c seen=" " ver miss
+    for c in "${PHP_BIN:-}" "$(command -v php 2>/dev/null || true)" /usr/local/bin/php /usr/bin/php \
              /opt/cpanel/ea-php85/root/usr/bin/php /opt/cpanel/ea-php84/root/usr/bin/php \
-             /opt/alt/php85/usr/bin/php /opt/alt/php84/usr/bin/php \
              /opt/cpanel/ea-php83/root/usr/bin/php /opt/cpanel/ea-php82/root/usr/bin/php \
-             /opt/alt/php83/usr/bin/php /opt/alt/php82/usr/bin/php \
-             /usr/local/bin/php /usr/bin/php "$(command -v php 2>/dev/null || true)"; do
+             /opt/alt/php85/usr/bin/php /opt/alt/php84/usr/bin/php /opt/alt/php83/usr/bin/php /opt/alt/php82/usr/bin/php; do
         [ -n "$c" ] && [ -x "$c" ] || continue
-        if "$c" -r 'exit(PHP_VERSION_ID >= 80200 ? 0 : 1);' >/dev/null 2>&1; then echo "$c"; return 0; fi
+        case "$seen" in *" $c "*) continue;; esac
+        seen="$seen$c "
+        ver="$("$c" -r 'echo PHP_VERSION;' 2>/dev/null || echo '?')"
+        if miss="$(php_missing "$c")"; then
+            if [ -z "$miss" ]; then echo "$c"; return 0; fi
+            PHP_REPORT="$PHP_REPORT
+      $c ($ver): missing $miss"
+        else
+            PHP_REPORT="$PHP_REPORT
+      $c ($ver): older than 8.2 or not runnable"
+        fi
     done
     return 1
 }
-PHP="$(find_php)" || die "Files are published, but PHP 8.2 or newer was not found for the remaining steps (composer, migrations).
-    Install ea-php82+ (WHM → EasyApache 4) or alt-php82+ (CloudLinux), or add PHP_BIN=/path/to/php to .cpanel.yml."
+if ! PHP="$(find_php)"; then
+    find_php >/dev/null || true   # (re)collect the report in this shell — $(…) ran in a subshell
+    die "Files are published, but no PHP 8.2+ with all required extensions was found for the remaining steps
+    (migrations, first seed). PHPs checked:$PHP_REPORT
+    Fix: cPanel → Select PHP Version (or MultiPHP Manager) → choose 8.4 → Extensions: tick sodium, mbstring, intl, gd, zip,
+    fileinfo, dom, xmlreader, xmlwriter, pdo_mysql/nd_pdo_mysql, mysqlnd — then deploy again.
+    Or put the right binary in .cpanel.yml:  - export PHP_BIN=/path/to/php
+    (If you created the tables with deploy/sql/install.sql in phpMyAdmin, the site can already work; only this
+    deploy step is skipped.)"
+fi
 log "PHP: $PHP ($("$PHP" -r 'echo PHP_VERSION;'))"
-
-missing="$("$PHP" -r '$m=[]; foreach (["pdo_mysql","sodium","mbstring","intl","gd","zip","fileinfo","dom","xml","xmlreader","xmlwriter","simplexml","zlib","iconv","ctype","openssl"] as $e) { if (!extension_loaded($e)) $m[]=$e; } echo implode(" ", $m);')"
-[ -z "$missing" ] || die "Files are published, but PHP extensions are missing for $PHP: $missing (WHM → EasyApache 4 → PHP Extensions, e.g. ea-php84-php-intl)"
 
 # ── 6. Composer — only when there is no bundle ─────────────────────────────────────────────────────────────
 if [ "$VENDOR_BUNDLED" = "1" ]; then

@@ -516,6 +516,11 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
   loads the `psr` PHP extension (common on CloudLinux *Select PHP Version*), which defines the old psr/log 1.x
   interfaces and overrides `vendor/psr`. Fixed in the code: the app no longer uses Monolog, and its own logger fits
   every psr/log version. Unticking `psr` under *Select PHP Version → Extensions* is harmless but not needed.
+- **"PHP extensions are missing for /opt/alt/php85/usr/bin/php"** (CloudLinux): the `/opt/alt/phpXX` binaries load
+  almost no extensions when called directly. The deploy now uses the first PHP 8.2+ that has every extension, trying
+  plain `php` first — on CloudLinux that is the version and extension set chosen in *Select PHP Version*. If it still
+  fails, the log lists each PHP it tried and what is missing: tick those extensions, or set `export PHP_BIN=…` in
+  `.cpanel.yml`.
 - **HTTP 500 with no details** (`APP_DEBUG=false` hides them): read `/home/shooting/apps/commune/storage/logs/app-<date>.log`
   and the PHP `error_log` file in `public_html/commune.kdiscmis.org.in/`. After switching PHP versions, check that the
   extensions in §1 are still ticked for the new version.
