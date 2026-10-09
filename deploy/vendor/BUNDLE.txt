@@ -1,2 +1,2 @@
-Production Composer dependencies for composer.lock content-hash 3085f49b88599283ac0737677d3035bc
+Production Composer dependencies for composer.lock content-hash ec4ca8622d2b28954489d26c7b31ad37
 Rebuild with bin/build-vendor-bundle.sh — do not edit by hand.

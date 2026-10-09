@@ -3,7 +3,7 @@
 Guide for anyone (human or AI agent) extending this codebase. **Read `docs/PROJECT_OVERVIEW.md` first** — it is the
 product spec (sections are referenced below as "spec §N").
 
-Plain PHP 8.4 + MySQL 8.4 + Tailwind CSS v4 + Alpine.js. No framework: a small in-house micro-framework lives in
+Plain PHP (runs on **8.2+**, 8.4 recommended) + MySQL 8.4 + Tailwind CSS v4 + Alpine.js. No framework: a small in-house micro-framework lives in
 `app/Core`. Keep it small, explicit and boring.
 
 ## Quick start (local)
@@ -26,6 +26,11 @@ mysql -e "CREATE DATABASE commune CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 
 Seeded staff logins (password `Password@123`): `reception@commune.test`, `manager@commune.test`,
 `finance@commune.test`, `stateadmin@commune.test`.
+
+PHP 8.2 compatibility: production is shared cPanel hosting on PHP 8.2, so do not use PHP 8.3/8.4-only features
+(typed class constants, `#[\Override]`, property hooks, asymmetric visibility, `new X()->m()`, `array_find()`,
+`json_validate()`, `mb_trim()`…). `composer.json` pins `config.platform.php` to 8.2.0 so Composer only picks
+8.2-compatible packages; check code with PHPStan `phpVersion: 80200`.
 
 Dependencies: production libraries are also committed as `deploy/vendor/` for cPanel (no Composer on shared
 hosting, see docs/DEPLOYMENT.md §13). After any `composer require/update`, run `bin/build-vendor-bundle.sh` and commit

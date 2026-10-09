@@ -2,7 +2,7 @@
 
 K-DISC · Commune "Work Near Home" · **Kottarakara** centre.
 
-A PHP 8.4 / MySQL 8.4 / Tailwind CSS v4 web application with a public website + visitor portal and a staff console
+A PHP 8.2+ (8.4 recommended) / MySQL 8.4 / Tailwind CSS v4 web application with a public website + visitor portal and a staff console
 for running the workspace (registrations & KYC, visual seat booking, payments, GST invoices, dashboards).
 
 - Product spec, open questions and the implemented defaults to confirm: [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)

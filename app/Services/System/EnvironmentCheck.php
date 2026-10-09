@@ -59,7 +59,12 @@ final class EnvironmentCheck
 
     private function php(): void
     {
-        $this->add('PHP', 'Version ' . PHP_VERSION, version_compare(PHP_VERSION, '8.4.0', '>=') ? 'ok' : 'fail', 'PHP 8.4 or newer is required');
+        $this->add(
+            'PHP',
+            'Version ' . PHP_VERSION,
+            version_compare(PHP_VERSION, '8.2.0', '<') ? 'fail' : (version_compare(PHP_VERSION, '8.4.0', '<') ? 'warn' : 'ok'),
+            version_compare(PHP_VERSION, '8.2.0', '<') ? 'PHP 8.2 or newer is required' : 'PHP 8.2+ supported; 8.4 recommended',
+        );
         $missing = array_values(array_filter(self::EXTENSIONS, static fn (string $e) => !extension_loaded($e)));
         $this->add('PHP', 'Extensions', $missing === [] ? 'ok' : 'fail', $missing === [] ? implode(', ', self::EXTENSIONS) : 'missing: ' . implode(', ', $missing));
         $opcache = extension_loaded('Zend OPcache');

@@ -1,5 +1,6 @@
 parameters:
     level: 6
+    phpVersion: 80200   # production runs PHP 8.2 (shared cPanel) — see CLAUDE.md
     paths:
         - app
         - database/seeds
