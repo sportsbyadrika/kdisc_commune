@@ -456,8 +456,8 @@ The production site is on shared cPanel hosting and is deployed through **cPanel
 | `/home/shooting/apps/commune` | The running app: code, `vendor/`, `storage/` (KYC documents, issued PDFs), `.env`. **Outside `public_html`**, so none of it can be downloaded. |
 | `/home/shooting/public_html/commune.kdiscmis.org.in` | The subdomain's document root. It only holds a two-line `index.php` that runs the app's front controller, the app's `.htaccess`, `assets/`, `media/` and a link `media/uploads → apps/commune/public/media/uploads` (layout photos). |
 
-What every deploy does: sync the code (rsync; `.env`, `storage/` and uploaded photos are never touched), create any
-missing `storage/` folders, `composer install --no-dev`, republish the web root (keeping cPanel's own MultiPHP block
+What every deploy does: sync the code (rsync; `.env`, `storage/` and uploaded photos are never touched), copy the
+bundled PHP libraries `deploy/vendor` to `vendor/` (no Composer needed), create any missing `storage/` folders, republish the web root (keeping cPanel's own MultiPHP block
 in `.htaccess`), run pending migrations, then print `php bin/console app:check`. On the very first deploy it also
 creates `.env` from `.env.production` with a fresh `APP_KEY`, and seeds the reference data once (marker file
 `storage/.seeded`). Production never gets the demo staff logins.
@@ -513,8 +513,12 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
   code goes to `/home/shooting/apps/commune` — that is intended.
 - To deploy somewhere else, change the three paths in `.cpanel.yml`. The script refuses unsafe paths (an app
   directory inside `public_html`, or a web root inside the app).
-- Composer: the script uses cPanel's `/opt/cpanel/composer/bin/composer` with PHP 8.4. If there is none, it downloads
-  `composer.phar` into the app directory and checks its SHA-256 first.
+- **No Composer on the server.** Shared hosting often can't run `composer install`, which shows up on the site as
+  "Dependencies missing". The production libraries are therefore committed, ready to use, in `deploy/vendor/` (about
+  27 MB, without tests or docs). Each deploy copies them to `apps/commune/vendor/`. After changing `composer.json` or
+  `composer.lock`, run `bin/build-vendor-bundle.sh` and commit `deploy/vendor`; `tests/Unit/VendorBundleTest` fails
+  until you do. Only if `deploy/vendor` is missing does the script fall back to Composer (cPanel's
+  `/opt/cpanel/composer/bin/composer`, or a downloaded `composer.phar` with its SHA-256 checked).
 - Backups (§7) on cPanel: include `/home/shooting/apps/commune/storage/uploads`, `storage/pdf` and
   `public/media/uploads` along with the database. cPanel's full-account backup covers all of them.
 - `DB_HOST=localhost` uses the MySQL socket. If it fails, uncomment `DB_SOCKET` with the server's socket path.
