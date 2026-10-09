@@ -1,0 +1,10 @@
+---
+# cPanel → Git™ Version Control → Manage → "Pull or Deploy" → "Deploy HEAD Commit" runs these tasks.
+# Everything happens in deploy/cpanel/deploy.sh (see the header there and docs/DEPLOYMENT.md §12).
+#
+#   repository : /home/shooting/repositories/kdisc_commune
+#   app        : /home/shooting/apps/commune                         (code, vendor/, storage/, .env — not web-served)
+#   web root   : /home/shooting/public_html/commune.kdiscmis.org.in  (index.php wrapper, .htaccess, assets/, media/)
+deployment:
+  tasks:
+    - REPO_PATH=/home/shooting/repositories/kdisc_commune APP_PATH=/home/shooting/apps/commune WEB_ROOT=/home/shooting/public_html/commune.kdiscmis.org.in /bin/bash /home/shooting/repositories/kdisc_commune/deploy/cpanel/deploy.sh
