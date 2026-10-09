@@ -25,7 +25,18 @@ HOME="${HOME:-$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)}"
 HOME="${HOME:-/home/$(id -un)}"
 export HOME PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}:/usr/local/bin:/usr/bin:/bin"
 DEPLOY_LOG="${DEPLOY_LOG:-$HOME/commune-deploy.log}"
-exec > >(tee -a "$DEPLOY_LOG") 2>&1
+# Log everything to DEPLOY_LOG too. cPanel runs tasks in jailshell/CageFS where /dev/fd is missing, so process
+# substitution (exec > >(tee …)) fails there — re-run this script through a plain pipe instead.
+if [ -z "${COMMUNE_DEPLOY_CHILD:-}" ]; then
+    export COMMUNE_DEPLOY_CHILD=1
+    if command -v tee >/dev/null 2>&1 && touch "$DEPLOY_LOG" 2>/dev/null; then
+        set +e
+        /bin/bash "${BASH_SOURCE[0]}" "$@" 2>&1 | tee -a "$DEPLOY_LOG"
+        status=${PIPESTATUS[0]}
+        exit "$status"
+    fi
+    exec /bin/bash "${BASH_SOURCE[0]}" "$@"
+fi
 printf '\n######## %s  deploy started by %s ########\n' "$(date '+%F %T')" "$(id -un)"
 
 REPO_PATH="${REPO_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
