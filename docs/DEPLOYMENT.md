@@ -123,11 +123,16 @@ A complete server block is in [`nginx.conf.example`](../nginx.conf.example). It 
 
 `public/.htaccess` does the following:
 
-- rewrites to `index.php`
+- rewrites everything that is not a real file to `index.php` (so `/` and folders never need `DirectoryIndex`)
 - 301-redirects `*.php` URLs to clean URLs
-- denies dotfiles and any other `.php`, `.sql`, `.log`, `.md` or `.sh` file
-- sets the long cache for `/assets/` and 7 days for `/media/`
-- applies `mod_deflate`
+- denies dotfiles (except `/.well-known/`) with a rewrite rule
+- sets a one-year cache for CSS/JS/fonts and 7 days for images (mod_headers, optional)
+- applies `mod_deflate` (optional)
+
+It deliberately uses **only mod_rewrite** (AllowOverride FileInfo): no `Options`, `Require`, `<If>` or
+`DirectoryIndex`. Hardened shared hosts (cPanel with symlink protection) answer *every* request with HTTP 500 when an
+`.htaccess` contains such a line ("Option MultiViews not allowed here"). Tested against Apache 2.4 with
+`AllowOverride All`, the cPanel hardened `Options=` list, `FileInfo AuthConfig Limit` and `FileInfo` only.
 
 Enable the modules first: `a2enmod rewrite headers deflate proxy_fcgi http2 ssl`.
 
@@ -516,9 +521,22 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
   loads the `psr` PHP extension (common on CloudLinux *Select PHP Version*), which defines the old psr/log 1.x
   interfaces and overrides `vendor/psr`. Fixed in the code: the app no longer uses Monolog, and its own logger fits
   every psr/log version. Unticking `psr` under *Select PHP Version → Extensions* is harmless but not needed.
+- **"PHP extensions are missing for /opt/alt/php85/usr/bin/php"** (CloudLinux): the `/opt/alt/phpXX` binaries load
+  almost no extensions when called directly. The deploy now uses the first PHP 8.2+ that has every extension, trying
+  plain `php` first — on CloudLinux that is the version and extension set chosen in *Select PHP Version*. If it still
+  fails, the log lists each PHP it tried and what is missing: tick those extensions, or set `export PHP_BIN=…` in
+  `.cpanel.yml`.
 - **HTTP 500 with no details** (`APP_DEBUG=false` hides them): read `/home/shooting/apps/commune/storage/logs/app-<date>.log`
   and the PHP `error_log` file in `public_html/commune.kdiscmis.org.in/`. After switching PHP versions, check that the
   extensions in §1 are still ticked for the new version.
+- **HTTP 500 on every page, even images, and nothing in PHP's error_log**: the web server rejected a line in
+  `.htaccess` before PHP ran (cPanel → *Metrics → Errors* shows e.g. "Option MultiViews not allowed here"). The
+  current `public/.htaccess` avoids all such directives; deploy again to publish it.
+- **Self-check page:** each deploy publishes `https://<domain>/diagnose.php`, usable for **30 minutes** (then 404). It
+  checks PHP version and extensions, the app folder and libraries, `.env` parsing, writable folders, `APP_KEY`, the
+  database connection, tables and seed data, staff logins and whether the home page renders — with the reason for
+  every ✗. It shows no passwords or keys. Start-up crashes are also written to
+  `/home/shooting/apps/commune/storage/logs/boot-error.log` (and shown on the page when `APP_DEBUG=true`).
 - **Nothing was deployed?** Check `/home/shooting/commune-deploy.log` (File Manager, home directory). No log at all
   means the tasks never ran: *Deploy HEAD Commit* was not clicked, the clone has local changes, or the clone is on a
   branch without `.cpanel.yml`. Files are copied before any PHP step, so a PHP version or extension problem still
