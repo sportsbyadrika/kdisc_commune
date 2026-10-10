@@ -142,6 +142,10 @@ mv -f "$WEB_ROOT/.htaccess.new" "$WEB_ROOT/.htaccess"
 
 cp -f "$APP_PATH/public/favicon.svg" "$WEB_ROOT/favicon.svg"
 
+# Self-check page: https://<domain>/diagnose.php works for 30 minutes after each deploy (its file time), then 404.
+sed "s|__APP_PATH__|${APP_PATH}|" "$APP_PATH/deploy/cpanel/diagnose.php" > "$WEB_ROOT/diagnose.php.new"
+mv -f "$WEB_ROOT/diagnose.php.new" "$WEB_ROOT/diagnose.php"
+
 # Static assets (built CSS/JS, vendored libraries) and the committed media placeholders.
 copy_dir() { # copy_dir SRC DEST [exclude…]
     local src="$1" dest="$2"; shift 2
@@ -267,6 +271,7 @@ cat <<EOF
 
 ==> Deployed $(cd "$REPO_PATH" && git rev-parse --short HEAD 2>/dev/null || echo '?') to https://commune.kdiscmis.org.in
     App: $APP_PATH    Web root: $WEB_ROOT
+    Self-check (next 30 minutes): https://commune.kdiscmis.org.in/diagnose.php
 
     Cron jobs (cPanel → Cron Jobs), if not added yet:
     */15 * * * *  cd $APP_PATH && $PHP bin/console bookings:tick   >> storage/logs/cron.log 2>&1
