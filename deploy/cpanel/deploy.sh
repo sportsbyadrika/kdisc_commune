@@ -16,7 +16,7 @@
 # Safe to re-run; never touches .env, storage/ or uploaded photos after the first deploy.
 # Everything is also appended to ~/commune-deploy.log (cPanel's own log: ~/.cpanel/logs/vc_*_git_deploy.log).
 #
-# Overrides (environment): REPO_PATH, APP_PATH, WEB_ROOT, PHP_BIN, COMPOSER_BIN, SKIP_MIGRATE=1, DEPLOY_LOG
+# Overrides (environment): REPO_PATH, APP_PATH, WEB_ROOT, PREVIOUS_APP_PATH, PHP_BIN, COMPOSER_BIN, SKIP_MIGRATE=1, DEPLOY_LOG
 
 set -Eeuo pipefail
 umask 022
@@ -57,12 +57,20 @@ for p in "$REPO_PATH" "$APP_PATH" "$WEB_ROOT"; do
 done
 [ -f "$REPO_PATH/composer.json" ] && [ -f "$REPO_PATH/public/index.php" ] || die "REPO_PATH does not look like the Commune repository: $REPO_PATH"
 case "$WEB_ROOT/" in "$APP_PATH/"*) die "WEB_ROOT must not be inside APP_PATH";; esac
-case "$APP_PATH/" in "$HOME/public_html/"*) die "APP_PATH must be outside public_html (it holds .env, KYC documents and PDFs)";; esac
+# APP_PATH holds .env, KYC documents and PDFs. It may sit inside public_html ONLY as a hidden folder directly in the web
+# root (e.g. <web root>/.app): the web root .htaccess refuses every dot-path and the folder gets its own deny-all
+# .htaccess. Use that on hosts where Git deploy tasks and the web server see different home folders (CloudLinux).
+APP_IN_WEB_ROOT=0
+case "$APP_PATH/" in
+    "$WEB_ROOT/."*/) case "${APP_PATH#"$WEB_ROOT"/}" in .well-known*|*/*) die "APP_PATH inside the web root must be one hidden folder, e.g. $WEB_ROOT/.app";; esac
+                     APP_IN_WEB_ROOT=1;;
+    "$HOME/public_html/"*) die "APP_PATH must be outside public_html, or a hidden folder in the web root such as $WEB_ROOT/.app (it holds .env, KYC documents and PDFs)";;
+esac
 
 # ── 1. Sync code into APP_PATH ─────────────────────────────────────────────────────────────────────────────
 log "Syncing code: $REPO_PATH → $APP_PATH"
 mkdir -p "$APP_PATH"
-EXCLUDES=(/.git/ /.github/ /.env /vendor/ /deploy/vendor/ /node_modules/ /storage/ /public/media/uploads/ /tests/ /.phpunit.cache/ /.phpunit.result.cache)
+EXCLUDES=(/.git/ /.github/ /.env /.htaccess /index.html /vendor/ /deploy/vendor/ /node_modules/ /storage/ /public/media/uploads/ /tests/ /.phpunit.cache/ /.phpunit.result.cache)
 if command -v rsync >/dev/null 2>&1; then
     args=(-a --delete)
     for e in "${EXCLUDES[@]}"; do args+=(--exclude "$e"); done
@@ -91,6 +99,21 @@ if [ -f "$REPO_PATH/deploy/vendor/autoload.php" ]; then
     VENDOR_BUNDLED=1
 fi
 
+# Deny-all guard for an app folder inside the web root (second, independent lock after the web root's dot-path rule).
+if [ "$APP_IN_WEB_ROOT" = "1" ]; then
+    cat > "$APP_PATH/.htaccess" <<'HTACCESS'
+# Commune application folder — never served. (The web root .htaccess also refuses every /.something path.)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [F,L]
+</IfModule>
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+HTACCESS
+    printf '' > "$APP_PATH/index.html"
+fi
+
 # ── 2. Writable directories (never synced, never deleted) ──────────────────────────────────────────────────
 log "Preparing storage/"
 for d in storage/logs storage/sessions storage/cache storage/uploads/kyc storage/pdf storage/exports storage/mail \
@@ -103,6 +126,12 @@ chmod 700 "$APP_PATH/storage/imports"
 # ── 3. .env — created once from the template, then left alone ──────────────────────────────────────────────
 ENV_FILE="$APP_PATH/.env"
 FIRST_ENV=0
+# Moving the app folder (e.g. to <web root>/.app)? Carry over the .env from the previous location (same APP_KEY).
+if [ ! -f "$ENV_FILE" ] && [ -n "${PREVIOUS_APP_PATH:-}" ] && [ -f "$PREVIOUS_APP_PATH/.env" ]; then
+    log "Copying .env from the previous app folder $PREVIOUS_APP_PATH"
+    cp "$PREVIOUS_APP_PATH/.env" "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+fi
 if [ ! -f "$ENV_FILE" ]; then
     log "Creating $ENV_FILE from .env.production"
     cp "$REPO_PATH/.env.production" "$ENV_FILE"

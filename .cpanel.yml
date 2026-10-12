@@ -6,12 +6,17 @@
 # Output: cPanel's log ~/.cpanel/logs/vc_*_git_deploy.log, and /home/shooting/commune-deploy.log.
 #
 #   repository : /home/shooting/repositories/kdisc_commune
-#   app        : /home/shooting/apps/commune                         (code, vendor/, storage/, .env — not web-served)
-#   web root   : /home/shooting/public_html/commune.kdiscmis.org.in  (index.php wrapper, .htaccess, assets/, media/)
+#   web root   : /home/shooting/public_html/commune.kdiscmis.org.in       (index.php wrapper, .htaccess, assets/, media/)
+#   app        : /home/shooting/public_html/commune.kdiscmis.org.in/.app  (code, vendor/, storage/, .env)
+#                A hidden folder inside the web root, because on this host the web server cannot see folders that Git
+#                deploy creates outside public_html. It is never served: the web root .htaccess refuses every
+#                /.something path and .app has its own deny-all .htaccess.
+#   previous app folder (its .env is copied over once): /home/shooting/apps/commune
 deployment:
   tasks:
     - export REPO_PATH=/home/shooting/repositories/kdisc_commune
-    - export APP_PATH=/home/shooting/apps/commune
     - export WEB_ROOT=/home/shooting/public_html/commune.kdiscmis.org.in
+    - export APP_PATH=/home/shooting/public_html/commune.kdiscmis.org.in/.app
+    - export PREVIOUS_APP_PATH=/home/shooting/apps/commune
     - export HOME=/home/shooting
     - /bin/bash /home/shooting/repositories/kdisc_commune/deploy/cpanel/deploy.sh
