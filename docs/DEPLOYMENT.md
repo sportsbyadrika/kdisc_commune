@@ -537,6 +537,10 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
   database connection, tables and seed data, staff logins and whether the home page renders — with the reason for
   every ✗. It shows no passwords or keys. Start-up crashes are also written to
   `/home/shooting/apps/commune/storage/logs/boot-error.log` (and shown on the page when `APP_DEBUG=true`).
+- **Self-check says "App folder missing" although the deploy wrote it**: on CloudLinux/LiteSpeed the web server's PHP runs
+  in CageFS and may see the home folder under another absolute path than the deploy. The web root's `index.php`,
+  `diagnose.php` and the `media/uploads` link therefore locate the app **relative** to the web root
+  (`../../apps/commune`), falling back to the absolute path; the self-check lists the paths it tried.
 - **Nothing was deployed?** Check `/home/shooting/commune-deploy.log` (File Manager, home directory). No log at all
   means the tasks never ran: *Deploy HEAD Commit* was not clicked, the clone has local changes, or the clone is on a
   branch without `.cpanel.yml`. Files are copied before any PHP step, so a PHP version or extension problem still

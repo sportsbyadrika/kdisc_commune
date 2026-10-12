@@ -8,8 +8,25 @@
  */
 declare(strict_types=1);
 
-const APP_PATH = '__APP_PATH__';      // replaced by deploy.sh
 const OPEN_MINUTES = 30;
+
+// The app folder, found the same way as the web root's index.php: relative to this file first (CloudLinux/CageFS may
+// show the home folder under another absolute path than the deploy used), then the deploy's absolute path.
+$home = function_exists('posix_getpwuid') ? (string) (posix_getpwuid(posix_geteuid())['dir'] ?? '') : '';
+$candidates = array_values(array_unique(array_filter([
+    __DIR__ . '/__APP_REL__',          // replaced by deploy.sh (relative to the web root)
+    '__APP_PATH__',                    // replaced by deploy.sh (absolute, as seen by the deploy)
+    $home !== '' ? $home . '/apps/commune' : '',
+    dirname(__DIR__, 2) . '/apps/commune',
+])));
+$found = '';
+foreach ($candidates as $c) {
+    if (is_file($c . '/public/index.php')) {
+        $found = (string) realpath($c);
+        break;
+    }
+}
+define('APP_PATH', $found !== '' ? $found : $candidates[0]);
 
 if (time() - (int) filemtime(__FILE__) > OPEN_MINUTES * 60) {
     http_response_code(404);
@@ -39,6 +56,15 @@ $ob = (string) ini_get('open_basedir');
 $add('open_basedir', $ob === '' || str_contains($ob, dirname(APP_PATH)) || str_contains($ob, APP_PATH), $ob === '' ? 'not set' : $ob);
 
 // 2. Files
+$where = 'web root: ' . (string) realpath(__DIR__) . "\nPHP user home: " . ($home !== '' ? $home : '?') . "\nHOME: " . (string) getenv('HOME');
+foreach ($candidates as $c) {
+    $where .= "\ntried " . $c . ' → ' . (is_file($c . '/public/index.php') ? 'FOUND' : (is_dir($c) ? 'folder exists, no public/index.php' : (is_dir(dirname($c)) ? 'not found (parent folder exists)' : 'not found')));
+}
+$add('Paths seen by the web server', $found !== '', $where);
+if ($found === '') {
+    $add('App folder', false, 'not visible to the web server — check in File Manager that apps/commune exists next to public_html, then Deploy HEAD Commit');
+    goto render;
+}
 $add('App folder ' . APP_PATH, is_dir(APP_PATH) && is_readable(APP_PATH . '/public/index.php'), is_dir(APP_PATH) ? '' : 'missing — run Deploy HEAD Commit');
 $add('Libraries (vendor/autoload.php)', is_file(APP_PATH . '/vendor/autoload.php'), 'copied from deploy/vendor on every deploy');
 $env = APP_PATH . '/.env';
@@ -100,6 +126,7 @@ if ($booted) {
     }
 }
 
+render:
 $bad = count(array_filter($rows, static fn ($r) => !$r[1]));
 ?><!doctype html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
