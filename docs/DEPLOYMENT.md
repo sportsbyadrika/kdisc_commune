@@ -537,6 +537,13 @@ Back up the database before a release that adds migrations (cPanel → *Backup* 
   database connection, tables and seed data, staff logins and whether the home page renders — with the reason for
   every ✗. It shows no passwords or keys. Start-up crashes are also written to
   `/home/shooting/apps/commune/storage/logs/boot-error.log` (and shown on the page when `APP_DEBUG=true`).
+- **App folder inside the web root (`.app`)**: on this host the web server could not see folders that Git deploy creates
+  outside `public_html` (the self-check showed `/home/shooting/apps` missing for the web PHP, while the deploy could
+  read it). `.cpanel.yml` therefore deploys the app to `<web root>/.app`. It is never served: the web root
+  `.htaccess` refuses every `/.something` path, and `.app/.htaccess` denies everything on its own (tested on Apache
+  2.4 with five AllowOverride variants, also through the main domain's folder: `.env`, KYC files, `composer.json`
+  and PHP sources all 403/500, never 200). `PREVIOUS_APP_PATH` copies the old `.env` over once. Edit
+  `.env` at `public_html/commune.kdiscmis.org.in/.app/.env` (File Manager → *Show Hidden Files*).
 - **Self-check says "App folder missing" although the deploy wrote it**: on CloudLinux/LiteSpeed the web server's PHP runs
   in CageFS and may see the home folder under another absolute path than the deploy. The web root's `index.php`,
   `diagnose.php` and the `media/uploads` link therefore locate the app **relative** to the web root
